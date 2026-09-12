@@ -1,7 +1,7 @@
 # Stack-chan Kit — Sales Site Design
 
 Date: 2026-09-12
-Status: Approved design, pending implementation plan
+Status: Built. Art direction revised 2026-09-12 after client review.
 
 ## 1. Purpose
 
@@ -92,43 +92,73 @@ Listed on the page exactly as follows, without prices:
 
 ## 6. Art direction
 
-Ink on paper, styled as a component datasheet. Deliberately not SaaS.
+Revised 2026-09-12 after review. The first direction (warm cream, vermilion,
+hairline broadsheet rules) was rejected as reading generic and dull. Reference
+supplied by the client: fanout.sh.
 
-- Ground: warm off-white #F4F1EA. Ink: near-black. Accent: vermilion #E4572E,
-  used sparingly, a nod to the project's Japanese origin.
-- Type: tight grotesk for headings, true monospace for every number, part number,
-  dimension and spec value.
-- Structure: hairline 1px rules and a visible baseline grid. No cards, no drop
-  shadows, no gradients, no glassmorphism, no pill-shaped everything, no purple.
-- Dark mode: full token parity. Palette defined on bare :root, redefined under
-  both prefers-color-scheme: dark and [data-theme="dark"].
+Bright, dimensional product launch.
 
-### Authored SVG graphics
-All graphics are hand-authored SVG. There is no photography.
+- Light ground #f7f8fa with white surfaces; saturated accents electric blue
+  #2f6bff, mint #00c08b, amber #ff9f1a, violet #6e56f8. Screen black #05080b
+  with an LCD glow #5bf0d4 used only inside a display.
+- Dark theme is a full parity palette, not an inversion afterthought. A toggle
+  in the nav persists the choice to localStorage; an inline script applies it
+  before first paint so the page never flashes the wrong theme. With no stored
+  choice the OS setting wins.
+- Type: Archivo for display at tight negative tracking; Silkscreen, a pixel
+  face, for badges, micro-labels and step numerals; IBM Plex Mono for every
+  spec, part number and measurement; IBM Plex Sans for body.
+- Depth is the medium: rounded cards, layered shadows, hover lift, spec chips
+  floating at slight rotations around the hero, a radial glow behind the robot.
 
-- G1 Exploded parts diagram: kit components laid out with leader lines to
-  labelled callouts carrying real part numbers.
-- G2 Dimensioned front elevation: assembled robot in engineering-drawing style
-  with measurement arrows.
-- G3 Servo sweep: animated two-axis pan/tilt arc. The arc spans 300 degrees
-  because the SCS0009 does; it is accurate, not decorative.
-- G4 Signal-flow schematic: USB -> FE-URT-1 -> RS485 bus -> servo driver ->
-  2x SCS0009, with the 5 V rail and decoupling shown.
+### Authored graphics
+No photography is authored. All illustration is hand-drawn SVG.
 
-Animation respects prefers-reduced-motion.
+- The hero robot, which tracks the pointer (see Signature).
+- One drawing per part in the box, eleven in total, recognisable at thumbnail
+  size beside its designator.
+- Servo travel dial spanning a true 300 degrees.
+- Signal-flow schematic: USB to FE-URT-1 to RS485 bus to driver board to both
+  servos, with the 5 V rail shown separately.
+- A marquee ticker of real part numbers, which doubles as the visual rhythm a
+  logo wall would normally provide without fabricating any logos.
+
+### Signature
+The hero is the robot watching the visitor's cursor. Head yaws and pitches on
+CSS perspective while the base stays fixed, eyes translate within the display,
+it blinks on a randomised interval and drifts gently when the pointer is idle.
+Live pan and tilt angles print beside it in monospace. The product demonstrates
+its own specification rather than asserting it.
+
+## 6a. Trust
+
+Trust is earned only with true statements. Permitted: real part numbers and
+specifications, open-source provenance and licence, honest dispatch and payment
+terms, a real FAQ, and clearly-marked slots awaiting the client's own photo and
+video.
+
+Forbidden, and absent from the build: invented review quotes, fabricated
+"N people online" or backer counters, customer or institution logos the seller
+does not have, and any statistic without a source.
+
+Each capability card names the component that provides it, so a reader can
+check the claim against the bill of materials.
 
 ## 7. Page structure
 
-1. Hero. Product name, one-line positioning, price block (16,999 struck through,
-   11,999 live), "ships in 1-2 weeks", primary CTA to the reserve block. G2 sits
-   alongside.
-2. In the box. G1 plus the section 5 list. Contents only, no prices.
-3. Brain. CoreS3 Lite spec table from section 4, monospace and dense.
-4. Motion. G3, servo travel, serial-bus addressing.
-5. Hackable. Moddable SDK / JavaScript, open firmware, G4. Upstream credit and
-   link, naming Apache-2.0.
-6. Reserve. The form.
-7. Footer. Attribution, shipping terms, contact, privacy note for stored emails.
+1. Announcement bar — batch, dispatch window, saving.
+2. Sticky nav — section links, price, theme toggle, Reserve.
+3. Hero — badge, headline, price block, two CTAs, four honest figures, and the
+   pointer-tracking robot with floating spec chips.
+4. Part-number marquee.
+5. Demo video — media slot at 16:9.
+6. What it does — six capability cards, each citing its component.
+7. In the box — eleven illustrated part cards, plus a flat-lay photo slot.
+8. Specifications — CoreS3 Lite and SCS0009 tables, plus the travel dial.
+9. How you build it — four ordered steps, then the signal-flow schematic.
+10. FAQ — six answers, native details/summary.
+11. Reserve — the form and an order-summary card.
+12. Footer — attribution, contact, email-storage note.
 
 ## 8. Data flow
 

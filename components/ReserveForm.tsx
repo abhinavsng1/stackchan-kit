@@ -16,12 +16,14 @@ export default function ReserveForm() {
 
   if (state.kind === 'reserved' || state.kind === 'already') {
     return (
-      <div className="border border-[var(--ink)] p-7 bg-[var(--paper-2)]" role="status">
-        <div className="t-anno">{state.kind === 'reserved' ? 'Reserved' : 'Already reserved'}</div>
-        <p className="t-display text-[26px] mt-2 mb-3">
+      <div className="card p-8" role="status">
+        <span className="badge badge-brand"><span className="dot" />
+          {state.kind === 'reserved' ? 'Reserved' : 'Already reserved'}
+        </span>
+        <p className="t-display text-[30px] mt-4 mb-3">
           {state.kind === 'reserved' ? "You're on the list." : "You're already on the list."}
         </p>
-        <p className="max-w-[46ch] text-[var(--ink-soft)] m-0">
+        <p className="max-w-[46ch] text-[var(--muted)] m-0">
           We'll email you when your kit ships. Reserving costs nothing and commits you to nothing —
           you pay when we confirm your batch.
         </p>
@@ -81,7 +83,7 @@ export default function ReserveForm() {
         <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} />
         <Field name="city" label="City" autoComplete="address-level2" error={errors.city} optional />
         <div>
-          <label htmlFor="qty" className="t-anno block mb-1.5">Kits</label>
+          <label htmlFor="qty" className="t-label block mb-2">Kits</label>
           <select id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
@@ -95,14 +97,14 @@ export default function ReserveForm() {
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-5">
-        <button type="submit" className="btn" disabled={busy}>
+        <button type="submit" className="btn btn-brand" disabled={busy}>
           {busy ? 'Reserving…' : 'Reserve a kit'}
         </button>
-        <p className="t-anno m-0">No payment now</p>
+        <p className="t-label m-0">No payment now</p>
       </div>
 
       {state.kind === 'error' && (
-        <p role="alert" className="t-data mt-5 mb-0 text-[13px] text-[var(--alert)]">
+        <p role="alert" className="t-mono mt-5 mb-0 text-[13px] text-[var(--danger)]">
           {state.message}
         </p>
       )}
@@ -118,7 +120,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="t-anno block mb-1.5">
+      <label htmlFor={name} className="t-label block mb-2">
         {label}{optional && <span className="opacity-60"> — optional</span>}
       </label>
       <input
@@ -131,7 +133,7 @@ function Field({
         aria-describedby={error ? `${name}-err` : undefined}
       />
       {error && (
-        <p id={`${name}-err`} className="t-data mt-1.5 mb-0 text-[11.5px] text-[var(--alert)]">
+        <p id={`${name}-err`} className="t-mono mt-1.5 mb-0 text-[11.5px] text-[var(--danger)]">
           {error}
         </p>
       )}

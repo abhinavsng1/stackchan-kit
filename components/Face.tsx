@@ -99,6 +99,9 @@ export default function Face() {
   return (
     <figure className="m-0 select-none">
       <div className="relative mx-auto w-full max-w-[400px]">
+        {/* the display bleeding light into the room */}
+        <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[26%] -translate-x-1/2 -translate-y-1/2 w-full aspect-square rounded-full"
+             style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--glow) 30%, transparent) 0%, transparent 62%)' }} />
         {/* --- head: the only part the pan servo turns --- */}
         <div style={{ perspective: '1000px' }}>
           <div
@@ -108,6 +111,9 @@ export default function Face() {
             <svg viewBox="0 0 260 188" className="w-full h-auto block" role="img"
                  aria-label="Stack-chan, a small desktop robot whose eyes follow your cursor">
               <defs>
+                <filter id="drop" x="-30%" y="-30%" width="160%" height="180%">
+                  <feDropShadow dx="0" dy="10" stdDeviation="9" floodColor="#0b0f14" floodOpacity="0.16" />
+                </filter>
                 <filter id="phosphor" x="-60%" y="-60%" width="220%" height="220%">
                   <feGaussianBlur stdDeviation="4.5" result="b" />
                   <feMerge>
@@ -118,8 +124,8 @@ export default function Face() {
               </defs>
 
               {/* 54 mm cube, square front face */}
-              <rect x="44" y="10" width="172" height="172" rx="13"
-                    fill="var(--paper-2)" stroke="var(--ink)" strokeWidth="2" />
+              <rect x="44" y="10" width="172" height="172" rx="13" filter="url(#drop)"
+                    fill="var(--surface-2)" stroke="var(--ink)" strokeWidth="2" />
 
               {/* corner fasteners — reads as a module, not a monitor */}
               {[[58, 24], [202, 24], [58, 168], [202, 168]].map(([cx, cy]) => (
@@ -149,26 +155,25 @@ export default function Face() {
         <svg viewBox="0 0 260 86" className="w-full h-auto block -mt-px" aria-hidden="true">
           <line x1="130" y1="0" x2="130" y2="8" stroke="var(--ink)" strokeWidth="1.8" />
           <g ref={hornRef}>
-            <circle cx="130" cy="22" r="16" fill="var(--paper-2)" stroke="var(--ink)" strokeWidth="1.8" />
+            <circle cx="130" cy="22" r="16" fill="var(--surface-2)" stroke="var(--ink)" strokeWidth="1.8" />
             <line x1="130" y1="22" x2="130" y2="9" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" />
           </g>
           <circle cx="130" cy="22" r="3" fill="var(--ink)" />
           <rect x="88" y="40" width="84" height="34" rx="4"
-                fill="var(--paper-2)" stroke="var(--ink)" strokeWidth="1.8" />
-          <line x1="100" y1="51" x2="160" y2="51" stroke="var(--rule)" strokeWidth="1.2" />
-          <line x1="100" y1="59" x2="140" y2="59" stroke="var(--rule)" strokeWidth="1.2" />
+                fill="var(--surface-2)" stroke="var(--ink)" strokeWidth="1.8" />
+          <line x1="100" y1="51" x2="160" y2="51" stroke="var(--line)" strokeWidth="1.2" />
+          <line x1="100" y1="59" x2="140" y2="59" stroke="var(--line)" strokeWidth="1.2" />
           <rect x="70" y="74" width="120" height="10" rx="2"
-                fill="var(--paper-2)" stroke="var(--ink)" strokeWidth="1.8" />
+                fill="var(--surface-2)" stroke="var(--ink)" strokeWidth="1.8" />
         </svg>
       </div>
 
-      <figcaption className="mt-7 flex flex-wrap items-end justify-center gap-x-9 gap-y-3">
-        <Readout label="Pan / M1"  ref_={panOut} />
-        <Readout label="Tilt / M2" ref_={tiltOut} />
-        <div>
-          <div className="t-anno">Travel</div>
-          <div className="t-data text-[17px] tabular-nums">300.0°</div>
-        </div>
+      <figcaption className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+        <Readout label="Pan M1"  ref_={panOut} />
+        <Readout label="Tilt M2" ref_={tiltOut} />
+        <span className="float t-mono text-[13px] flex items-center gap-2">
+          <span className="t-label">Travel</span>300.0°
+        </span>
       </figcaption>
     </figure>
   )
@@ -181,9 +186,9 @@ function fmt(v: number) {
 
 function Readout({ label, ref_ }: { label: string; ref_: React.RefObject<HTMLSpanElement | null> }) {
   return (
-    <div>
-      <div className="t-anno">{label}</div>
-      <span ref={ref_} className="t-data text-[17px] tabular-nums">+00.0°</span>
-    </div>
+    <span className="float t-mono text-[13px] flex items-center gap-2">
+      <span className="t-label">{label}</span>
+      <span ref={ref_} className="tabular-nums">+00.0°</span>
+    </span>
   )
 }

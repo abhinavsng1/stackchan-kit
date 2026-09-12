@@ -4,7 +4,7 @@
  */
 
 const L = { stroke: 'var(--ink)', strokeWidth: 1.6, fill: 'none' } as const
-const THIN = { stroke: 'var(--rule)', strokeWidth: 1, fill: 'none' } as const
+const THIN = { stroke: 'var(--line)', strokeWidth: 1, fill: 'none' } as const
 
 /** G1 — exploded assembly stack with leader lines to designators. */
 export function ExplodedStack() {
@@ -19,30 +19,30 @@ export function ExplodedStack() {
     <svg viewBox="0 0 420 320" className="w-full h-auto" role="img"
          aria-label="Exploded view of the kit: controller, shell, tilt servo, pan servo and driver board stacked on one assembly axis">
       {/* assembly axis */}
-      <line x1="120" y1="14" x2="120" y2="306" stroke="var(--rule)" strokeWidth="1" strokeDasharray="7 5" />
+      <line x1="120" y1="14" x2="120" y2="306" stroke="var(--line)" strokeWidth="1" strokeDasharray="7 5" />
 
       {/* U1 — controller cube */}
-      <rect x="76" y="12" width="88" height="58" rx="5" {...L} fill="var(--paper-2)" />
+      <rect x="76" y="12" width="88" height="58" rx="5" {...L} fill="var(--surface-2)" />
       <rect x="86" y="21" width="68" height="40" rx="2" fill="var(--screen)" />
       <circle cx="108" cy="38" r="5" fill="var(--glow)" />
       <circle cx="132" cy="38" r="5" fill="var(--glow)" />
 
       {/* H1 — shell */}
-      <path d="M80 112 L80 88 Q80 82 87 82 L153 82 Q160 82 160 88 L160 112" {...L} fill="var(--paper-2)" />
+      <path d="M80 112 L80 88 Q80 82 87 82 L153 82 Q160 82 160 88 L160 112" {...L} fill="var(--surface-2)" />
       <path d="M72 112 L168 112" {...L} />
 
       {/* M2 — tilt servo */}
-      <rect x="88" y="132" width="64" height="34" rx="2" {...L} fill="var(--paper-2)" />
+      <rect x="88" y="132" width="64" height="34" rx="2" {...L} fill="var(--surface-2)" />
       <circle cx="120" cy="149" r="10" {...L} />
       <line x1="120" y1="149" x2="120" y2="141" {...L} />
 
       {/* M1 — pan servo */}
-      <rect x="88" y="186" width="64" height="34" rx="2" {...L} fill="var(--paper-2)" />
+      <rect x="88" y="186" width="64" height="34" rx="2" {...L} fill="var(--surface-2)" />
       <circle cx="120" cy="203" r="10" {...L} />
       <line x1="120" y1="203" x2="128" y2="203" {...L} />
 
       {/* A1 — driver board with headers */}
-      <rect x="70" y="242" width="100" height="40" rx="2" {...L} fill="var(--paper-2)" />
+      <rect x="70" y="242" width="100" height="40" rx="2" {...L} fill="var(--surface-2)" />
       <g {...THIN}>
         <line x1="80" y1="252" x2="80" y2="272" />
         <line x1="88" y1="252" x2="88" y2="272" />
@@ -53,12 +53,12 @@ export function ExplodedStack() {
       {/* leader lines + designators */}
       {items.map(([y, d, label]) => (
         <g key={d}>
-          <line x1="176" y1={y} x2="248" y2={y} stroke="var(--rule)" strokeWidth="1" />
+          <line x1="176" y1={y} x2="248" y2={y} stroke="var(--line)" strokeWidth="1" />
           <circle cx="176" cy={y} r="2.4" fill="var(--ink)" />
           <text x="256" y={y - 3} fontFamily="var(--font-mono)" fontSize="11.5"
                 fontWeight="600" fill="var(--ink)" letterSpacing="0.06em">{d}</text>
           <text x="256" y={y + 11} fontFamily="var(--font-mono)" fontSize="10.5"
-                fill="var(--ink-soft)">{label}</text>
+                fill="var(--muted)">{label}</text>
         </g>
       ))}
     </svg>
@@ -81,7 +81,7 @@ export function ServoSweep() {
          aria-label="Servo travel diagram: 300 degrees of rotation from minus 150 to plus 150 degrees">
       {/* dead band — the 60° the servo cannot reach */}
       <path d={`M ${ex} ${ey} A ${r} ${r} 0 0 1 ${sx} ${sy}`}
-            stroke="var(--rule)" strokeWidth="1" strokeDasharray="4 4" fill="none" />
+            stroke="var(--line)" strokeWidth="1" strokeDasharray="4 4" fill="none" />
       {/* live travel */}
       <path d={`M ${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}`}
             stroke="var(--ink)" strokeWidth="2" fill="none" strokeLinecap="round" />
@@ -94,7 +94,7 @@ export function ServoSweep() {
           <g key={deg}>
             <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--ink)" strokeWidth="1.3" />
             <text x={tx} y={ty} textAnchor="middle" dominantBaseline="middle"
-                  fontFamily="var(--font-mono)" fontSize="10" fill="var(--ink-soft)">
+                  fontFamily="var(--font-mono)" fontSize="10" fill="var(--muted)">
               {deg > 0 ? `+${deg}` : deg}°
             </text>
           </g>
@@ -102,7 +102,7 @@ export function ServoSweep() {
       })}
 
       {/* hub + sweeping pointer */}
-      <circle cx={cx} cy={cy} r="17" {...L} fill="var(--paper-2)" />
+      <circle cx={cx} cy={cy} r="17" {...L} fill="var(--surface-2)" />
       <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: 'sweep 7s ease-in-out infinite alternate' }}>
         <line x1={cx} y1={cy} x2={cx} y2={cy - r + 16} stroke="var(--ink)" strokeWidth="2.4" strokeLinecap="round" />
         <circle cx={cx} cy={cy - r + 16} r="4" fill="var(--ink)" />
@@ -121,11 +121,11 @@ export function ServoSweep() {
 export function SignalFlow() {
   const box = (x: number, y: number, w: number, h: number, d: string, label: string) => (
     <g key={d}>
-      <rect x={x} y={y} width={w} height={h} rx="2" {...L} fill="var(--paper-2)" />
+      <rect x={x} y={y} width={w} height={h} rx="2" {...L} fill="var(--surface-2)" />
       <text x={x + w / 2} y={y + h / 2 - 5} textAnchor="middle" fontFamily="var(--font-mono)"
             fontSize="11.5" fontWeight="600" fill="var(--ink)">{d}</text>
       <text x={x + w / 2} y={y + h / 2 + 10} textAnchor="middle" fontFamily="var(--font-mono)"
-            fontSize="9.5" fill="var(--ink-soft)">{label}</text>
+            fontSize="9.5" fill="var(--muted)">{label}</text>
     </g>
   )
   const arrow = (x1: number, x2: number, y: number, key: string) => (
@@ -152,12 +152,12 @@ export function SignalFlow() {
       {box(486, 24, 92, 44, 'M1', 'pan servo')}
       {box(486, 102, 92, 44, 'M2', 'tilt servo')}
       <text x="398" y="78" textAnchor="middle" fontFamily="var(--font-mono)"
-            fontSize="9.5" fill="var(--ink-soft)">RS485</text>
+            fontSize="9.5" fill="var(--muted)">RS485</text>
 
       {/* 5 V rail */}
       {box(264, 150, 108, 44, 'PS1', '5 V 3 A')}
       <line x1="318" y1="150" x2="318" y2="108" stroke="var(--ink)" strokeWidth="1.4" strokeDasharray="5 4" />
-      <text x="380" y="176" fontFamily="var(--font-mono)" fontSize="9.5" fill="var(--ink-soft)">
+      <text x="380" y="176" fontFamily="var(--font-mono)" fontSize="9.5" fill="var(--muted)">
         servo rail — kept off the controller
       </text>
     </svg>

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google'
+import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono, Silkscreen } from 'next/font/google'
 import './globals.css'
 
 const archivo = Archivo({
@@ -23,16 +23,32 @@ const plexMono = IBM_Plex_Mono({
   display: 'swap',
 })
 
+const silkscreen = Silkscreen({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-silkscreen',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
-  title: 'Stack-chan Kit — a desktop robot you actually build',
+  title: 'Stack-chan Kit — the desktop robot you build yourself',
   description:
     'A complete build kit for Stack-chan: M5Stack CoreS3 Lite, two SCS0009 bus servos, driver board, programmer, printed shell and fasteners. Ships in 1–2 weeks.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${archivo.variable} ${plexSans.variable} ${plexMono.variable}`}>
-      <body>{children}</body>
+    <html lang="en" className={`${archivo.variable} ${plexSans.variable} ${plexMono.variable} ${silkscreen.variable}`}>
+      <body>
+        {/* Apply the stored theme before first paint so the page never flashes
+            the wrong one. No stored choice means the OS setting wins. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   )
 }
