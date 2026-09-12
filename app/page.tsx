@@ -308,7 +308,10 @@ export default function Page() {
                 The things people ask first
               </h2>
               <p className="text-[var(--muted)] mt-0 mb-0 max-w-[38ch]">
-                Something not covered here? Write to us — a person answers.
+                Something not covered here?{' '}
+                <a href={`mailto:${CONTACT.email}`}
+                   className="text-[var(--ink)] underline underline-offset-4">Write to us</a>
+                {' '}— a person answers.
               </p>
             </div>
 
@@ -377,7 +380,10 @@ export default function Page() {
               Pebble<span className="text-[var(--brand)]">·</span>chan
             </div>
             <p className="t-mono text-[13px] m-0">{CONTACT.entity}</p>
-            <p className="t-mono text-[13px] mt-1 mb-0">{CONTACT.email}</p>
+            <a href={`mailto:${CONTACT.email}`}
+               className="t-mono text-[13px] mt-1 mb-0 inline-block text-[var(--ink)] underline underline-offset-4">
+              {CONTACT.email}
+            </a>
           </div>
           <div>
             <div className="t-label mb-3">Attribution</div>

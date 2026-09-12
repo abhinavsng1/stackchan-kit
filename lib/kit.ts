@@ -174,8 +174,7 @@ export const PRICE = {
   ship: 'Ships in 1–2 weeks',
 } as const
 
-/** Replace before launch. */
 export const CONTACT = {
-  email: 'REPLACE-ME@example.com',
-  entity: 'REPLACE — SELLING ENTITY NAME',
+  email: 'support@pebblerobo.com',
+  entity: 'Pebble Robo',
 } as const

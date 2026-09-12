@@ -105,7 +105,6 @@ Funnel events: `Reserve CTA Clicked` → `Reserve Submitted` →
 
 ## Before launch
 
-- [ ] Replace `CONTACT.email` and `CONTACT.entity` in `lib/kit.ts`
 - [ ] Provision Neon and run `db/schema.sql`
 - [ ] Add Vercel BotID to the reserve route (honeypot is in place; BotID is not)
 - [ ] Set NEXT_PUBLIC_MIXPANEL_TOKEN in Vercel, then redeploy
