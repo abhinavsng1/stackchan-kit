@@ -22,7 +22,7 @@ The site builds and runs without a database; the reserve form returns a clear
 
 ```bash
 vercel integration add neon          # provisions DATABASE_URL
-vercel env pull .env.local
+vercel env pull .env.local --yes
 psql "$DATABASE_URL" -f db/schema.sql
 ```
 
