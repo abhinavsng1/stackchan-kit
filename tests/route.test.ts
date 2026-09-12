@@ -5,6 +5,16 @@ const isDuplicateError = (e: unknown) =>
   typeof e === 'object' && e !== null && 'code' in e && (e as { code?: string }).code === '23505'
 vi.mock('@/lib/preorders', () => ({ createPreorder, isDuplicateError }))
 
+const sendReservationEmail = vi.fn()
+vi.mock('@/lib/email', () => ({ sendReservationEmail }))
+
+// Capture background work so tests can wait for it deterministically.
+const bg = vi.hoisted(() => ({ jobs: [] as Promise<unknown>[] }))
+vi.mock('@vercel/functions', () => ({
+  waitUntil: (p: Promise<unknown>) => { bg.jobs.push(p) },
+}))
+const settleBackground = () => Promise.all(bg.jobs.splice(0))
+
 const { POST, GET } = await import('@/app/api/preorder/route')
 
 const body = {
@@ -28,6 +38,9 @@ function post(payload: unknown, raw?: string) {
 
 beforeEach(() => {
   createPreorder.mockReset()
+  sendReservationEmail.mockReset()
+  sendReservationEmail.mockResolvedValue({ ok: true, provider: 'resend', id: 'e_1' })
+  bg.jobs.length = 0
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
@@ -138,6 +151,72 @@ describe('POST /api/preorder', () => {
     createPreorder.mockRejectedValue(new Error('password authentication failed for user'))
     const json = await (await POST(post(body))).json()
     expect(JSON.stringify(json)).not.toContain('password')
+  })
+})
+
+describe('confirmation email', () => {
+  it('is sent to the address that reserved, once, on a new reservation', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    await POST(post(body))
+    await settleBackground()
+    expect(sendReservationEmail).toHaveBeenCalledOnce()
+    expect(sendReservationEmail.mock.calls[0][0].email).toBe('asha@example.com')
+  })
+
+  it('is not sent again to someone already on the list', async () => {
+    createPreorder.mockResolvedValue({ status: 'duplicate' })
+    const res = await POST(post(body))
+    await settleBackground()
+    expect(res.status).toBe(409)
+    expect(sendReservationEmail).not.toHaveBeenCalled()
+  })
+
+  it('is not sent when the database is unconfigured', async () => {
+    createPreorder.mockResolvedValue({ status: 'unconfigured' })
+    await POST(post(body))
+    await settleBackground()
+    expect(sendReservationEmail).not.toHaveBeenCalled()
+  })
+
+  it('is not sent to a bot that filled the honeypot', async () => {
+    await POST(post({ ...body, company: 'Acme' }))
+    await settleBackground()
+    expect(sendReservationEmail).not.toHaveBeenCalled()
+  })
+
+  it('does not make the visitor wait for the mail server', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+
+    // An email that never finishes. If the route awaited it, this test would
+    // hang rather than fail — which is exactly the bug worth catching.
+    let release!: () => void
+    sendReservationEmail.mockImplementation(
+      () => new Promise((resolve) => { release = () => resolve({ ok: true, provider: 'resend' }) }),
+    )
+
+    const res = await POST(post(body))
+    expect(res.status).toBe(201)
+    await expect(res.json()).resolves.toEqual({ status: 'created' })
+
+    release()
+    await settleBackground()
+  })
+
+  it('a failed email still leaves the visitor reserved', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    sendReservationEmail.mockResolvedValue({ ok: false, provider: 'smtp', reason: 'auth failed' })
+    const res = await POST(post(body))
+    await settleBackground()
+    expect(res.status).toBe(201)
+    await expect(res.json()).resolves.toEqual({ status: 'created' })
+  })
+
+  it('an email that throws cannot break the request', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    sendReservationEmail.mockRejectedValue(new Error('mail server on fire'))
+    const res = await POST(post(body))
+    await expect(settleBackground()).rejects.toThrow()
+    expect(res.status).toBe(201)
   })
 })
 

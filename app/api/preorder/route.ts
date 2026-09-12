@@ -1,11 +1,27 @@
 import { preorderSchema, fieldErrors } from '@/lib/schema'
 import { createPreorder, isDuplicateError } from '@/lib/preorders'
+import { sendReservationEmail } from '@/lib/email'
+import { waitUntil } from '@vercel/functions'
 
 /** Generous for four short fields, small enough to refuse junk outright. */
 const MAX_BODY_BYTES = 4096
 
 function json(body: unknown, status: number) {
   return Response.json(body, { status })
+}
+
+/**
+ * Run after the response has gone out, so the visitor never waits on a mail
+ * server. Outside Vercel there is no request context, so fall back to a
+ * detached promise — either way the reservation is already committed and an
+ * email failure cannot change what the caller was told.
+ */
+function afterResponse(work: Promise<unknown>) {
+  try {
+    waitUntil(work)
+  } catch {
+    void work.catch(() => {})
+  }
 }
 
 export async function POST(request: Request) {
@@ -46,6 +62,21 @@ export async function POST(request: Request) {
     if (outcome.status === 'unconfigured') {
       console.error('[preorder] DATABASE_URL is not set; reservation was not stored')
       return json({ error: 'Reservations are not open yet. Try again shortly.' }, 503)
+    }
+
+    // Only a genuinely new reservation gets a confirmation. Someone who
+    // submits twice already has one, and a second copy reads as a bug.
+    if (outcome.status === 'created') {
+      afterResponse(
+        sendReservationEmail(record).then((result) => {
+          if (!result.ok) {
+            // The reservation is safe in Postgres; this is a delivery problem.
+            console.error('[preorder] confirmation email not sent', {
+              provider: result.provider, reason: result.reason,
+            })
+          }
+        }),
+      )
     }
 
     // A duplicate is a success from the visitor's point of view: their email is
