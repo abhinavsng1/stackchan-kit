@@ -16,10 +16,11 @@ pnpm e2e          # browser: the reserve flow
 pnpm build
 ```
 
-## Before the reserve form can store anything
+## Database
 
-The site builds and runs without a database; the reserve form returns a clear
-"not open yet" message instead of pretending to succeed.
+Provisioned on Neon and live in production. The site still builds and runs
+without it — the reserve form returns a clear "not open yet" message rather than
+pretending to succeed.
 
 ```bash
 vercel integration add neon          # provisions DATABASE_URL
@@ -105,7 +106,6 @@ Funnel events: `Reserve CTA Clicked` → `Reserve Submitted` →
 
 ## Before launch
 
-- [ ] Provision Neon and run `db/schema.sql`
 - [ ] Add Vercel BotID to the reserve route (honeypot is in place; BotID is not)
 - [ ] Set NEXT_PUBLIC_MIXPANEL_TOKEN in Vercel, then redeploy
 - [ ] Confirm the 3D-printed shell is ready to ship with each kit
