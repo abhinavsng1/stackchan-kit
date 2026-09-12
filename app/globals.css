@@ -256,3 +256,33 @@ body {
   }
   .marquee-track { animation: none; }
 }
+
+/* ---------- capability tile animations ---------- */
+/* Each tile demonstrates its own claim, so the motion is the content. */
+
+.anim { transform-box: fill-box; transform-origin: center; }
+
+@keyframes blink-lid { 0%, 91%, 100% { transform: scaleY(1); } 94.5% { transform: scaleY(.06); } }
+.eye-blink { animation: blink-lid 4.2s ease-in-out infinite; }
+
+@keyframes glance { 0%, 100% { transform: translateX(-7px); } 50% { transform: translateX(7px); } }
+.eye-glance { animation: glance 5.6s ease-in-out infinite; }
+
+@keyframes head-sweep { 0%, 100% { transform: rotate(-36deg); } 50% { transform: rotate(36deg); } }
+.head-sweep { animation: head-sweep 4.4s cubic-bezier(.45,0,.55,1) infinite; }
+
+@keyframes reticle { 0%,100% { transform: translate(-16px,6px); } 33% { transform: translate(14px,-8px); } 66% { transform: translate(4px,10px); } }
+.reticle { animation: reticle 6s cubic-bezier(.45,0,.55,1) infinite; }
+
+@keyframes bar { 0%, 100% { transform: scaleY(.18); } 50% { transform: scaleY(1); } }
+.bar { transform-box: fill-box; transform-origin: bottom; animation: bar 1s ease-in-out infinite; }
+
+@keyframes ping { 0% { transform: scale(.35); opacity: 0; } 22% { opacity: .95; } 100% { transform: scale(1); opacity: 0; } }
+.ping { transform-box: fill-box; transform-origin: 50% 100%; animation: ping 2.6s ease-out infinite; }
+
+@keyframes caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.caret { animation: caret 1.05s step-end infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .eye-blink, .eye-glance, .head-sweep, .reticle, .bar, .ping, .caret { animation: none; }
+}

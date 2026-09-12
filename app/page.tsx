@@ -3,14 +3,11 @@ import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
 import MediaSlot from '@/components/MediaSlot'
 import PartArt from '@/components/PartArt'
+import Capabilities from '@/components/Capabilities'
 import { ServoSweep, SignalFlow } from '@/components/Diagrams'
 import {
-  PARTS, CAPABILITIES, BUILD_STEPS, CORE_SPECS, SERVO_SPECS, FAQS, PRICE, CONTACT,
+  PARTS, BUILD_STEPS, CORE_SPECS, SERVO_SPECS, FAQS, PRICE, CONTACT,
 } from '@/lib/kit'
-
-const TONE: Record<string, string> = {
-  brand: 'var(--brand)', mint: 'var(--mint)', amber: 'var(--amber)', violet: 'var(--violet)',
-}
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return <p className="t-label m-0 mb-3">{children}</p>
@@ -127,30 +124,19 @@ export default function Page() {
 
         {/* ================= WHAT IT DOES ================= */}
         <section id="does" className="wrap py-16 md:py-24 scroll-mt-20">
-          <div className="max-w-[620px]">
-            <Eyebrow>What it does</Eyebrow>
-            <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-              Not an ornament. It runs.
-            </h2>
-            <p className="text-[var(--muted)] mt-0 mb-0 max-w-[52ch]">
-              Every line below names the part that makes it work, so you can check
-              the claim against the bill of materials.
+          <div className="flex flex-wrap items-end justify-between gap-5 mb-10">
+            <div>
+              <Eyebrow>What it does</Eyebrow>
+              <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-0">
+                Not an ornament. It runs.
+              </h2>
+            </div>
+            <p className="t-mono text-[12.5px] text-[var(--muted)] m-0 max-w-[30ch]">
+              Every tile cites the part that provides it.
             </p>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mt-10">
-            {CAPABILITIES.map((c) => (
-              <article key={c.key} className="card card-lift p-6 flex flex-col">
-                <span aria-hidden="true" className="block w-9 h-1.5 rounded-full mb-5"
-                      style={{ background: TONE[c.tone] }} />
-                <h3 className="t-display text-[21px] mt-0 mb-2.5">{c.title}</h3>
-                <p className="text-[14.5px] text-[var(--muted)] mt-0 mb-5 flex-1">{c.body}</p>
-                <span className="t-mono text-[11.5px] pt-3.5 border-t" style={{ borderColor: 'var(--line)', color: TONE[c.tone] }}>
-                  {c.source}
-                </span>
-              </article>
-            ))}
-          </div>
+          <Capabilities />
         </section>
 
         {/* ================= IN THE BOX ================= */}
