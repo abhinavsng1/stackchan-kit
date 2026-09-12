@@ -1,4 +1,4 @@
-import Face from '@/components/Face'
+import Robot3D from '@/components/Robot3D'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
 import MediaSlot from '@/components/MediaSlot'
@@ -90,15 +90,15 @@ export default function Page() {
 
             {/* robot + floating spec chips */}
             <div className="relative order-1 lg:order-2">
-              <div className="floaty"><Face /></div>
+              <Robot3D />
 
               <div className="hidden sm:block absolute -left-2 top-[14%] float t-mono text-[12px] rotate-[-7deg]">
                 <div className="t-label mb-0.5">Display</div>320 × 240 IPS
               </div>
-              <div className="hidden sm:block absolute -right-1 top-[38%] float t-mono text-[12px] rotate-[6deg]">
+              <div className="hidden sm:block absolute -right-1 top-[42%] float t-mono text-[12px] rotate-[6deg]">
                 <div className="t-label mb-0.5">MCU</div>ESP32-S3
               </div>
-              <div className="hidden sm:block absolute left-[2%] bottom-[16%] float t-mono text-[12px] rotate-[4deg]">
+              <div className="hidden sm:block absolute left-[1%] bottom-[26%] float t-mono text-[12px] rotate-[4deg]">
                 <div className="t-label mb-0.5">Servos</div>2 × SCS0009
               </div>
             </div>

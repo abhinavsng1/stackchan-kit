@@ -28,6 +28,39 @@ psql "$DATABASE_URL" -f db/schema.sql
 
 `DATABASE_URL` is server-side only. Never expose it through `NEXT_PUBLIC_*`.
 
+## The 3D hero
+
+The hero robot is the real thing: `public/model/*.glb` is converted straight
+from the STLs that print the shell, so the proportions on screen are the
+proportions in the box. The CoreS3 is modelled to its published
+54 x 54 x 16.5 mm and the screen is a true 4:3.
+
+Regenerate the models from source STLs:
+
+```bash
+python3 - <<'EOF'
+import trimesh, os, glob
+SRC = "path/to/stl"; OUT = "public/model"
+for p in glob.glob(os.path.join(SRC, "*.stl")):
+    m = trimesh.load(p, force='mesh'); m.merge_vertices()
+    m.apply_translation(-m.bounds.mean(axis=0))
+    m.export(os.path.join(OUT, os.path.basename(p)[:-4] + ".glb"))
+EOF
+```
+
+It is not free, so it is not forced on anyone:
+
+| Visitor | Payload |
+|---|---|
+| Desktop, 3D | ~1,354 KB |
+| Phone, before opting in | ~419 KB |
+| Reduced motion or Save-Data | ~419 KB, no 3D code fetched |
+
+- Desktop loads it directly. A phone gets the SVG drawing plus a
+  "View the 3D model (~1 MB)" button, so the data is the visitor's choice.
+- `prefers-reduced-motion`, `Save-Data`, and missing WebGL all fall back to the
+  authored SVG robot, and none of the 3D code is fetched (asserted in `e2e/`).
+
 ## Analytics
 
 Mixpanel, with session replay and heatmaps, gated behind consent.
