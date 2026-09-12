@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useMemo, useEffect } from 'react'
+import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PRINTED, Printed, usePlaMaterial } from './parts'
@@ -62,30 +62,16 @@ function Panel() {
   const nextBlink = useRef(2200)
   const blinkUntil = useRef(0)
   const glow = useRef<THREE.PointLight>(null)
-  const holdUntil = useRef(0)
-
-  // The atlas below can put a face on the robot. It holds, then resumes.
-  useEffect(() => {
-    const onEmote = (e: Event) => {
-      const id = (e as CustomEvent<string>).detail
-      const i = FACES.findIndex((f) => f.id === id)
-      if (i < 0) return
-      idx.current = i
-      holdUntil.current = performance.now() + 9000
-    }
-    window.addEventListener('sc:emote', onEmote)
-    return () => window.removeEventListener('sc:emote', onEmote)
-  }, [])
 
   useFrame((state) => {
     const t = state.clock.elapsedTime * 1000
-    const face = FACES[idx.current]
 
-    if (t > nextSwap.current && performance.now() > holdUntil.current) {
+    if (t > nextSwap.current) {
       idx.current = (idx.current + 1) % FACES.length
       nextSwap.current = t + CYCLE_MS
       nextBlink.current = t + 900
     }
+    const face = FACES[idx.current]
     if (face.blinks && t > nextBlink.current && t > blinkUntil.current) {
       blinkUntil.current = t + 120
       nextBlink.current = t + 2400 + Math.random() * 3600

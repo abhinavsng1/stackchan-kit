@@ -1,10 +1,10 @@
+import Image from 'next/image'
 import Robot3D from '@/components/Robot3D'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
 import MediaSlot from '@/components/MediaSlot'
 import PartArt from '@/components/PartArt'
 import Capabilities from '@/components/Capabilities'
-import FaceAtlas from '@/components/FaceAtlas'
 import BuyBar from '@/components/BuyBar'
 import { TrackedLink, TrackedDetails, PrivacyChoiceButton } from '@/components/Tracked'
 import { EV } from '@/lib/events'
@@ -156,31 +156,6 @@ export default function Page() {
           <Capabilities />
         </section>
 
-        {/* ================= FACES ================= */}
-        <section id="faces" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
-          <div className="wrap">
-            <div className="flex flex-wrap items-end justify-between gap-5 mb-10">
-              <div className="max-w-[620px]">
-                <Eyebrow>Twelve faces</Eyebrow>
-                <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-                  It has moods, and they are real
-                </h2>
-                <p className="text-[var(--muted)] mt-0 mb-0 max-w-[52ch]">
-                  Every expression below is drawn at the panel&apos;s true 320 × 240 using the
-                  same coordinates the firmware uses. Tap one and the robot up top wears it.
-                </p>
-              </div>
-              <span className="badge"><span className="dot" />Flashed and verified on the device</span>
-            </div>
-
-            <FaceAtlas />
-
-            <p className="t-mono text-[12px] text-[var(--muted)] mt-6 mb-0">
-              Mood decays back to Neutral after 20 s. Error is set by the firmware and never decays.
-            </p>
-          </div>
-        </section>
-
         {/* ================= IN THE BOX ================= */}
         <section id="box" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--flatlay)' }}>
           <div className="wrap">
@@ -198,7 +173,20 @@ export default function Page() {
               <span className="badge"><span className="dot" />You assemble it — that is the point</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 mt-8 sm:mt-10">
+            <figure className="m-0 mt-8 sm:mt-10 rounded-2xl overflow-hidden border"
+                    style={{ borderColor: 'var(--line)' }}>
+              <Image
+                src="/kit-flatlay.webp"
+                alt="Everything in the kit laid out beside its box: the controller, a bus servo, the driver board, the USB programmer, the power supply and cable, the printed shell and brackets, servo horns, jumper and JST cables, capacitors, and the fasteners."
+                width={1672}
+                height={941}
+                sizes="(max-width: 1200px) 100vw, 1160px"
+                priority={false}
+                className="w-full h-auto block"
+              />
+            </figure>
+
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 mt-6 sm:mt-8">
               {PARTS.map((p) => (
                 <article key={p.desig} className="card card-lift p-3 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <div className="w-full h-[74px] sm:w-[86px] sm:h-auto shrink-0 rounded-xl p-1.5 sm:p-2 grid place-items-center overflow-hidden"
@@ -219,10 +207,6 @@ export default function Page() {
               ))}
             </div>
 
-            <div className="mt-6">
-              <MediaSlot ratio="21 / 9" label="Flat-lay photo of the opened box"
-                         note="Every part laid out on one surface — the shot that closes the sale." />
-            </div>
           </div>
         </section>
 

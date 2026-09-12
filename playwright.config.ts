@@ -1,15 +1,28 @@
 import { defineConfig } from '@playwright/test'
 
+/**
+ * Software WebGL is expensive. Running it in every worker starved the CPU and
+ * made unrelated specs time out, so only the 3D specs get SwiftShader; the rest
+ * run without it and exercise the SVG fallback, which is a real code path too.
+ */
+const SWIFTSHADER = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+
 export default defineConfig({
   testDir: './e2e',
-  use: {
-    baseURL: 'http://localhost:3000',
-    // Headless Chromium has no GPU; SwiftShader gives the 3D hero a real
-    // WebGL context so tests exercise it instead of the fallback.
-    launchOptions: {
-      args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  fullyParallel: true,
+  use: { baseURL: 'http://localhost:3000' },
+  projects: [
+    {
+      name: 'app',
+      testIgnore: /hero3d\.spec\.ts/,
     },
-  },
+    {
+      name: 'webgl',
+      testMatch: /hero3d\.spec\.ts/,
+      workers: 1,
+      use: { launchOptions: { args: SWIFTSHADER } },
+    },
+  ],
   webServer: {
     command: 'pnpm dev',
     url: 'http://localhost:3000',
