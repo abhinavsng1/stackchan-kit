@@ -13,7 +13,8 @@ export type PreorderRecord = {
 
 export type CreateResult =
   | { status: 'created' }
-  | { status: 'duplicate' }
+  /** Which field collided, so the visitor can be told something useful. */
+  | { status: 'duplicate'; field: 'email' | 'phone' }
   | { status: 'unconfigured' }
 
 /**
@@ -47,11 +48,22 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
     returning id
   `
 
-  return rows.length > 0 ? { status: 'created' } : { status: 'duplicate' }
+  // ON CONFLICT (email) swallows an email collision, so zero rows means email.
+  // A phone collision throws 23505 instead and is classified by the caller.
+  return rows.length > 0 ? { status: 'created' } : { status: 'duplicate', field: 'email' }
 }
 
-/** Postgres unique-violation, raised when the phone is already on the list. */
-export function isDuplicateError(e: unknown): boolean {
-  return typeof e === 'object' && e !== null && 'code' in e &&
-    (e as { code?: string }).code === '23505'
+/**
+ * Postgres unique-violation. Only the phone index can raise it — an email
+ * collision is absorbed by ON CONFLICT — but the constraint name is checked
+ * rather than assumed, so a future index cannot be silently mislabelled.
+ */
+export function duplicateField(e: unknown): 'email' | 'phone' | null {
+  if (typeof e !== 'object' || e === null || !('code' in e)) return null
+  const err = e as { code?: string; constraint?: string; message?: string }
+  if (err.code !== '23505') return null
+  const where = `${err.constraint ?? ''} ${err.message ?? ''}`
+  if (where.includes('phone')) return 'phone'
+  if (where.includes('email')) return 'email'
+  return 'phone'
 }

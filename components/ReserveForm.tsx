@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track } from '@/lib/analytics'
+import { CONTACT } from '@/lib/kit'
 
 type State =
   | { kind: 'idle' }
   | { kind: 'submitting' }
   | { kind: 'reserved' }
-  | { kind: 'already' }
+  | { kind: 'already'; field: 'email' | 'phone' }
   | { kind: 'error'; message: string }
 
 const EMPTY: Record<string, string> = {}
@@ -18,17 +19,35 @@ export default function ReserveForm() {
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
 
   if (state.kind === 'reserved' || state.kind === 'already') {
+    const byPhone = state.kind === 'already' && state.field === 'phone'
     return (
       <div className="card p-8" role="status">
         <span className="badge badge-brand"><span className="dot" />
           {state.kind === 'reserved' ? 'Reserved' : 'Already reserved'}
         </span>
+
         <p className="t-display text-[30px] mt-4 mb-3">
-          {state.kind === 'reserved' ? "You're on the list." : "You're already on the list."}
+          {state.kind === 'reserved'
+            ? "You're on the list."
+            : byPhone
+              ? 'That number is already reserved.'
+              : "You're already on the list."}
         </p>
-        <p className="max-w-[46ch] text-[var(--muted)] m-0">
-          We&apos;ll email you when your kit ships. Reserving costs nothing and commits you to nothing —
-          you pay when we confirm your batch.
+
+        <p className="max-w-[48ch] text-[var(--muted)] m-0">
+          {state.kind === 'reserved' ? (
+            <>Check your inbox — a confirmation is on its way. Reserving costs nothing and
+            commits you to nothing; you pay when we confirm your batch.</>
+          ) : byPhone ? (
+            <>We hold one reservation per person, and that phone number already has one —
+            under a different email address. To change the email or the address on it, write
+            to <a href={`mailto:${CONTACT.email}`}
+                  className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>{' '}
+            and we&apos;ll update it.</>
+          ) : (
+            <>That email is already reserved, so there is nothing more to do. We&apos;ll write to
+            you when your kit ships.</>
+          )}
         </p>
       </div>
     )
@@ -73,7 +92,11 @@ export default function ReserveForm() {
       const body = await res.json().catch(() => ({}))
 
       if (res.status === 201) { track(EV.reserveSucceeded); return setState({ kind: 'reserved' }) }
-      if (res.status === 409) { track(EV.reserveDuplicate); return setState({ kind: 'already' }) }
+      if (res.status === 409) {
+        const field = body.field === 'phone' ? 'phone' : 'email'
+        track(EV.reserveDuplicate, { field })
+        return setState({ kind: 'already', field })
+      }
       if (res.status === 400 && body.fields) {
         setErrors(body.fields)
         return setState({ kind: 'idle' })

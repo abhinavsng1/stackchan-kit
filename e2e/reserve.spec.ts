@@ -28,13 +28,31 @@ test('reserves a kit and confirms', async ({ page }) => {
 
 test('tells the visitor when their email is already reserved', async ({ page }) => {
   await page.route('**/api/preorder', (route) =>
-    route.fulfill({ status: 409, json: { status: 'duplicate' } }))
+    route.fulfill({ status: 409, json: { status: 'duplicate', field: 'email' } }))
 
   await page.goto('/#reserve')
   await fill(page)
   await page.getByRole('button', { name: 'Reserve a kit' }).click()
 
   await expect(page.getByText("You're already on the list.")).toBeVisible()
+})
+
+test('explains a reused phone instead of claiming the email is on the list', async ({ page }) => {
+  // A real person hit this: they reserved once, then filled the form again with
+  // a different email but the same number, and "you're already on the list"
+  // told them nothing useful.
+  await page.route('**/api/preorder', (route) =>
+    route.fulfill({ status: 409, json: { status: 'duplicate', field: 'phone' } }))
+
+  await page.goto('/#reserve')
+  await fill(page, 'a-different-address@example.com')
+  await page.getByRole('button', { name: 'Reserve a kit' }).click()
+
+  await expect(page.getByText('That number is already reserved.')).toBeVisible()
+  await expect(page.getByText(/one reservation per person/i)).toBeVisible()
+  await expect(page.locator('#reserve').getByRole('link', { name: 'support@pebblerobo.com' })).toBeVisible()
+  // It must not claim the email is the problem — the visitor knows it is new.
+  await expect(page.getByText("You're already on the list.")).toHaveCount(0)
 })
 
 test('shows a field error and never calls the server', async ({ page }) => {

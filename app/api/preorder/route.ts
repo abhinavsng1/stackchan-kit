@@ -1,5 +1,5 @@
 import { preorderSchema, fieldErrors } from '@/lib/schema'
-import { createPreorder, isDuplicateError } from '@/lib/preorders'
+import { createPreorder, duplicateField } from '@/lib/preorders'
 import { sendReservationEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 
@@ -79,13 +79,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // A duplicate is a success from the visitor's point of view: their email is
-    // on the list either way. Distinct status so the UI can word it honestly.
-    return json({ status: outcome.status }, outcome.status === 'created' ? 201 : 409)
+    if (outcome.status === 'created') return json({ status: 'created' }, 201)
+
+    // Tell them which detail was already taken. "You're already on the list"
+    // is confusing when they deliberately used a different email.
+    return json({ status: 'duplicate', field: outcome.field }, 409)
   } catch (error) {
-    // Phone is unique as well as email, so the second address someone uses
-    // trips a unique violation rather than the ON CONFLICT clause.
-    if (isDuplicateError(error)) return json({ status: 'duplicate' }, 409)
+    // Phone is unique as well as email, so a second reservation under a new
+    // address trips a unique violation rather than the ON CONFLICT clause.
+    const field = duplicateField(error)
+    if (field) return json({ status: 'duplicate', field }, 409)
     console.error('[preorder] insert failed', error)
     return json({ error: 'Something went wrong on our end. Try again.' }, 500)
   }

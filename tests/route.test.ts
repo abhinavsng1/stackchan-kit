@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const createPreorder = vi.fn()
-const isDuplicateError = (e: unknown) =>
-  typeof e === 'object' && e !== null && 'code' in e && (e as { code?: string }).code === '23505'
-vi.mock('@/lib/preorders', () => ({ createPreorder, isDuplicateError }))
+const duplicateField = (e: unknown): 'email' | 'phone' | null => {
+  if (typeof e !== 'object' || e === null || !('code' in e)) return null
+  const err = e as { code?: string; constraint?: string; message?: string }
+  if (err.code !== '23505') return null
+  return `${err.constraint ?? ''} ${err.message ?? ''}`.includes('email') ? 'email' : 'phone'
+}
+vi.mock('@/lib/preorders', () => ({ createPreorder, duplicateField }))
 
 const sendReservationEmail = vi.fn()
 vi.mock('@/lib/email', () => ({ sendReservationEmail }))
@@ -53,16 +57,27 @@ describe('POST /api/preorder', () => {
     expect(createPreorder).toHaveBeenCalledOnce()
   })
 
-  it('returns 409 when the email is already on the list', async () => {
-    createPreorder.mockResolvedValue({ status: 'duplicate' })
+  it('returns 409 naming the email when that address is already on the list', async () => {
+    createPreorder.mockResolvedValue({ status: 'duplicate', field: 'email' })
     const res = await POST(post(body))
     expect(res.status).toBe(409)
-    await expect(res.json()).resolves.toEqual({ status: 'duplicate' })
+    await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'email' })
+  })
+
+  it('returns 409 naming the phone when a new email reuses a taken number', async () => {
+    createPreorder.mockRejectedValue(Object.assign(new Error('duplicate key'), {
+      code: '23505', constraint: 'preorders_phone_key',
+    }))
+    const res = await POST(post(body))
+    expect(res.status).toBe(409)
+    // The visitor deliberately used a different email; saying "you are already
+    // on the list" without naming the phone is what confused a real person.
+    await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'phone' })
   })
 
   it('is idempotent — a replayed request creates nothing extra', async () => {
     createPreorder.mockResolvedValueOnce({ status: 'created' })
-    createPreorder.mockResolvedValueOnce({ status: 'duplicate' })
+    createPreorder.mockResolvedValueOnce({ status: 'duplicate', field: 'email' })
     expect((await POST(post(body))).status).toBe(201)
     expect((await POST(post(body))).status).toBe(409)
   })
@@ -118,7 +133,7 @@ describe('POST /api/preorder', () => {
     createPreorder.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }))
     const res = await POST(post(body))
     expect(res.status).toBe(409)
-    await expect(res.json()).resolves.toEqual({ status: 'duplicate' })
+    await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'phone' })
   })
 
   it('rejects an address that is missing', async () => {
@@ -164,7 +179,7 @@ describe('confirmation email', () => {
   })
 
   it('is not sent again to someone already on the list', async () => {
-    createPreorder.mockResolvedValue({ status: 'duplicate' })
+    createPreorder.mockResolvedValue({ status: 'duplicate', field: 'email' })
     const res = await POST(post(body))
     await settleBackground()
     expect(res.status).toBe(409)
