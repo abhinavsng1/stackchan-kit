@@ -63,7 +63,7 @@ export default function Nav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden sm:flex items-baseline gap-2">
+          <span className="hidden lg:flex items-baseline gap-2">
             <span className="t-mono text-[13px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
             <span className="t-display text-[18px]">{PRICE.now}</span>
           </span>
@@ -77,8 +77,20 @@ export default function Nav() {
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </span>
           </button>
-          <a href="#reserve" className="btn btn-brand !px-5 !py-2.5 !text-[14px]">Reserve</a>
+          <a href="#reserve" className="btn btn-brand !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex">Reserve</a>
         </div>
+      </div>
+
+      {/* the desktop nav is hidden below lg, so give phones a link strip */}
+      <div className="wrap lg:hidden">
+        <nav className="navstrip" aria-label="Sections">
+          {LINKS.map(([label, href]) => (
+            <a key={href} href={href}
+               className="text-[13.5px] whitespace-nowrap text-[var(--muted)] no-underline">
+              {label}
+            </a>
+          ))}
+        </nav>
       </div>
     </header>
   )

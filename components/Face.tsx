@@ -98,7 +98,7 @@ export default function Face() {
 
   return (
     <figure className="m-0 select-none">
-      <div className="relative mx-auto w-full max-w-[400px]">
+      <div className="relative mx-auto w-full max-w-[200px] sm:max-w-[300px] lg:max-w-[400px]">
         {/* the display bleeding light into the room */}
         <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-[26%] -translate-x-1/2 -translate-y-1/2 w-full aspect-square rounded-full"
              style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--glow) 30%, transparent) 0%, transparent 62%)' }} />
@@ -168,10 +168,10 @@ export default function Face() {
         </svg>
       </div>
 
-      <figcaption className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+      <figcaption className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center gap-2">
         <Readout label="Pan M1"  ref_={panOut} />
         <Readout label="Tilt M2" ref_={tiltOut} />
-        <span className="float t-mono text-[13px] flex items-center gap-2">
+        <span className="float t-mono text-[13px] hidden sm:flex items-center gap-2">
           <span className="t-label">Travel</span>300.0°
         </span>
       </figcaption>
@@ -186,7 +186,7 @@ function fmt(v: number) {
 
 function Readout({ label, ref_ }: { label: string; ref_: React.RefObject<HTMLSpanElement | null> }) {
   return (
-    <span className="float t-mono text-[13px] flex items-center gap-2">
+    <span className="float t-mono text-[12px] sm:text-[13px] !px-3 !py-2 flex items-center gap-1.5">
       <span className="t-label">{label}</span>
       <span ref={ref_} className="tabular-nums">+00.0°</span>
     </span>

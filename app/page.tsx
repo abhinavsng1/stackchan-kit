@@ -4,10 +4,23 @@ import ReserveForm from '@/components/ReserveForm'
 import MediaSlot from '@/components/MediaSlot'
 import PartArt from '@/components/PartArt'
 import Capabilities from '@/components/Capabilities'
+import BuyBar from '@/components/BuyBar'
 import { ServoSweep, SignalFlow } from '@/components/Diagrams'
 import {
   PARTS, BUILD_STEPS, CORE_SPECS, SERVO_SPECS, FAQS, PRICE, CONTACT,
 } from '@/lib/kit'
+
+function SpecRows({ rows }: { rows: { label: string; value: string }[] }) {
+  return (
+    <table className="spec-table">
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.label}><th scope="row">{r.label}</th><td>{r.value}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return <p className="t-label m-0 mb-3">{children}</p>
@@ -17,20 +30,21 @@ export default function Page() {
   return (
     <>
       {/* announcement */}
-      <div className="text-center text-[13px] py-2.5 px-4"
+      <div className="text-center text-[12.5px] sm:text-[13px] py-2.5 px-4 whitespace-nowrap overflow-hidden"
            style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
         <span className="t-pixel text-[10.5px] mr-2.5 opacity-70">Batch 01</span>
-        Now taking reservations · {PRICE.ship} · {PRICE.save}
+        <span className="hidden sm:inline">Now taking reservations · </span>
+        {PRICE.ship} · {PRICE.save}
       </div>
 
       <Nav />
 
       <main id="top">
         {/* ================= HERO ================= */}
-        <section className="wrap pt-12 pb-16 md:pt-16 md:pb-24">
-          <div className="grid gap-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16 items-center">
+        <section className="wrap pt-8 pb-12 md:pt-16 md:pb-24">
+          <div className="grid gap-9 lg:gap-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] items-center">
 
-            <div className="rise">
+            <div className="rise order-2 lg:order-1">
               <span className="badge badge-brand"><span className="dot" />Open source · Apache-2.0</span>
 
               <h1 className="t-display text-[clamp(40px,6.6vw,66px)] mt-5 mb-0">
@@ -38,13 +52,12 @@ export default function Page() {
                 <span className="t-pixel text-[clamp(26px,4.4vw,45px)] text-[var(--brand)]">yourself</span>
               </h1>
 
-              <p className="mt-6 mb-0 max-w-[46ch] text-[17px] text-[var(--muted)]">
-                Stack-chan looks at you, talks back and nods along — and every part
-                that makes it work is in one box, with the printed shell. Unbox it,
-                bolt it together, flash it, and change anything you like.
+              <p className="mt-5 mb-0 max-w-[46ch] text-[16px] sm:text-[17px] text-[var(--muted)]">
+                Stack-chan looks at you, talks back and nods along. Every part that
+                makes it work is in one box, printed shell included.
               </p>
 
-              <div className="mt-8 flex items-end gap-4 flex-wrap">
+              <div className="mt-7 flex items-end gap-4 flex-wrap">
                 <span className="t-display text-[clamp(40px,7vw,58px)] leading-none">{PRICE.now}</span>
                 <span className="t-mono text-[17px] text-[var(--muted)] line-through mb-1">{PRICE.mrp}</span>
                 <span className="badge mb-1.5" style={{ color: 'var(--mint)', borderColor: 'color-mix(in srgb, var(--mint) 40%, transparent)', background: 'color-mix(in srgb, var(--mint) 10%, var(--surface))' }}>
@@ -52,12 +65,12 @@ export default function Page() {
                 </span>
               </div>
 
-              <div className="mt-7 flex flex-wrap items-center gap-3">
-                <a href="#reserve" className="btn btn-brand">Reserve a kit →</a>
-                <a href="#does" className="btn btn-ghost">See what it does</a>
+              <div id="hero-cta" className="mt-7 flex flex-wrap items-center gap-3">
+                <a href="#reserve" className="btn btn-brand grow sm:grow-0 justify-center">Reserve a kit →</a>
+                <a href="#does" className="btn btn-ghost grow sm:grow-0 justify-center">See what it does</a>
               </div>
 
-              <ul className="mt-9 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4 list-none p-0 m-0">
+              <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-4 list-none p-0 m-0">
                 {[
                   ['1–2 wks', 'Dispatch'],
                   ['₹0', 'Due today'],
@@ -65,7 +78,7 @@ export default function Page() {
                   ['100%', 'Open source'],
                 ].map(([big, small]) => (
                   <li key={small}>
-                    <div className="t-display text-[21px]">{big}</div>
+                    <div className="t-display text-[17px] sm:text-[21px]">{big}</div>
                     <div className="t-label mt-0.5">{small}</div>
                   </li>
                 ))}
@@ -73,7 +86,7 @@ export default function Page() {
             </div>
 
             {/* robot + floating spec chips */}
-            <div className="relative">
+            <div className="relative order-1 lg:order-2">
               <div className="floaty"><Face /></div>
 
               <div className="hidden sm:block absolute -left-2 top-[14%] float t-mono text-[12px] rotate-[-7deg]">
@@ -106,7 +119,7 @@ export default function Page() {
         </div>
 
         {/* ================= VIDEO ================= */}
-        <section className="wrap py-16 md:py-24">
+        <section className="wrap py-12 md:py-24">
           <div className="max-w-[620px]">
             <Eyebrow>Watch it run</Eyebrow>
             <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
@@ -123,7 +136,7 @@ export default function Page() {
         </section>
 
         {/* ================= WHAT IT DOES ================= */}
-        <section id="does" className="wrap py-16 md:py-24 scroll-mt-20">
+        <section id="does" className="wrap py-12 md:py-24 scroll-mt-20">
           <div className="flex flex-wrap items-end justify-between gap-5 mb-10">
             <div>
               <Eyebrow>What it does</Eyebrow>
@@ -140,7 +153,7 @@ export default function Page() {
         </section>
 
         {/* ================= IN THE BOX ================= */}
-        <section id="box" className="py-16 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
+        <section id="box" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
           <div className="wrap">
             <div className="flex flex-wrap items-end justify-between gap-6 max-w-full">
               <div className="max-w-[620px]">
@@ -156,19 +169,20 @@ export default function Page() {
               <span className="badge"><span className="dot" />You assemble it — that is the point</span>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mt-10">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 mt-8 sm:mt-10">
               {PARTS.map((p) => (
-                <article key={p.desig} className="card card-lift p-5 flex gap-4">
-                  <div className="w-[86px] shrink-0 rounded-xl p-2" style={{ background: 'var(--surface-2)' }}>
-                    <PartArt kind={p.art} />
+                <article key={p.desig} className="card card-lift p-3 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <div className="w-full sm:w-[86px] shrink-0 rounded-xl p-1.5 sm:p-2 grid place-items-center"
+                       style={{ background: 'var(--surface-2)' }}>
+                    <div className="w-[74%] sm:w-full"><PartArt kind={p.art} /></div>
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="t-pixel text-[10px] text-[var(--brand)]">{p.desig}</span>
                       <span className="t-mono text-[11px] text-[var(--muted)]">{p.qty}</span>
                     </div>
-                    <h3 className="text-[15px] font-semibold mt-0 mb-1.5 leading-snug">{p.name}</h3>
-                    <p className="text-[13px] text-[var(--muted)] m-0">{p.note}</p>
+                    <h3 className="text-[13.5px] sm:text-[15px] font-semibold mt-0 mb-0 sm:mb-1.5 leading-snug">{p.name}</h3>
+                    <p className="hidden sm:block text-[13px] text-[var(--muted)] m-0">{p.note}</p>
                   </div>
                 </article>
               ))}
@@ -182,7 +196,7 @@ export default function Page() {
         </section>
 
         {/* ================= SPECS ================= */}
-        <section id="specs" className="wrap py-16 md:py-24 scroll-mt-20">
+        <section id="specs" className="wrap py-12 md:py-24 scroll-mt-20">
           <div className="max-w-[620px]">
             <Eyebrow>Specifications</Eyebrow>
             <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
@@ -196,18 +210,26 @@ export default function Page() {
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] mt-10">
             <div className="card overflow-hidden">
-              <div className="flex items-center gap-2.5 px-4 py-3.5 border-b" style={{ borderColor: 'var(--line)' }}>
-                <span className="t-pixel text-[10px] text-[var(--brand)]">U1</span>
-                <span className="text-[14px] font-semibold">M5Stack CoreS3 Lite</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="spec-table">
-                  <tbody>
-                    {CORE_SPECS.map((s) => (
-                      <tr key={s.label}><th scope="row">{s.label}</th><td>{s.value}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Phones get the datasheet folded away; it is 16 rows of detail
+                  that would otherwise be most of a screen of scrolling. */}
+              <details className="sm:hidden group">
+                <summary className="cursor-pointer list-none flex items-center gap-2.5 px-4 py-3.5">
+                  <span className="t-pixel text-[10px] text-[var(--brand)]">U1</span>
+                  <span className="text-[14px] font-semibold">M5Stack CoreS3 Lite</span>
+                  <span className="t-label ml-auto">{CORE_SPECS.length} specs</span>
+                  <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[16px] leading-none group-open:rotate-45 transition-transform">+</span>
+                </summary>
+                <div className="overflow-x-auto border-t" style={{ borderColor: 'var(--line)' }}>
+                  <SpecRows rows={CORE_SPECS} />
+                </div>
+              </details>
+
+              <div className="hidden sm:block">
+                <div className="flex items-center gap-2.5 px-4 py-3.5 border-b" style={{ borderColor: 'var(--line)' }}>
+                  <span className="t-pixel text-[10px] text-[var(--brand)]">U1</span>
+                  <span className="text-[14px] font-semibold">M5Stack CoreS3 Lite</span>
+                </div>
+                <div className="overflow-x-auto"><SpecRows rows={CORE_SPECS} /></div>
               </div>
             </div>
 
@@ -217,15 +239,9 @@ export default function Page() {
                   <span className="t-pixel text-[10px] text-[var(--mint)]">M1 · M2</span>
                   <span className="text-[14px] font-semibold">SCS0009 bus servo</span>
                 </div>
-                <table className="spec-table">
-                  <tbody>
-                    {SERVO_SPECS.map((s) => (
-                      <tr key={s.label}><th scope="row">{s.label}</th><td>{s.value}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
+                <SpecRows rows={SERVO_SPECS} />
               </div>
-              <div className="card p-5">
+              <div className="card p-5 hidden sm:block">
                 <div className="t-label mb-3">Travel</div>
                 <div className="max-w-[260px] mx-auto"><ServoSweep /></div>
               </div>
@@ -234,7 +250,7 @@ export default function Page() {
         </section>
 
         {/* ================= BUILD ================= */}
-        <section id="build" className="py-16 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
+        <section id="build" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
           <div className="wrap">
             <div className="max-w-[620px]">
               <Eyebrow>How you build it</Eyebrow>
@@ -247,14 +263,16 @@ export default function Page() {
               </p>
             </div>
 
-            <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 mt-10 list-none p-0">
+            <ol className="grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 mt-8 sm:mt-10 list-none p-0">
               {BUILD_STEPS.map((s) => (
-                <li key={s.n} className="card p-6">
-                  <span className="t-pixel text-[26px] text-[var(--brand)] leading-none">
+                <li key={s.n} className="card p-4 sm:p-6 flex sm:block gap-4">
+                  <span className="t-pixel text-[22px] sm:text-[26px] text-[var(--brand)] leading-none shrink-0">
                     {String(s.n).padStart(2, '0')}
                   </span>
-                  <h3 className="t-display text-[19px] mt-4 mb-2">{s.title}</h3>
-                  <p className="text-[14px] text-[var(--muted)] m-0">{s.body}</p>
+                  <div className="min-w-0">
+                    <h3 className="t-display text-[17px] sm:text-[19px] mt-0 sm:mt-4 mb-1.5 sm:mb-2">{s.title}</h3>
+                    <p className="text-[13.5px] sm:text-[14px] text-[var(--muted)] m-0">{s.body}</p>
+                  </div>
                 </li>
               ))}
             </ol>
@@ -267,7 +285,7 @@ export default function Page() {
         </section>
 
         {/* ================= FAQ ================= */}
-        <section id="faq" className="wrap py-16 md:py-24 scroll-mt-20">
+        <section id="faq" className="wrap py-12 md:py-24 scroll-mt-20">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
             <div>
               <Eyebrow>Questions</Eyebrow>
@@ -294,7 +312,7 @@ export default function Page() {
         </section>
 
         {/* ================= RESERVE ================= */}
-        <section id="reserve" className="py-16 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
+        <section id="reserve" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
           <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-16">
             <div>
               <Eyebrow>Reserve</Eyebrow>
@@ -336,7 +354,7 @@ export default function Page() {
       </main>
 
       {/* ================= FOOTER ================= */}
-      <footer className="border-t" style={{ borderColor: 'var(--line)' }}>
+      <footer className="border-t pb-24 lg:pb-0" style={{ borderColor: 'var(--line)' }}>
         <div className="wrap py-12 grid gap-9 md:grid-cols-3">
           <div>
             <div className="t-display text-[19px] tracking-[-0.04em] mb-3">
@@ -364,6 +382,8 @@ export default function Page() {
           </div>
         </div>
       </footer>
+
+      <BuyBar />
     </>
   )
 }

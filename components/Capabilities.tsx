@@ -43,7 +43,7 @@ function Caption({
 }
 
 /** Shared display surface for the tiles that render on-screen content. */
-function Screen({ children, h = 'h-[190px]' }: { children: React.ReactNode; h?: string }) {
+function Screen({ children, h = 'h-[150px] sm:h-[190px]' }: { children: React.ReactNode; h?: string }) {
   return (
     <div className={`relative ${h} grid place-items-center`} style={{ background: 'var(--screen)' }}>
       {children}
@@ -53,11 +53,12 @@ function Screen({ children, h = 'h-[190px]' }: { children: React.ReactNode; h?: 
 
 export default function Capabilities() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <>
+    <div className="rail">
 
       {/* ---- 1. FACE — the big one ---- */}
       <Tile className="sm:col-span-2">
-        <Screen h="h-[230px]">
+        <Screen h="h-[170px] sm:h-[230px]">
           <svg viewBox="0 0 320 190" className="h-full w-auto" aria-hidden="true">
             <g className="eye-glance">
               <g className="anim eye-blink">
@@ -81,7 +82,7 @@ export default function Capabilities() {
 
       {/* ---- 2. TURNS ---- */}
       <Tile>
-        <div className="relative h-[230px] grid place-items-center" style={{ background: 'var(--surface-2)' }}>
+        <div className="relative h-[170px] sm:h-[230px] grid place-items-center" style={{ background: 'var(--surface-2)' }}>
           <svg viewBox="0 0 200 180" className="h-full w-auto" aria-hidden="true">
             <path d="M 46 124 A 54 54 0 0 1 154 124" fill="none" stroke="var(--line)"
                   strokeWidth="2" strokeDasharray="4 5" />
@@ -147,7 +148,7 @@ export default function Capabilities() {
 
       {/* ---- 5. ONLINE ---- */}
       <Tile>
-        <div className="relative h-[190px] grid place-items-center" style={{ background: 'var(--surface-2)' }}>
+        <div className="relative h-[150px] sm:h-[190px] grid place-items-center" style={{ background: 'var(--surface-2)' }}>
           <svg viewBox="0 0 220 170" className="h-full w-auto" aria-hidden="true">
             {[0, 1, 2].map((i) => (
               <path key={`base-${i}`}
@@ -168,8 +169,11 @@ export default function Capabilities() {
                  chip="U1 · ESP32-S3" />
       </Tile>
 
-      {/* ---- 6. OPEN SOURCE — a real terminal, real URL ---- */}
-      <Tile dark className="sm:col-span-2 lg:col-span-3">
+    </div>
+
+    {/* ---- 6. OPEN SOURCE — full-width band, never a rail slide ---- */}
+    <div className="mt-5">
+      <Tile dark>
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-center p-6 md:p-8">
           <div>
             <h3 className="t-display text-[clamp(24px,3.4vw,34px)] m-0" style={{ color: '#fff' }}>
@@ -204,5 +208,6 @@ export default function Capabilities() {
         </div>
       </Tile>
     </div>
+    </>
   )
 }

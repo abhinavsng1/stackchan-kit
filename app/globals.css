@@ -231,7 +231,7 @@ body {
 /* ---------- spec table ---------- */
 
 .spec-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.spec-table th, .spec-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.spec-table th, .spec-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .spec-table th { font-family: var(--font-pixel), monospace; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; white-space: nowrap; width: 36%; }
 .spec-table td { font-family: var(--font-mono), monospace; font-size: 13px; }
 .spec-table tr:last-child th, .spec-table tr:last-child td { border-bottom: 0; }
@@ -286,3 +286,63 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .eye-blink, .eye-glance, .head-sweep, .reticle, .bar, .ping, .caret { animation: none; }
 }
+
+/* ---------- mobile patterns ---------- */
+
+/* Swipeable rails beat endless vertical stacking on a phone. */
+.rail {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* bleed to the screen edges so cards look swipeable */
+  margin-inline: -20px;
+  padding-inline: 20px;
+  padding-bottom: 4px;
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail > * { scroll-snap-align: start; flex: 0 0 84%; max-width: 330px; }
+
+@media (min-width: 640px) {
+  .rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    margin-inline: 0;
+    padding-inline: 0;
+    gap: 20px;
+  }
+  .rail > * { flex: initial; max-width: none; }
+}
+@media (min-width: 1024px) {
+  .rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Sticky buy bar — the phone equivalent of the desktop nav CTA. */
+.buybar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 60;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 97%, transparent);
+  backdrop-filter: saturate(180%) blur(16px);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 24px rgba(11, 15, 20, .10);
+  transform: translateY(110%);
+  transition: transform 260ms cubic-bezier(.2,.7,.3,1);
+}
+.buybar[data-show="true"] { transform: none; }
+@media (min-width: 1024px) { .buybar { display: none; } }
+
+/* Horizontally scrollable link strip, since the desktop nav is hidden. */
+.navstrip {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: -20px;
+  padding: 0 20px 10px;
+}
+.navstrip::-webkit-scrollbar { display: none; }
