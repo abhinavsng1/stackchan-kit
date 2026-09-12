@@ -24,7 +24,7 @@ function hasWebGL() {
 }
 
 export default function Robot3D() {
-  const [mode, setMode] = useState<'probing' | '3d' | 'svg' | 'offer'>('probing')
+  const [mode, setMode] = useState<'probing' | '3d' | 'svg'>('probing')
   const pointer = useRef({ x: 0, y: 0 })
   const panOut = useRef<HTMLSpanElement>(null)
   const tiltOut = useRef<HTMLSpanElement>(null)
@@ -34,12 +34,10 @@ export default function Robot3D() {
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } })
       .connection?.saveData === true
 
-    // A static drawing is the right answer when motion is unwelcome.
-    if (reduced || saveData || !hasWebGL()) { setMode('svg'); return }
-
-    // The 3D model costs roughly a megabyte. On a phone that is the visitor's
-    // data, so offer it rather than spending it for them.
-    setMode(window.innerWidth >= 1024 ? '3d' : 'offer')
+    // A static drawing is the right answer when motion is unwelcome, when the
+    // visitor has asked the browser to save data, or when there is no WebGL to
+    // render with. Everyone else gets the model, phones included.
+    setMode(reduced || saveData || !hasWebGL() ? 'svg' : '3d')
   }, [])
 
   useEffect(() => {
@@ -67,20 +65,6 @@ export default function Robot3D() {
       cancelAnimationFrame(frame)
     }
   }, [mode])
-
-  if (mode === 'offer') {
-    return (
-      <div>
-        <Face />
-        <div className="mt-4 flex justify-center">
-          <button type="button" onClick={() => setMode('3d')} className="btn btn-ghost !py-2.5 !text-[13px]">
-            View the 3D model
-            <span className="t-label">~1 MB</span>
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   if (mode !== '3d') return <Face />
 

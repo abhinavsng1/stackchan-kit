@@ -18,7 +18,6 @@ export default function Analytics() {
       path: window.location.pathname,
       referrer: document.referrer || null,
       viewport: window.innerWidth < 640 ? 'phone' : window.innerWidth < 1024 ? 'tablet' : 'desktop',
-      theme: document.documentElement.getAttribute('data-theme') ?? 'system',
     })
   }, [])
 

@@ -41,13 +41,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${archivo.variable} ${plexSans.variable} ${plexMono.variable} ${silkscreen.variable}`}>
       <body>
-        {/* Apply the stored theme before first paint so the page never flashes
-            the wrong one. No stored choice means the OS setting wins. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t)}}catch(e){}`,
-          }}
-        />
         {children}
         <Analytics />
       </body>

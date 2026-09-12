@@ -3,19 +3,6 @@ import { settleConsent } from './helpers'
 
 test.beforeEach(async ({ page }) => { await settleConsent(page) })
 
-test('theme toggle switches and survives a reload', async ({ page }) => {
-  await page.goto('/')
-  const root = page.locator('html')
-  const toggle = page.getByRole('button', { name: /Switch to (light|dark) theme/ })
-
-  await toggle.click()
-  const chosen = await root.getAttribute('data-theme')
-  expect(chosen).toMatch(/^(light|dark)$/)
-
-  await page.reload()
-  await expect(root).toHaveAttribute('data-theme', chosen!)
-})
-
 test('every section anchor the nav points at exists', async ({ page }) => {
   await page.goto('/')
   const hrefs = await page.locator('header nav a').evaluateAll((as) =>

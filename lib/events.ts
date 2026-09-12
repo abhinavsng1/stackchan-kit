@@ -9,6 +9,5 @@ export const EV = {
   reserveFailed: 'Reserve Failed',
   faqOpened: 'FAQ Opened',
   specsExpanded: 'Specs Expanded',
-  themeToggled: 'Theme Toggled',
   outboundClicked: 'Outbound Link Clicked',
 } as const

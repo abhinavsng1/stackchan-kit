@@ -18,19 +18,32 @@ test('the model is built from the real printed geometry', async ({ page }) => {
   expect(glb.join(' ')).toContain('shell_SCS0009')
 })
 
-test('a phone is offered the model rather than charged for it', async ({ page }) => {
+test('a phone gets the model too, with no extra tap', async ({ page }) => {
   const glb: string[] = []
   page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
 
-  await expect(page.getByRole('button', { name: /View the 3D model/ })).toBeVisible()
-  await expect(page.locator('canvas')).toHaveCount(0)
-  await page.waitForTimeout(1200)
-  expect(glb, 'no model bytes before the visitor asks').toEqual([])
+  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 20000 })
+  await expect.poll(() => glb.length, { timeout: 20000 }).toBeGreaterThan(0)
+  // The opt-in button is gone; nothing should be asking permission any more.
+  await expect(page.getByRole('button', { name: /View the 3D model/ })).toHaveCount(0)
+})
 
-  await page.getByRole('button', { name: /View the 3D model/ }).click()
-  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 15000 })
+test('Save-Data is still honoured, on a phone as much as anywhere', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  await ctx.addInitScript(() => {
+    Object.defineProperty(navigator, 'connection', { get: () => ({ saveData: true }) })
+    try { localStorage.setItem('sc-analytics-consent', 'denied') } catch {}
+  })
+  const page = await ctx.newPage()
+  const glb: string[] = []
+  page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
+  await page.goto('/')
+  await page.waitForTimeout(2500)
+  await expect(page.locator('canvas')).toHaveCount(0)
+  expect(glb, 'a visitor asking to save data pays nothing').toEqual([])
+  await ctx.close()
 })
 
 test.describe('reduced motion', () => {
@@ -42,7 +55,6 @@ test.describe('reduced motion', () => {
     await page.goto('/')
     await page.waitForTimeout(1500)
     await expect(page.locator('canvas')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /View the 3D model/ })).toHaveCount(0)
     expect(heavy, 'a visitor who asked for less motion pays nothing').toEqual([])
   })
 })

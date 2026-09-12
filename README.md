@@ -65,14 +65,15 @@ It is not free, so it is not forced on anyone:
 
 | Visitor | Payload |
 |---|---|
-| Desktop, 3D | ~1,354 KB |
-| Phone, before opting in | ~419 KB |
-| Reduced motion or Save-Data | ~419 KB, no 3D code fetched |
+| Anyone with WebGL, phone included | ~1,378 KB |
+| Reduced motion, Save-Data, or no WebGL | ~419 KB, no 3D code fetched |
 
-- Desktop loads it directly. A phone gets the SVG drawing plus a
-  "View the 3D model (~1 MB)" button, so the data is the visitor's choice.
-- `prefers-reduced-motion`, `Save-Data`, and missing WebGL all fall back to the
-  authored SVG robot, and none of the 3D code is fetched (asserted in `e2e/`).
+Everyone with WebGL gets the model, phones included — the hero is the product,
+so it loads without asking. Three signals still opt out, and all three are
+assertions the visitor has effectively made themselves:
+`prefers-reduced-motion`, the `Save-Data` header, and a browser without WebGL.
+Each falls back to the authored SVG robot and fetches none of the 3D code
+(asserted in `e2e/hero3d.spec.ts`).
 
 ## Analytics
 
