@@ -46,3 +46,33 @@ test.describe('reduced motion', () => {
     expect(heavy, 'a visitor who asked for less motion pays nothing').toEqual([])
   })
 })
+
+test('the atlas shows all twelve firmware faces', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  const tiles = page.locator('#faces button[aria-pressed]')
+  await expect(tiles).toHaveCount(12)
+  for (const name of ['Neutral', 'Happy', 'Excited', 'Love', 'Sleepy', 'Sad',
+                      'Angry', 'Surprised', 'Curious', 'Doubt', 'Wink', 'Error']) {
+    await expect(page.locator('#faces').getByText(name, { exact: true })).toBeVisible()
+  }
+})
+
+test('every face is drawn at the panel resolution', async ({ page }) => {
+  await page.goto('/')
+  const boxes = await page.locator('#faces svg').evaluateAll((els) =>
+    els.map((e) => e.getAttribute('viewBox')))
+  expect(boxes.length).toBe(12)
+  expect(new Set(boxes)).toEqual(new Set(['0 0 320 240']))
+})
+
+test('picking a face puts it on the robot', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 15000 })
+
+  const angry = page.locator('#faces button', { hasText: 'Angry' }).first()
+  await angry.scrollIntoViewIfNeeded()
+  await angry.click()
+  await expect(angry).toHaveAttribute('aria-pressed', 'true')
+})

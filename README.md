@@ -28,6 +28,19 @@ psql "$DATABASE_URL" -f db/schema.sql
 
 `DATABASE_URL` is server-side only. Never expose it through `NEXT_PUBLIC_*`.
 
+## The twelve faces
+
+`lib/faces.ts` transcribes the firmware's face atlas (stackchan-bench,
+`src/main.cpp`) — geometry, coordinates and colours, at the true panel size of
+320 x 240. The same module feeds two places, so the face on the 3D model and
+the face in the atlas are one drawing, not two interpretations:
+
+- `components/FaceAtlas.tsx` renders all twelve on the page. Clicking one
+  dispatches `sc:emote` and the hero robot wears it for nine seconds.
+- `components/robot3d/faceTexture.ts` turns the same SVG into the panel texture.
+
+If the firmware's table changes, change `lib/faces.ts` and both follow.
+
 ## The 3D hero
 
 The hero robot is the real thing: `public/model/*.glb` is converted straight

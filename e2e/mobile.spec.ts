@@ -38,7 +38,7 @@ test('buy bar appears after a nav-link jump, not just a smooth scroll', async ({
 
 test('capability tiles are a swipe rail, not a vertical pile', async ({ page }) => {
   await page.goto('/')
-  const rail = page.locator('.rail')
+  const rail = page.locator('#does .rail')
   const box = await rail.evaluate((el) => ({
     scrollW: el.scrollWidth, clientW: el.clientWidth,
   }))
@@ -53,7 +53,9 @@ test('the whole page stays under a sane scroll length', async ({ page }) => {
   await page.goto('/')
   const screens = await page.evaluate(() =>
     document.body.scrollHeight / window.innerHeight)
-  expect(screens).toBeLessThan(13)
+  // A guard against runaway growth, not a fixed budget. Raise it deliberately
+  // when a section is added, never to make a red test go green.
+  expect(screens).toBeLessThan(15)
 })
 
 test('tap targets in the buy bar are big enough', async ({ page }) => {

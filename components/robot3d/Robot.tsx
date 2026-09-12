@@ -1,9 +1,11 @@
 'use client'
 
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PRINTED, Printed, usePlaMaterial } from './parts'
+import { FACES } from '@/lib/faces'
+import { faceTexture } from './faceTexture'
 
 /**
  * The assembled kit, built from the same STLs that print the shell.
@@ -13,7 +15,7 @@ import { PRINTED, Printed, usePlaMaterial } from './parts'
  * proportions on screen are the proportions in the box.
  */
 
-const GLOW = '#5bf0d4'
+const CYCLE_MS = 4200
 const PAN_DRIVE = 30
 const TILT_DRIVE = 14
 const EASE = 0.075
@@ -49,47 +51,75 @@ function CoreS3() {
   )
 }
 
-/** Eyes and mouth are emissive geometry, so blinking is a scale, not a repaint. */
-function Face() {
-  const eyeL = useRef<THREE.Mesh>(null)
-  const eyeR = useRef<THREE.Mesh>(null)
-  const eyes = useRef<THREE.Group>(null)
-  const blink = useRef(0)
-  const nextBlink = useRef(1800)
+/**
+ * The real panel. Cycles the firmware's own expressions and blinks the ones
+ * the firmware blinks — arc and closed eyes are left alone, as on the device.
+ */
+function Panel() {
+  const mat = useRef<THREE.MeshStandardMaterial>(null)
+  const idx = useRef(0)
+  const nextSwap = useRef(CYCLE_MS)
+  const nextBlink = useRef(2200)
+  const blinkUntil = useRef(0)
+  const glow = useRef<THREE.PointLight>(null)
+  const holdUntil = useRef(0)
 
-  const lit = useMemo(() => new THREE.MeshStandardMaterial({
-    color: GLOW, emissive: new THREE.Color(GLOW), emissiveIntensity: 2.4, toneMapped: false,
-  }), [])
+  // The atlas below can put a face on the robot. It holds, then resumes.
+  useEffect(() => {
+    const onEmote = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail
+      const i = FACES.findIndex((f) => f.id === id)
+      if (i < 0) return
+      idx.current = i
+      holdUntil.current = performance.now() + 9000
+    }
+    window.addEventListener('sc:emote', onEmote)
+    return () => window.removeEventListener('sc:emote', onEmote)
+  }, [])
 
   useFrame((state) => {
     const t = state.clock.elapsedTime * 1000
-    if (t > nextBlink.current) { blink.current = 1; nextBlink.current = t + 3400 + Math.random() * 4200 }
-    if (blink.current > 0) {
-      blink.current = Math.max(0, blink.current - 0.11)
-      const s = 1 - 0.94 * Math.sin(blink.current * Math.PI)
-      if (eyeL.current) eyeL.current.scale.y = s
-      if (eyeR.current) eyeR.current.scale.y = s
+    const face = FACES[idx.current]
+
+    if (t > nextSwap.current && performance.now() > holdUntil.current) {
+      idx.current = (idx.current + 1) % FACES.length
+      nextSwap.current = t + CYCLE_MS
+      nextBlink.current = t + 900
     }
-    if (eyes.current) {
-      eyes.current.position.x = Math.sin(state.clock.elapsedTime / 2.6) * 1.3
+    if (face.blinks && t > nextBlink.current && t > blinkUntil.current) {
+      blinkUntil.current = t + 120
+      nextBlink.current = t + 2400 + Math.random() * 3600
     }
+
+    const shut = face.blinks && t < blinkUntil.current
+    if (mat.current) {
+      const tex = faceTexture(face, shut)
+      if (mat.current.map !== tex) {
+        mat.current.map = tex
+        mat.current.emissiveMap = tex
+        mat.current.needsUpdate = true
+      }
+    }
+    // the panel throwing a little of its own colour into the room
+    if (glow.current) glow.current.color.set(face.eye)
   })
 
   return (
-    <group position={[0, 1.2, 8.4]}>
-      <group ref={eyes}>
-        <mesh ref={eyeL} material={lit} position={[-10.5, 4, 0]}>
-          <boxGeometry args={[7.4, 12.4, 0.4]} />
-        </mesh>
-        <mesh ref={eyeR} material={lit} position={[10.5, 4, 0]}>
-          <boxGeometry args={[7.4, 12.4, 0.4]} />
-        </mesh>
-      </group>
-      <mesh material={lit} position={[0, -8.5, 0]}>
-        <boxGeometry args={[11, 2.2, 0.4]} />
+    <group position={[0, 1.2, 8.35]}>
+      <mesh>
+        <planeGeometry args={[44, 33]} />
+        <meshStandardMaterial
+          ref={mat}
+          map={faceTexture(FACES[0])}
+          emissiveMap={faceTexture(FACES[0])}
+          emissive={new THREE.Color('#ffffff')}
+          emissiveIntensity={0.85}
+          roughness={0.32}
+          metalness={0}
+          toneMapped={false}
+        />
       </mesh>
-      {/* the display bleeding a little light into the room */}
-      <pointLight color={GLOW} intensity={26} distance={80} decay={2} position={[0, 0, 12]} />
+      <pointLight ref={glow} intensity={16} distance={90} decay={2} position={[0, 0, 16]} />
     </group>
   )
 }
@@ -134,7 +164,7 @@ export default function Robot({ pointer }: { pointer: React.RefObject<{ x: numbe
         <Printed url={PRINTED.shell} material={pla} rotation={[Math.PI / 2, 0, 0]} />
         <group position={[0, 0, 3]}>
           <CoreS3 />
-          <Face />
+          <Panel />
         </group>
       </group>
     </group>

@@ -10,5 +10,6 @@ export const EV = {
   faqOpened: 'FAQ Opened',
   specsExpanded: 'Specs Expanded',
   themeToggled: 'Theme Toggled',
+  emotePicked: 'Emotion Picked',
   outboundClicked: 'Outbound Link Clicked',
 } as const

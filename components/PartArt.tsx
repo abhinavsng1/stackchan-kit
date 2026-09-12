@@ -84,9 +84,9 @@ const ART: Record<Kind, React.ReactNode> = {
   shell: (
     <g>
       <path d="M28 78 L28 40 Q28 22 46 22 L82 22 Q100 22 100 40 L100 78 Z"
-            fill="var(--amber)" {...S} />
+            {...S} fill="#f2f0eb" />
       <path d="M40 78 L40 52 Q40 44 48 44 L80 44 Q88 44 88 52 L88 78"
-            fill="var(--surface)" opacity=".55" stroke="var(--ink)" strokeWidth="1.5" />
+            fill="#ffffff" opacity=".9" stroke="var(--ink)" strokeWidth="1.5" />
       <rect x="18" y="78" width="92" height="9" rx="3" fill="var(--surface-2)" {...S} />
     </g>
   ),

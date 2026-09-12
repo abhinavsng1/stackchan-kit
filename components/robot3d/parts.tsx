@@ -12,10 +12,10 @@ export const PRINTED = {
   bracketB: '/model/bracket_SCS0009_b.glb',
 } as const
 
-/** Matte black PLA. Rough and slightly scattered — printed, not moulded. */
-export function usePlaMaterial(color = '#15181c') {
+/** Matte white PLA. Rough and scattered — printed, not moulded. */
+export function usePlaMaterial(color = '#edebe6') {
   return useMemo(() => new THREE.MeshStandardMaterial({
-    color, roughness: 0.78, metalness: 0.04,
+    color, roughness: 0.7, metalness: 0.02,
   }), [color])
 }
 

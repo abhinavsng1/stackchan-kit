@@ -6,6 +6,7 @@ import { EV, track } from '@/lib/analytics'
 
 const LINKS = [
   ['What it does', '#does'],
+  ['Faces', '#faces'],
   ['In the box', '#box'],
   ['Specs', '#specs'],
   ['Build', '#build'],
