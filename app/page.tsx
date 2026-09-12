@@ -5,6 +5,8 @@ import MediaSlot from '@/components/MediaSlot'
 import PartArt from '@/components/PartArt'
 import Capabilities from '@/components/Capabilities'
 import BuyBar from '@/components/BuyBar'
+import { TrackedLink, TrackedDetails, PrivacyChoiceButton } from '@/components/Tracked'
+import { EV } from '@/lib/events'
 import { ServoSweep, SignalFlow } from '@/components/Diagrams'
 import {
   PARTS, BUILD_STEPS, CORE_SPECS, SERVO_SPECS, FAQS, PRICE, CONTACT,
@@ -66,7 +68,8 @@ export default function Page() {
               </div>
 
               <div id="hero-cta" className="mt-7 flex flex-wrap items-center gap-3">
-                <a href="#reserve" className="btn btn-brand grow sm:grow-0 justify-center">Reserve a kit →</a>
+                <TrackedLink href="#reserve" event={EV.reserveCtaClicked} props={{ location: 'hero' }}
+                             className="btn btn-brand grow sm:grow-0 justify-center">Reserve a kit →</TrackedLink>
                 <a href="#does" className="btn btn-ghost grow sm:grow-0 justify-center">See what it does</a>
               </div>
 
@@ -212,7 +215,7 @@ export default function Page() {
             <div className="card overflow-hidden">
               {/* Phones get the datasheet folded away; it is 16 rows of detail
                   that would otherwise be most of a screen of scrolling. */}
-              <details className="sm:hidden group">
+              <TrackedDetails event={EV.specsExpanded} className="sm:hidden group">
                 <summary className="cursor-pointer list-none flex items-center gap-2.5 px-4 py-3.5">
                   <span className="t-pixel text-[10px] text-[var(--brand)]">U1</span>
                   <span className="text-[14px] font-semibold">M5Stack CoreS3 Lite</span>
@@ -222,7 +225,7 @@ export default function Page() {
                 <div className="overflow-x-auto border-t" style={{ borderColor: 'var(--line)' }}>
                   <SpecRows rows={CORE_SPECS} />
                 </div>
-              </details>
+              </TrackedDetails>
 
               <div className="hidden sm:block">
                 <div className="flex items-center gap-2.5 px-4 py-3.5 border-b" style={{ borderColor: 'var(--line)' }}>
@@ -299,13 +302,14 @@ export default function Page() {
 
             <div className="card overflow-hidden">
               {FAQS.map((f, i) => (
-                <details key={f.q} className="group border-b last:border-b-0" style={{ borderColor: 'var(--line)' }} open={i === 0}>
+                <TrackedDetails key={f.q} event={EV.faqOpened} props={{ question: f.q }}
+                                className="group border-b last:border-b-0" style={{ borderColor: 'var(--line)' }} open={i === 0}>
                   <summary className="cursor-pointer list-none px-5 py-4 flex items-start gap-4 text-[15px] font-semibold">
                     <span className="flex-1">{f.q}</span>
                     <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[18px] leading-none mt-0.5 group-open:rotate-45 transition-transform">+</span>
                   </summary>
                   <p className="px-5 pb-5 pt-0 mt-0 mb-0 text-[14.5px] text-[var(--muted)] max-w-[62ch]">{f.a}</p>
-                </details>
+                </TrackedDetails>
               ))}
             </div>
           </div>
@@ -367,18 +371,24 @@ export default function Page() {
             <div className="t-label mb-3">Attribution</div>
             <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
               Based on{' '}
-              <a href="https://github.com/meganetaaan/stack-chan" target="_blank" rel="noreferrer noopener"
-                 className="text-[var(--ink)] underline underline-offset-4">Stack-chan</a>{' '}
+              <TrackedLink href="https://github.com/meganetaaan/stack-chan" target="_blank" rel="noreferrer noopener"
+                 event={EV.outboundClicked} props={{ to: 'stack-chan repo' }}
+                 className="text-[var(--ink)] underline underline-offset-4">Stack-chan</TrackedLink>{' '}
               by Shinya Ishikawa and contributors, used under the Apache License 2.0.
               This kit is not an official Stack-chan or M5Stack product.
             </p>
           </div>
           <div>
-            <div className="t-label mb-3">Your email</div>
-            <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
+            <div className="t-label mb-3">Your data</div>
+            <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
               An address you give us is stored so we can tell you about your kit.
               Nothing else, and we do not pass it on.
             </p>
+            <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
+              If you agreed to it, we record how this page is used, including
+              session replays. What you type into the form is never recorded.
+            </p>
+            <PrivacyChoiceButton />
           </div>
         </div>
       </footer>

@@ -1,6 +1,9 @@
 import { test, expect, devices } from '@playwright/test'
 
 test.use({ ...devices['iPhone 13'] })
+import { settleConsent } from './helpers'
+
+test.beforeEach(async ({ page }) => { await settleConsent(page) })
 
 test('navigation is reachable on a phone', async ({ page }) => {
   await page.goto('/')

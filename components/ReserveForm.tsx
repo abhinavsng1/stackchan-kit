@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { preorderSchema, fieldErrors } from '@/lib/schema'
+import { EV, track } from '@/lib/analytics'
 
 type State =
   | { kind: 'idle' }
@@ -53,6 +54,8 @@ export default function ReserveForm() {
 
     setErrors({})
     setState({ kind: 'submitting' })
+    // Quantity only. Never the name, email or city.
+    track(EV.reserveSubmitted, { qty: local.data.qty })
 
     try {
       const res = await fetch('/api/preorder', {
@@ -62,14 +65,16 @@ export default function ReserveForm() {
       })
       const body = await res.json().catch(() => ({}))
 
-      if (res.status === 201) return setState({ kind: 'reserved' })
-      if (res.status === 409) return setState({ kind: 'already' })
+      if (res.status === 201) { track(EV.reserveSucceeded); return setState({ kind: 'reserved' }) }
+      if (res.status === 409) { track(EV.reserveDuplicate); return setState({ kind: 'already' }) }
       if (res.status === 400 && body.fields) {
         setErrors(body.fields)
         return setState({ kind: 'idle' })
       }
+      track(EV.reserveFailed, { status: res.status })
       setState({ kind: 'error', message: body.error ?? 'That did not go through. Try again.' })
     } catch {
+      track(EV.reserveFailed, { status: 'network' })
       setState({ kind: 'error', message: 'No connection. Check your network and try again.' })
     }
   }

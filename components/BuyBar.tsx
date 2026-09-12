@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { PRICE } from '@/lib/kit'
+import { EV, track } from '@/lib/analytics'
 
 /**
  * Phone-only buy bar. Appears once the hero CTA has scrolled away, and retreats
@@ -56,6 +57,7 @@ export default function BuyBar() {
           <div className="t-label mt-1 truncate">{PRICE.ship}</div>
         </div>
         <a href="#reserve" className="btn btn-brand ml-auto shrink-0 !py-3"
+           onClick={() => track(EV.reserveCtaClicked, { location: 'buybar' })}
            tabIndex={show ? undefined : -1}>
           Reserve a kit
         </a>

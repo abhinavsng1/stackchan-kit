@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { PRICE } from '@/lib/kit'
+import { EV, track } from '@/lib/analytics'
 
 const LINKS = [
   ['What it does', '#does'],
@@ -27,6 +28,7 @@ export default function Nav() {
     setTheme((prev) => {
       const next: Theme = prev === 'dark' ? 'light' : 'dark'
       document.documentElement.setAttribute('data-theme', next)
+      track(EV.themeToggled, { to: next })
       try { localStorage.setItem('theme', next) } catch { /* private mode */ }
       return next
     })
@@ -77,7 +79,8 @@ export default function Nav() {
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </span>
           </button>
-          <a href="#reserve" className="btn btn-brand !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex">Reserve</a>
+          <a href="#reserve" onClick={() => track(EV.reserveCtaClicked, { location: 'nav' })}
+             className="btn btn-brand !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex">Reserve</a>
         </div>
       </div>
 

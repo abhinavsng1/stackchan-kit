@@ -346,3 +346,6 @@ body {
   padding: 0 20px 10px;
 }
 .navstrip::-webkit-scrollbar { display: none; }
+
+/* The consent banner and the buy bar share the bottom edge; the choice wins. */
+:root[data-consent-open="true"] .buybar { display: none; }

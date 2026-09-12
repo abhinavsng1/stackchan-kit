@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { settleConsent } from './helpers'
+
+test.beforeEach(async ({ page }) => { await settleConsent(page) })
 
 test('theme toggle switches and survives a reload', async ({ page }) => {
   await page.goto('/')

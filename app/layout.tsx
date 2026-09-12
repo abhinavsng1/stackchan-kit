@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono, Silkscreen } from 'next/font/google'
 import './globals.css'
+import Analytics from '@/components/Analytics'
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {children}
+        <Analytics />
       </body>
     </html>
   )

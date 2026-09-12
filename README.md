@@ -28,11 +28,42 @@ psql "$DATABASE_URL" -f db/schema.sql
 
 `DATABASE_URL` is server-side only. Never expose it through `NEXT_PUBLIC_*`.
 
+## Analytics
+
+Mixpanel, with session replay and heatmaps, gated behind consent.
+
+```bash
+vercel env add NEXT_PUBLIC_MIXPANEL_TOKEN production
+vercel env add NEXT_PUBLIC_MIXPANEL_TOKEN preview
+vercel --prod
+```
+
+The token is a publishable project token, not a secret — it identifies the
+project to the browser and is meant to ship in client code.
+
+With no token set, the analytics layer is inert: no banner, no SDK, no events.
+
+What is recorded, and what is not:
+
+- Nothing loads until the visitor agrees. The SDK is dynamically imported on
+  consent, so declining downloads no Mixpanel code at all (verified in `e2e/`).
+- Global Privacy Control and Do Not Track are honoured without asking.
+- `record_mask_all_inputs` stays on, so the name and email typed into the
+  reserve form are masked in every replay.
+- Tracked events carry quantity and outcome, never a name, email or city.
+- The footer offers "Change your analytics choice" to reverse the decision.
+
+Funnel events: `Reserve CTA Clicked` → `Reserve Submitted` →
+`Reserve Succeeded` / `Reserve Already Held` / `Reserve Failed`, plus
+`Page Viewed`, `Section Viewed`, `FAQ Opened`, `Specs Expanded`,
+`Theme Toggled`, `Outbound Link Clicked`.
+
 ## Before launch
 
 - [ ] Replace `CONTACT.email` and `CONTACT.entity` in `lib/kit.ts`
 - [ ] Provision Neon and run `db/schema.sql`
 - [ ] Add Vercel BotID to the reserve route (honeypot is in place; BotID is not)
+- [ ] Set NEXT_PUBLIC_MIXPANEL_TOKEN in Vercel, then redeploy
 - [ ] Confirm the 3D-printed shell is ready to ship with each kit
 
 ## Content rule

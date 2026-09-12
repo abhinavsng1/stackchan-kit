@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { settleConsent } from './helpers'
+
+test.beforeEach(async ({ page }) => { await settleConsent(page) })
 
 const fill = async (page: import('@playwright/test').Page, email = 'asha@example.com') => {
   await page.getByLabel('Name').fill('Asha Rao')
