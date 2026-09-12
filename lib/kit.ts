@@ -153,8 +153,8 @@ export type Faq = { q: string; a: string }
 export const FAQS: Faq[] = [
   { q: 'Do I need a 3D printer?',
     a: 'No. The shell and the servo brackets are printed here and ship in the box. If you would rather print your own, the Stack-chan project publishes the models.' },
-  { q: 'Is this the official M5Stack StackChan product?',
-    a: 'No, and we should be clear about it. This is a build kit assembled around the open-source Stack-chan project and an M5Stack CoreS3 Lite. The official M5 product is a different, pre-assembled device with its own hardware.' },
+  { q: 'What is Pebble-chan, exactly?',
+    a: 'It is our build kit, assembled around the open-source Stack-chan project and an M5Stack CoreS3 Lite. It is not the official M5Stack product — that is a different, pre-assembled device with its own hardware. The software is Stack-chan and we take no credit for it.' },
   { q: 'What do I write the software in?',
     a: 'Stack-chan runs on the Moddable SDK, so the behaviour is JavaScript. The controller is a stock CoreS3 Lite, so the Arduino core and M5Unified work as well if you prefer C++.' },
   { q: 'Does it need the internet to work?',

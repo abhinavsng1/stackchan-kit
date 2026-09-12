@@ -56,7 +56,7 @@ export default function Page() {
               </h1>
 
               <p className="mt-5 mb-0 max-w-[46ch] text-[16px] sm:text-[17px] text-[var(--muted)]">
-                Stack-chan looks at you, talks back and nods along. Every part that
+                Pebble-chan looks at you, talks back and nods along. Every part that
                 makes it work is in one box, printed shell included.
               </p>
 
@@ -374,7 +374,7 @@ export default function Page() {
         <div className="wrap py-12 grid gap-9 md:grid-cols-3">
           <div>
             <div className="t-display text-[19px] tracking-[-0.04em] mb-3">
-              Stack<span className="text-[var(--brand)]">·</span>chan
+              Pebble<span className="text-[var(--brand)]">·</span>chan
             </div>
             <p className="t-mono text-[13px] m-0">{CONTACT.entity}</p>
             <p className="t-mono text-[13px] mt-1 mb-0">{CONTACT.email}</p>
@@ -387,7 +387,7 @@ export default function Page() {
                  event={EV.outboundClicked} props={{ to: 'stack-chan repo' }}
                  className="text-[var(--ink)] underline underline-offset-4">Stack-chan</TrackedLink>{' '}
               by Shinya Ishikawa and contributors, used under the Apache License 2.0.
-              This kit is not an official Stack-chan or M5Stack product.
+              Pebble-chan is not an official Stack-chan or M5Stack product.
             </p>
           </div>
           <div>

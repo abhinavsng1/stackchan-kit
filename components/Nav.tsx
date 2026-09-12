@@ -52,7 +52,7 @@ export default function Nav() {
     >
       <div className="wrap flex items-center gap-6 h-16">
         <a href="#top" className="t-display text-[19px] tracking-[-0.04em] no-underline text-[var(--ink)] shrink-0">
-          Stack<span className="text-[var(--brand)]">·</span>chan
+          Pebble<span className="text-[var(--brand)]">·</span>chan
         </a>
 
         <nav className="hidden lg:flex items-center gap-7 ml-2">

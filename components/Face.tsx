@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * The hero. Stack-chan tracks the pointer, and a live readout prints the
+ * The hero. Pebble-chan tracks the pointer, and a live readout prints the
  * commanded servo angles beside it — the product demonstrating its own spec
  * instead of asserting it.
  *
@@ -109,7 +109,7 @@ export default function Face() {
             style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
           >
             <svg viewBox="0 0 260 188" className="w-full h-auto block" role="img"
-                 aria-label="Stack-chan, a small desktop robot whose eyes follow your cursor">
+                 aria-label="Pebble-chan, a small desktop robot whose eyes follow your cursor">
               <defs>
                 <filter id="drop" x="-30%" y="-30%" width="160%" height="180%">
                   <feDropShadow dx="0" dy="10" stdDeviation="9" floodColor="#0b0f14" floodOpacity="0.16" />

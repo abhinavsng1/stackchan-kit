@@ -32,9 +32,9 @@ const silkscreen = Silkscreen({
 })
 
 export const metadata: Metadata = {
-  title: 'Stack-chan Kit — the desktop robot you build yourself',
+  title: 'Pebble-chan — the desktop robot you build yourself',
   description:
-    'A complete build kit for Stack-chan: M5Stack CoreS3 Lite, two SCS0009 bus servos, driver board, programmer, printed shell and fasteners. Ships in 1–2 weeks.',
+    'A complete build kit: M5Stack CoreS3 Lite, two SCS0009 bus servos, driver board, programmer, printed shell and fasteners. Ships in 1–2 weeks.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

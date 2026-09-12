@@ -1,6 +1,7 @@
-# Stack-chan Kit — sales site
+# Pebble-chan — sales site
 
-Single-page pre-order site for a Stack-chan build kit. Next.js App Router,
+Single-page pre-order site for Pebble-chan, a build kit based on the
+open-source Stack-chan project. Next.js App Router,
 TypeScript, Tailwind v4, Zod, Neon Postgres, deployed on Vercel.
 
 Design spec: `docs/superpowers/specs/2026-09-12-stackchan-kit-site-design.md`
@@ -117,6 +118,7 @@ names, or sourcing. The only price on the site is the kit price.
 
 ## Attribution
 
-Based on [Stack-chan](https://github.com/meganetaaan/stack-chan) by Shinya
-Ishikawa and contributors, used under the Apache License 2.0. This kit is not an
-official Stack-chan product.
+Pebble-chan is based on [Stack-chan](https://github.com/meganetaaan/stack-chan)
+by Shinya Ishikawa and contributors, used under the Apache License 2.0. It is
+not an official Stack-chan or M5Stack product. The name Pebble-chan refers only
+to this kit; the software is Stack-chan and the credit is theirs.
