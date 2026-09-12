@@ -393,8 +393,9 @@ export default function Page() {
           <div>
             <div className="t-label mb-3">Your data</div>
             <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
-              An address you give us is stored so we can tell you about your kit.
-              Nothing else, and we do not pass it on.
+              Reserving stores your name, email, phone, shipping address and
+              profession. We use them to ship the kit and to tell you when it is
+              on its way. Nothing else, and we do not pass them on.
             </p>
             <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
               If you agreed to it, we record how this page is used, including

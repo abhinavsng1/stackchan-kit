@@ -1,11 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const createPreorder = vi.fn()
-vi.mock('@/lib/preorders', () => ({ createPreorder }))
+const isDuplicateError = (e: unknown) =>
+  typeof e === 'object' && e !== null && 'code' in e && (e as { code?: string }).code === '23505'
+vi.mock('@/lib/preorders', () => ({ createPreorder, isDuplicateError }))
 
 const { POST, GET } = await import('@/app/api/preorder/route')
 
-const body = { name: 'Asha Rao', email: 'asha@example.com', qty: 2, city: 'Bengaluru' }
+const body = {
+  name: 'Asha Rao',
+  email: 'asha@example.com',
+  phone: '9876543210',
+  profession: 'Embedded / firmware',
+  address: '12 Silicon Gardenia, 12th Main, JP Nagar 5th Phase',
+  city: 'Bengaluru',
+  pincode: '560078',
+  qty: 2,
+}
 
 function post(payload: unknown, raw?: string) {
   return new Request('http://localhost/api/preorder', {
@@ -58,7 +69,7 @@ describe('POST /api/preorder', () => {
   })
 
   it('refuses an oversized body without parsing it', async () => {
-    const res = await POST(post(null, JSON.stringify({ ...body, city: 'x'.repeat(5000) })))
+    const res = await POST(post(null, JSON.stringify({ ...body, address: 'x'.repeat(5000) })))
     expect(res.status).toBe(413)
     expect(createPreorder).not.toHaveBeenCalled()
   })
@@ -78,6 +89,42 @@ describe('POST /api/preorder', () => {
     createPreorder.mockResolvedValue({ status: 'unconfigured' })
     const res = await POST(post(body))
     expect(res.status).toBe(503)
+  })
+
+  it('stores every field the form collects', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    await POST(post(body))
+    const arg = createPreorder.mock.calls[0][0]
+    expect(Object.keys(arg).sort()).toEqual(
+      ['address', 'city', 'email', 'name', 'phone', 'pincode', 'profession', 'qty'].sort())
+    expect(arg.phone).toBe('+919876543210')
+    expect(arg).not.toHaveProperty('company')
+  })
+
+  it('treats a phone already on the list as a duplicate, not a crash', async () => {
+    createPreorder.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }))
+    const res = await POST(post(body))
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toEqual({ status: 'duplicate' })
+  })
+
+  it('rejects an address that is missing', async () => {
+    const { address, ...rest } = body
+    const res = await POST(post(rest))
+    expect(res.status).toBe(400)
+    expect((await res.json()).fields.address).toBeTruthy()
+    expect(createPreorder).not.toHaveBeenCalled()
+  })
+
+  it('rejects a malformed phone number', async () => {
+    const res = await POST(post({ ...body, phone: '12345' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).fields.phone).toBeTruthy()
+  })
+
+  it('rejects a profession that is not on the list', async () => {
+    const res = await POST(post({ ...body, profession: 'Astronaut' }))
+    expect(res.status).toBe(400)
   })
 
   it('returns 500 when the insert throws', async () => {

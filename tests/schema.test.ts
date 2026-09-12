@@ -1,71 +1,105 @@
 import { describe, it, expect } from 'vitest'
-import { preorderSchema, fieldErrors } from '@/lib/schema'
+import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 
-const valid = { name: 'Asha Rao', email: 'asha@example.com', qty: 2, city: 'Bengaluru' }
+const valid = {
+  name: 'Asha Rao',
+  email: 'asha@example.com',
+  phone: '9876543210',
+  profession: 'Embedded / firmware',
+  address: '12 Silicon Gardenia, 12th Main, JP Nagar 5th Phase',
+  city: 'Bengaluru',
+  pincode: '560078',
+  qty: 2,
+}
+
+const reject = (patch: Record<string, unknown>) =>
+  expect(preorderSchema.safeParse({ ...valid, ...patch }).success).toBe(false)
 
 describe('preorderSchema', () => {
-  it('accepts a valid reservation', () => {
-    const r = preorderSchema.safeParse(valid)
-    expect(r.success).toBe(true)
+  it('accepts a complete reservation', () => {
+    expect(preorderSchema.safeParse(valid).success).toBe(true)
   })
 
-  it('rejects a malformed email', () => {
-    const r = preorderSchema.safeParse({ ...valid, email: 'asha@' })
-    expect(r.success).toBe(false)
-    if (!r.success) expect(fieldErrors(r.error).email).toBeTruthy()
+  describe('name', () => {
+    it('rejects one that is too short', () => reject({ name: 'A' }))
+    it('rejects one that is too long', () => reject({ name: 'x'.repeat(200) }))
+    it('trims surrounding whitespace', () => {
+      const r = preorderSchema.safeParse({ ...valid, name: '  Asha Rao  ' })
+      expect(r.success && r.data.name).toBe('Asha Rao')
+    })
   })
 
-  it('rejects a name that is too short', () => {
-    const r = preorderSchema.safeParse({ ...valid, name: 'A' })
-    expect(r.success).toBe(false)
+  describe('email', () => {
+    it('rejects a malformed address', () => reject({ email: 'asha@' }))
+    it('is required', () => reject({ email: '' }))
   })
 
-  it('rejects qty below 1', () => {
-    expect(preorderSchema.safeParse({ ...valid, qty: 0 }).success).toBe(false)
+  describe('phone', () => {
+    it.each([
+      ['9876543210', '+919876543210'],
+      ['+91 98765 43210', '+919876543210'],
+      ['098765-43210', '+919876543210'],
+      ['0091 9876543210', '+919876543210'],
+      ['91 9876543210', '+919876543210'],
+    ])('normalises %s to one canonical form', (input, expected) => {
+      const r = preorderSchema.safeParse({ ...valid, phone: input })
+      expect(r.success && r.data.phone).toBe(expected)
+    })
+
+    it('rejects too few digits', () => reject({ phone: '98765432' }))
+    it('rejects a landline-style leading digit', () => reject({ phone: '1234567890' }))
+    it('rejects letters', () => reject({ phone: 'call me maybe' }))
+    it('is required', () => reject({ phone: '' }))
   })
 
-  it('rejects qty above 5', () => {
-    expect(preorderSchema.safeParse({ ...valid, qty: 6 }).success).toBe(false)
+  describe('profession', () => {
+    it('accepts every listed option', () => {
+      for (const p of PROFESSIONS) {
+        expect(preorderSchema.safeParse({ ...valid, profession: p }).success, p).toBe(true)
+      }
+    })
+    it('rejects anything off the list', () => reject({ profession: 'Astronaut' }))
+    it('is required', () => reject({ profession: '' }))
   })
 
-  it('rejects a fractional qty', () => {
-    expect(preorderSchema.safeParse({ ...valid, qty: 2.5 }).success).toBe(false)
+  describe('address', () => {
+    it('rejects a stub', () => reject({ address: 'here' }))
+    it('rejects one that is too long', () => reject({ address: 'x'.repeat(400) }))
+    it('is required', () => reject({ address: '' }))
   })
 
-  it('coerces the string qty a form actually submits', () => {
-    const r = preorderSchema.safeParse({ ...valid, qty: '3' })
-    expect(r.success).toBe(true)
-    if (r.success) expect(r.data.qty).toBe(3)
+  describe('pincode', () => {
+    it('accepts a six-digit code', () => {
+      expect(preorderSchema.safeParse({ ...valid, pincode: '110001' }).success).toBe(true)
+    })
+    it('rejects five digits', () => reject({ pincode: '56007' }))
+    it('rejects seven digits', () => reject({ pincode: '5600781' }))
+    it('rejects a leading zero', () => reject({ pincode: '060078' }))
+    it('rejects letters', () => reject({ pincode: 'ABC123' }))
   })
 
-  it('treats city as optional', () => {
-    const { city, ...rest } = valid
-    expect(preorderSchema.safeParse(rest).success).toBe(true)
-    expect(preorderSchema.safeParse({ ...rest, city: '' }).success).toBe(true)
-  })
-
-  it('rejects an oversized name', () => {
-    expect(preorderSchema.safeParse({ ...valid, name: 'x'.repeat(200) }).success).toBe(false)
+  describe('qty', () => {
+    it('rejects zero', () => reject({ qty: 0 }))
+    it('rejects more than five', () => reject({ qty: 6 }))
+    it('rejects a fraction', () => reject({ qty: 2.5 }))
+    it('coerces the string a form actually submits', () => {
+      const r = preorderSchema.safeParse({ ...valid, qty: '3' })
+      expect(r.success && r.data.qty).toBe(3)
+    })
   })
 
   it('parses a filled honeypot — the route, not the schema, enforces it', () => {
     expect(preorderSchema.safeParse({ ...valid, company: 'Acme' }).success).toBe(true)
   })
-
-  it('trims surrounding whitespace from the name', () => {
-    const r = preorderSchema.safeParse({ ...valid, name: '  Asha Rao  ' })
-    expect(r.success).toBe(true)
-    if (r.success) expect(r.data.name).toBe('Asha Rao')
-  })
 })
 
 describe('fieldErrors', () => {
-  it('maps each issue to its field and keeps the first message', () => {
-    const r = preorderSchema.safeParse({ name: '', email: 'nope', qty: 99 })
+  it('names every field that failed', () => {
+    const r = preorderSchema.safeParse({ name: '', email: 'nope', phone: '1', qty: 99 })
     expect(r.success).toBe(false)
     if (!r.success) {
-      const f = fieldErrors(r.error)
-      expect(Object.keys(f).sort()).toEqual(['email', 'name', 'qty'])
+      expect(Object.keys(fieldErrors(r.error)).sort())
+        .toEqual(['address', 'city', 'email', 'name', 'phone', 'pincode', 'profession', 'qty'].sort())
     }
   })
 })

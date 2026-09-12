@@ -1,5 +1,5 @@
 import { preorderSchema, fieldErrors } from '@/lib/schema'
-import { createPreorder } from '@/lib/preorders'
+import { createPreorder, isDuplicateError } from '@/lib/preorders'
 
 /** Generous for four short fields, small enough to refuse junk outright. */
 const MAX_BODY_BYTES = 4096
@@ -34,14 +34,14 @@ export async function POST(request: Request) {
     return json({ error: 'Check the highlighted fields.', fields: fieldErrors(result.error) }, 400)
   }
 
-  const { name, email, qty, city, company } = result.data
+  const { company, ...record } = result.data
 
   // Honeypot: hidden from real users, so any content means a bot. Answer 201
   // so the bot cannot distinguish rejection from success, and write nothing.
   if (company) return json({ status: 'created' }, 201)
 
   try {
-    const outcome = await createPreorder({ name, email, qty, city: city || undefined })
+    const outcome = await createPreorder(record)
 
     if (outcome.status === 'unconfigured') {
       console.error('[preorder] DATABASE_URL is not set; reservation was not stored')
@@ -52,6 +52,9 @@ export async function POST(request: Request) {
     // on the list either way. Distinct status so the UI can word it honestly.
     return json({ status: outcome.status }, outcome.status === 'created' ? 201 : 409)
   } catch (error) {
+    // Phone is unique as well as email, so the second address someone uses
+    // trips a unique violation rather than the ON CONFLICT clause.
+    if (isDuplicateError(error)) return json({ status: 'duplicate' }, 409)
     console.error('[preorder] insert failed', error)
     return json({ error: 'Something went wrong on our end. Try again.' }, 500)
   }

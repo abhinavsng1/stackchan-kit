@@ -47,13 +47,13 @@ describe('reserve funnel events', () => {
 
 describe('the form never leaks personal data into analytics', () => {
   const form = readFileSync(new URL('../components/ReserveForm.tsx', import.meta.url), 'utf8')
-  it('tracks quantity but never name, email or city', () => {
+  it('tracks quantity and profession but never anything identifying', () => {
     const trackCalls = form.match(/track\([^)]*\)/gs) ?? []
     expect(trackCalls.length).toBeGreaterThan(0)
     for (const call of trackCalls) {
-      expect(call).not.toMatch(/\bemail\b/)
-      expect(call).not.toMatch(/\bname\b/)
-      expect(call).not.toMatch(/\bcity\b/)
+      for (const field of ['email', 'name', 'phone', 'address', 'city', 'pincode']) {
+        expect(call, `track() must not carry ${field}`).not.toMatch(new RegExp(`\\b${field}\\b`))
+      }
     }
   })
 })
