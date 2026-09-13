@@ -1,79 +1,43 @@
 import { test, expect, type Page } from '@playwright/test'
 
-const DIALOG = { name: 'Analytics choice' }
-
 /** Mixpanel writes an mp_<token>_mixpanel key the moment it initialises. */
-const initialised = (p: Page) =>
+const mixpanelUp = (p: Page) =>
   p.evaluate(() => Object.keys(localStorage).some((k) => /^mp_/.test(k)))
 
-/** Only real data endpoints count; dev chunk filenames contain "mixpanel" too. */
-function watchApi(p: Page) {
-  const hits: string[] = []
-  p.on('request', (r) => { if (/\/\/api[^/]*\.mixpanel\.com/i.test(r.url())) hits.push(r.url()) })
-  return hits
-}
-
-test('asks before recording anything', async ({ page }) => {
-  const api = watchApi(page)
-  await page.goto('/')
-  await expect(page.getByRole('dialog', DIALOG)).toBeVisible()
-  expect(await initialised(page), 'must not initialise while still asking').toBe(false)
-  expect(api).toEqual([])
-})
-
-test('declining never initialises, and sticks', async ({ page }) => {
-  const api = watchApi(page)
-  await page.goto('/')
-  await page.getByRole('button', { name: 'No thanks' }).click()
-  await expect(page.getByRole('dialog', DIALOG)).toBeHidden()
-
-  await page.locator('#box').scrollIntoViewIfNeeded()
-  await page.locator('#reserve').scrollIntoViewIfNeeded()
-  await page.waitForTimeout(900)
-  expect(await initialised(page)).toBe(false)
-  expect(api, 'nothing may reach Mixpanel').toEqual([])
-
-  await page.reload()
-  await expect(page.getByRole('dialog', DIALOG)).toBeHidden()
-  expect(await initialised(page)).toBe(false)
-})
-
-test('accepting initialises, and sticks', async ({ page }) => {
+test('analytics starts on load, with nothing to agree to first', async ({ page }) => {
   await page.route(/mixpanel\.com/i, (r) => r.fulfill({ status: 200, body: '1' }))
   await page.goto('/')
-  await page.getByRole('button', { name: "That's fine" }).click()
-  await expect.poll(() => initialised(page), { timeout: 8000 }).toBe(true)
 
-  await page.reload()
-  await expect(page.getByRole('dialog', DIALOG)).toBeHidden()
-  await expect.poll(() => initialised(page), { timeout: 8000 }).toBe(true)
+  await expect(page.getByRole('dialog', { name: 'Analytics choice' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: "That's fine" })).toHaveCount(0)
+  await expect.poll(() => mixpanelUp(page), { timeout: 10000 }).toBe(true)
 })
 
-test('Global Privacy Control is treated as a refusal, unasked', async ({ page }) => {
-  const api = watchApi(page)
-  await page.addInitScript(() =>
-    Object.defineProperty(navigator, 'globalPrivacyControl', { get: () => true }))
+test('the Meta pixel is present on first paint, no interaction needed', async ({ page }) => {
+  const hits: string[] = []
+  page.on('request', (r) => { if (/facebook\.(net|com)/i.test(r.url())) hits.push(r.url()) })
+
   await page.goto('/')
-  await page.waitForTimeout(900)
-  await expect(page.getByRole('dialog', DIALOG)).toBeHidden()
-  expect(await initialised(page)).toBe(false)
-  expect(api).toEqual([])
+  await expect.poll(() => hits.some((u) => /fbevents\.js/.test(u)), { timeout: 10000 }).toBe(true)
+  await expect.poll(() => hits.some((u) => /1463673029143081/.test(u)), { timeout: 10000 }).toBe(true)
+  await expect.poll(
+    () => page.evaluate(() => Object.keys(window.fbq?.instance?.pixelsByID ?? {})),
+    { timeout: 10000 },
+  ).toEqual(['1463673029143081'])
 })
 
-test('the choice can be reopened from the footer', async ({ page }) => {
+test('the footer still discloses what is collected', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'No thanks' }).click()
-  await expect(page.getByRole('dialog', DIALOG)).toBeHidden()
-  await page.getByRole('button', { name: 'Change your analytics choice' }).click()
-  await expect(page.getByRole('dialog', DIALOG)).toBeVisible()
+  const footer = page.getByRole('contentinfo')
+  await expect(footer.getByText(/session replays/i)).toBeVisible()
+  await expect(footer.getByText(/Meta/)).toBeVisible()
+  await expect(footer.getByText(/never recorded/i)).toBeVisible()
 })
 
-test('the banner does not fight the buy bar', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+test('what a visitor types is still never recorded', async ({ page }) => {
+  // Masking is a property of the integration, not of consent — removing the
+  // gate must not have quietly loosened it.
   await page.goto('/')
-  await expect(page.getByRole('dialog', DIALOG)).toBeVisible()
-  await expect(page.locator('.buybar')).toBeHidden()
-  await page.getByRole('button', { name: "That's fine" }).click()
-  await page.locator('#box').scrollIntoViewIfNeeded()
-  await expect(page.locator('.buybar')).toBeVisible()
+  const src = await (await page.request.get('/')).text()
+  expect(src).not.toContain('record_mask_all_inputs: false')
 })

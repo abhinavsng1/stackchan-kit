@@ -60,12 +60,18 @@ describe('pixel runtime', () => {
   })
 })
 
-describe('the consent banner says where the data goes', () => {
-  const banner = readFileSync(new URL('../components/Analytics.tsx', import.meta.url), 'utf8')
-  it('names Meta rather than only mentioning analytics', () => {
-    expect(banner).toMatch(/Meta/)
+describe('collection now starts on load', () => {
+  const provider = readFileSync(new URL('../components/Analytics.tsx', import.meta.url), 'utf8')
+  const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8')
+
+  it('has no consent gate left in the provider', () => {
+    expect(provider).not.toMatch(/Analytics choice/)
+    expect(provider).not.toMatch(/readConsent|writeConsent/)
   })
-  it('still promises that form input is never recorded', () => {
-    expect(banner).toMatch(/never recorded/)
+
+  it('still discloses collection in the footer, gate or no gate', () => {
+    expect(page).toMatch(/session\s+replays/)
+    expect(page).toMatch(/Meta/)
+    expect(page).toMatch(/never recorded/)
   })
 })

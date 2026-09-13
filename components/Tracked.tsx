@@ -30,16 +30,3 @@ export function TrackedDetails({
     </details>
   )
 }
-
-/** Reopens the analytics choice from the footer. */
-export function PrivacyChoiceButton() {
-  return (
-    <button
-      type="button"
-      className="text-[13.5px] text-[var(--ink)] underline underline-offset-4 bg-transparent border-0 p-0 cursor-pointer"
-      onClick={() => window.dispatchEvent(new CustomEvent('sc:privacy'))}
-    >
-      Change your analytics choice
-    </button>
-  )
-}

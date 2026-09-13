@@ -24,14 +24,14 @@ describe('session replay configuration', () => {
     expect(src).toMatch(/record_block_selector:\s*'img, video'/)
   })
 
-  it('loads the SDK only behind consent, never at module scope', () => {
+  it('loads the SDK lazily, never at module scope', () => {
     expect(src).toMatch(/await import\('mixpanel-browser'\)/)
     expect(src).not.toMatch(/^import mixpanel from/m)
   })
 
-  it('honours Global Privacy Control and Do Not Track', () => {
-    expect(src).toMatch(/globalPrivacyControl/)
-    expect(src).toMatch(/doNotTrack/)
+  it('no longer gates collection on a stored consent answer', () => {
+    expect(src).not.toMatch(/readConsent/)
+    expect(src).not.toMatch(/CONSENT_KEY/)
   })
 })
 

@@ -18,9 +18,6 @@ import type { OverridedMixpanel } from 'mixpanel-browser'
 
 type Props = Record<string, string | number | boolean | null | undefined>
 
-export const CONSENT_KEY = 'sc-analytics-consent'
-export type Consent = 'granted' | 'denied'
-
 let mp: OverridedMixpanel | null = null
 let loading: Promise<void> | null = null
 const queue: Array<[string, Props | undefined]> = []
@@ -41,34 +38,6 @@ const META_STANDARD: Record<string, string> = {
   [EVENTS.sectionViewed]: 'ViewContent',
 }
 
-/* ------------------------------- consent ------------------------------- */
-
-export function readConsent(): Consent | null {
-  try {
-    const v = localStorage.getItem(CONSENT_KEY)
-    return v === 'granted' || v === 'denied' ? v : null
-  } catch {
-    return null
-  }
-}
-
-export function writeConsent(value: Consent) {
-  try { localStorage.setItem(CONSENT_KEY, value) } catch { /* private mode */ }
-}
-
-/**
- * Global Privacy Control and Do Not Track are explicit refusals. We honour them
- * without asking, rather than showing a banner that pretends the choice is open.
- */
-export function privacySignalOptOut(): boolean {
-  if (typeof navigator === 'undefined') return false
-  const nav = navigator as Navigator & { globalPrivacyControl?: boolean; msDoNotTrack?: string }
-  const win = typeof window !== 'undefined'
-    ? (window as Window & { doNotTrack?: string }) : undefined
-  return nav.globalPrivacyControl === true ||
-    nav.doNotTrack === '1' || nav.msDoNotTrack === '1' || win?.doNotTrack === '1'
-}
-
 /* -------------------------------- loading ------------------------------- */
 
 export function analyticsConfigured(): boolean {
@@ -76,8 +45,6 @@ export function analyticsConfigured(): boolean {
 }
 
 export async function initAnalytics(): Promise<void> {
-  if (privacySignalOptOut()) return
-
   // The pixel is independent of Mixpanel: either can be configured alone.
   initPixel()
 
@@ -125,13 +92,13 @@ export function track(event: string, props?: Props) {
 
   // Mixpanel.
   if (mp) { mp.track(event, props); return }
-  if (analyticsConfigured() && readConsent() === 'granted') {
+  if (analyticsConfigured()) {
     queue.push([event, props])
     if (queue.length > 50) queue.shift()
   }
 }
 
-/** Called when someone withdraws consent. Stops collection everywhere. */
+/** Stops collection everywhere. Kept for a future opt-out control. */
 export function stopAnalytics() {
   queue.length = 0
   stopPixel()

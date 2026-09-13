@@ -1,34 +1,14 @@
 import { test, expect, type Page } from '@playwright/test'
 
-const DIALOG = { name: 'Analytics choice' }
 const metaHits = (p: Page) => {
   const hits: string[] = []
   p.on('request', (r) => { if (/facebook\.(net|com)/i.test(r.url())) hits.push(r.url()) })
   return hits
 }
 
-test('no Meta request before the visitor agrees', async ({ page }) => {
+test('the pixel loads on arrival, unprompted', async ({ page }) => {
   const hits = metaHits(page)
   await page.goto('/')
-  await expect(page.getByRole('dialog', DIALOG)).toBeVisible()
-  await page.waitForTimeout(1200)
-  expect(hits, 'the pixel must not load while we are still asking').toEqual([])
-})
-
-test('declining loads no Meta code at all', async ({ page }) => {
-  const hits = metaHits(page)
-  await page.goto('/')
-  await page.getByRole('button', { name: 'No thanks' }).click()
-  await page.locator('#box').scrollIntoViewIfNeeded()
-  await page.waitForTimeout(1500)
-  expect(hits).toEqual([])
-  expect(await page.evaluate(() => typeof window.fbq)).toBe('undefined')
-})
-
-test('accepting loads the pixel and registers the right id', async ({ page }) => {
-  const hits = metaHits(page)
-  await page.goto('/')
-  await page.getByRole('button', { name: "That's fine" }).click()
   await expect.poll(() => hits.some((u) => /fbevents\.js/.test(u)), { timeout: 10000 }).toBe(true)
   await expect.poll(() => hits.some((u) => /1463673029143081/.test(u)), { timeout: 10000 }).toBe(true)
   await expect.poll(
@@ -46,7 +26,6 @@ test('a completed reservation asks the pixel for Lead, the conversion', async ({
   await page.route('**/connect.facebook.net/**', (r) => r.abort())
   await page.route('**/api/preorder', (r) => r.fulfill({ status: 201, json: { status: 'created' } }))
   await page.goto('/')
-  await page.getByRole('button', { name: "That's fine" }).click()
   await page.waitForTimeout(1000)
 
   // Follow the journey a buyer actually takes: CTA, then the form.
@@ -76,7 +55,6 @@ test('a completed reservation asks the pixel for Lead, the conversion', async ({
 test('unmapped events still reach Meta as custom events', async ({ page }) => {
   await page.route('**/connect.facebook.net/**', (r) => r.abort())
   await page.goto('/')
-  await page.getByRole('button', { name: "That's fine" }).click()
   await page.locator('video').scrollIntoViewIfNeeded()
   await page.waitForTimeout(2500)
 

@@ -6,7 +6,7 @@ import DemoVideo from '@/components/DemoVideo'
 import PartArt from '@/components/PartArt'
 import Capabilities from '@/components/Capabilities'
 import BuyBar from '@/components/BuyBar'
-import { TrackedLink, TrackedDetails, PrivacyChoiceButton } from '@/components/Tracked'
+import { TrackedLink, TrackedDetails } from '@/components/Tracked'
 import { EV } from '@/lib/events'
 import { ServoSweep, SignalFlow } from '@/components/Diagrams'
 import {
@@ -402,11 +402,11 @@ export default function Page() {
               profession. We use them to ship the kit and to tell you when it is
               on its way. Nothing else, and we do not pass them on.
             </p>
-            <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
-              If you agreed to it, we record how this page is used, including
-              session replays. What you type into the form is never recorded.
+            <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
+              We record how this page is used — clicks, scrolling, session
+              replays — and share some of it with Meta so our ads reach the
+              right people. What you type into the form is never recorded.
             </p>
-            <PrivacyChoiceButton />
           </div>
         </div>
       </footer>
