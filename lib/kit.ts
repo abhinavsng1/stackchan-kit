@@ -32,20 +32,14 @@ export const PARTS: Part[] = [
     note: 'Same servo, its own address on the bus. Nods the head up and down.' },
   { desig: 'A1',  qty: '× 1',     art: 'driver',     name: 'Waveshare bus servo driver',
     note: 'Drives both servos over one RS485 pair and carries the servo power rail.' },
-  { desig: 'J1',  qty: '× 1',     art: 'programmer', name: 'FE-URT-1 servo programmer',
-    note: 'USB to TTL. Set servo IDs and centre positions from your laptop.' },
   { desig: 'PS1', qty: '× 1',     art: 'psu',        name: '5 V 3 A power supply',
     note: '5.5 mm DC plug, sized so both servos can stall at once without a brownout.' },
   { desig: 'H1',  qty: '× 1 set', art: 'shell',      name: '3D-printed shell and brackets',
     note: 'Printed here and shipped with the kit. You do not need a printer.' },
   { desig: 'W1',  qty: '× 1 set', art: 'cables',     name: '20 cm Dupont cable set',
     note: '40-pin, male/male, male/female and female/female.' },
-  { desig: 'W2',  qty: '× 5',     art: 'grove',      name: 'Grove to jumper adapters',
-    note: 'Breaks PORT.A out to individual jumpers for bench work.' },
   { desig: 'F1',  qty: '× 1 set', art: 'screws',     name: 'M2×8 and M3×16 fasteners',
     note: 'High-tensile, black oxide, countersunk so the shell sits flush.' },
-  { desig: 'C1',  qty: '× 4',     art: 'caps',       name: '1000 µF 16 V capacitors',
-    note: 'Bus decoupling. Stops servo inrush from browning out the controller.' },
 ]
 
 /* ---------------------------------------------------------------- */
@@ -103,8 +97,8 @@ export const CAPABILITIES: Capability[] = [
 export type Step = { n: number; title: string; body: string }
 
 export const BUILD_STEPS: Step[] = [
-  { n: 1, title: 'Set the servo IDs',
-    body: 'Plug each servo into the FE-URT-1, give it an address, and centre it. Two minutes each, done once.' },
+  { n: 1, title: 'Check the servos',
+    body: 'Both arrive already addressed and centred — pan on one ID, tilt on the other. Power them up and confirm each answers before anything is bolted shut.' },
   { n: 2, title: 'Build the neck',
     body: 'Both servos bolt into the printed brackets with the M2 and M3 fasteners. Pan on the bottom, tilt on top.' },
   { n: 3, title: 'Wire the bus',

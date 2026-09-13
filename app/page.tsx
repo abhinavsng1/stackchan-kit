@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Robot3D from '@/components/Robot3D'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
-import MediaSlot from '@/components/MediaSlot'
+import DemoVideo from '@/components/DemoVideo'
 import PartArt from '@/components/PartArt'
 import Capabilities from '@/components/Capabilities'
 import BuyBar from '@/components/BuyBar'
@@ -78,7 +78,7 @@ export default function Page() {
                 {[
                   ['1–2 wks', 'Dispatch'],
                   ['₹0', 'Due today'],
-                  ['11', 'Parts inside'],
+                  [String(PARTS.length), 'Parts inside'],
                   ['100%', 'Open source'],
                 ].map(([big, small]) => (
                   <li key={small}>
@@ -130,12 +130,11 @@ export default function Page() {
               Thirty seconds, no narration
             </h2>
             <p className="text-[var(--muted)] mt-0 mb-0 max-w-[50ch]">
-              Assembled kit tracking a face, talking, and being picked up mid-sentence.
+              An assembled kit, running. No narration, no music — just the thing working.
             </p>
           </div>
           <div className="mt-9">
-            <MediaSlot label="Product demo video"
-                       note="Drop the real clip in here — the layout is already sized for 16:9." />
+            <DemoVideo />
           </div>
         </section>
 
@@ -163,7 +162,7 @@ export default function Page() {
               <div className="max-w-[620px]">
                 <Eyebrow>In the box</Eyebrow>
                 <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-                  Eleven parts. Nothing else to buy.
+                  {PARTS.length} parts. Nothing else to buy.
                 </h2>
                 <p className="text-[var(--muted)] mt-0 mb-0 max-w-[50ch]">
                   Including the printed shell and the fasteners. You supply a USB-C
@@ -177,7 +176,7 @@ export default function Page() {
                     style={{ borderColor: 'var(--line)' }}>
               <Image
                 src="/kit-flatlay.webp"
-                alt="Everything in the kit laid out beside its box: the controller, a bus servo, the driver board, the USB programmer, the power supply and cable, the printed shell and brackets, servo horns, jumper and JST cables, capacitors, and the fasteners."
+                alt="Everything in the kit laid out beside its box: the controller, the bus servos, the driver board, the power supply and cable, the printed shell and brackets, the cabling and the fasteners."
                 width={1672}
                 height={941}
                 sizes="(max-width: 1200px) 100vw, 1160px"
@@ -357,7 +356,7 @@ export default function Page() {
                 {[
                   ['Dispatch', '1–2 weeks'],
                   ['Due today', '₹0'],
-                  ['Parts inside', '11'],
+                  ['Parts inside', String(PARTS.length)],
                   ['Shell', 'Printed, included'],
                   ['Licence', 'Apache-2.0'],
                 ].map(([k, v]) => (

@@ -27,6 +27,20 @@ const queue: Array<[string, Props | undefined]> = []
 
 export { EV } from '@/lib/events'
 
+import { EV as EVENTS } from '@/lib/events'
+import { initPixel, pixelStandard, pixelCustom, stopPixel, pixelConfigured } from '@/lib/pixel'
+
+/**
+ * Meta understands a fixed vocabulary of standard events and reports on them
+ * far better than on custom ones. Anything not in this table is still sent,
+ * as a custom event, so nothing is silently dropped.
+ */
+const META_STANDARD: Record<string, string> = {
+  [EVENTS.reserveCtaClicked]: 'InitiateCheckout',
+  [EVENTS.reserveSucceeded]: 'Lead',
+  [EVENTS.sectionViewed]: 'ViewContent',
+}
+
 /* ------------------------------- consent ------------------------------- */
 
 export function readConsent(): Consent | null {
@@ -58,13 +72,17 @@ export function privacySignalOptOut(): boolean {
 /* -------------------------------- loading ------------------------------- */
 
 export function analyticsConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_MIXPANEL_TOKEN)
+  return Boolean(process.env.NEXT_PUBLIC_MIXPANEL_TOKEN) || pixelConfigured()
 }
 
 export async function initAnalytics(): Promise<void> {
+  if (privacySignalOptOut()) return
+
+  // The pixel is independent of Mixpanel: either can be configured alone.
+  initPixel()
+
   const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN
   if (!token || mp || loading) return loading ?? undefined
-  if (privacySignalOptOut()) return
 
   loading = (async () => {
     const instance = (await import('mixpanel-browser')).default
@@ -95,8 +113,17 @@ export async function initAnalytics(): Promise<void> {
   return loading
 }
 
-/** Events raised before the SDK finishes loading are queued, not dropped. */
+/**
+ * One call, both destinations. Events raised before an SDK finishes loading are
+ * queued by that SDK rather than dropped.
+ */
 export function track(event: string, props?: Props) {
+  // Meta, mapped to a standard event where one fits.
+  const standard = META_STANDARD[event]
+  if (standard) pixelStandard(standard, { content_name: event, ...props })
+  else pixelCustom(event.replace(/\s+/g, ''), props)
+
+  // Mixpanel.
   if (mp) { mp.track(event, props); return }
   if (analyticsConfigured() && readConsent() === 'granted') {
     queue.push([event, props])
@@ -104,8 +131,9 @@ export function track(event: string, props?: Props) {
   }
 }
 
-/** Called when someone withdraws consent. Stops collection and clears the id. */
+/** Called when someone withdraws consent. Stops collection everywhere. */
 export function stopAnalytics() {
   queue.length = 0
+  stopPixel()
   try { mp?.opt_out_tracking() } catch { /* already gone */ }
 }

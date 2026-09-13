@@ -137,27 +137,25 @@ export function SignalFlow() {
 
   return (
     <svg viewBox="0 0 640 210" className="w-full h-auto" role="img"
-         aria-label="Signal flow: laptop over USB to the FE-URT-1 programmer, onto the RS485 bus, through the driver board, to both servos. The power supply feeds the driver board rail.">
-      {box(8, 62, 92, 46, 'USB', 'your laptop')}
-      {arrow(100, 136, 85, 'a1')}
-      {box(136, 62, 92, 46, 'J1', 'FE-URT-1')}
-      {arrow(228, 264, 85, 'a2')}
-      {box(264, 62, 108, 46, 'A1', 'driver board')}
+         aria-label="Signal flow: the CoreS3 controller drives the servo driver board, which addresses both servos over one RS485 bus. The power supply feeds the servo rail separately.">
+      {box(20, 62, 104, 46, 'U1', 'CoreS3 Lite')}
+      {arrow(124, 180, 85, 'a1')}
+      {box(180, 62, 116, 46, 'A1', 'driver board')}
 
-      {/* RS485 bus splitting to both servos */}
-      <line x1="372" y1="85" x2="424" y2="85" stroke="var(--ink)" strokeWidth="1.4" />
-      <line x1="424" y1="46" x2="424" y2="124" stroke="var(--ink)" strokeWidth="1.4" />
-      {arrow(424, 486, 46, 'a3')}
-      {arrow(424, 486, 124, 'a4')}
-      {box(486, 24, 92, 44, 'M1', 'pan servo')}
-      {box(486, 102, 92, 44, 'M2', 'tilt servo')}
-      <text x="398" y="78" textAnchor="middle" fontFamily="var(--font-mono)"
+      {/* one RS485 pair, both servos addressed on it */}
+      <line x1="296" y1="85" x2="356" y2="85" stroke="var(--ink)" strokeWidth="1.4" />
+      <line x1="356" y1="46" x2="356" y2="124" stroke="var(--ink)" strokeWidth="1.4" />
+      {arrow(356, 428, 46, 'a2')}
+      {arrow(356, 428, 124, 'a3')}
+      {box(428, 24, 100, 44, 'M1', 'pan servo')}
+      {box(428, 102, 100, 44, 'M2', 'tilt servo')}
+      <text x="326" y="78" textAnchor="middle" fontFamily="var(--font-mono)"
             fontSize="9.5" fill="var(--muted)">RS485</text>
 
-      {/* 5 V rail */}
-      {box(264, 150, 108, 44, 'PS1', '5 V 3 A')}
-      <line x1="318" y1="150" x2="318" y2="108" stroke="var(--ink)" strokeWidth="1.4" strokeDasharray="5 4" />
-      <text x="380" y="176" fontFamily="var(--font-mono)" fontSize="9.5" fill="var(--muted)">
+      {/* 5 V rail, kept off the controller */}
+      {box(180, 150, 116, 44, 'PS1', '5 V 3 A')}
+      <line x1="238" y1="150" x2="238" y2="108" stroke="var(--ink)" strokeWidth="1.4" strokeDasharray="5 4" />
+      <text x="306" y="176" fontFamily="var(--font-mono)" fontSize="9.5" fill="var(--muted)">
         servo rail — kept off the controller
       </text>
     </svg>

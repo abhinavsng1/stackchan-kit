@@ -10,4 +10,6 @@ export const EV = {
   faqOpened: 'FAQ Opened',
   specsExpanded: 'Specs Expanded',
   outboundClicked: 'Outbound Link Clicked',
+  demoPlayed: 'Demo Video Played',
+  demoProgress: 'Demo Video Progress',
 } as const

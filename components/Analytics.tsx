@@ -82,8 +82,9 @@ export default function Analytics() {
         <p className="t-label m-0 mb-2">Before you look around</p>
         <p className="text-[14px] m-0 mb-4 text-[var(--muted)]">
           We would like to record how this page gets used — clicks, scrolling and
-          session replays — so we can make it better. What you type into the
-          reserve form is never recorded. Say no and nothing loads at all.
+          session replays — and to share some of it with Meta so our ads reach
+          people like you. What you type into the reserve form is never recorded.
+          Say no and none of it loads.
         </p>
         <div className="flex gap-2.5">
           <button type="button" className="btn btn-brand !py-2.5 !text-[14px]" onClick={() => decide('granted')}>
