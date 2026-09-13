@@ -65,6 +65,9 @@ export function initPixel() {
   script.src = SRC
   document.head.appendChild(script)
 
+  // We only reach here behind our own banner, so tell Meta consent is granted.
+  // Without this, a pixel configured for consent mode queues and never sends.
+  window.fbq!('consent', 'grant')
   window.fbq!('init', id)
   window.fbq!('track', 'PageView')
 }
@@ -86,5 +89,7 @@ export function pixelCustom(event: string, params?: Record<string, unknown>) {
 }
 
 export function stopPixel() {
+  // Revoke on Meta's side too, not just stop calling it.
+  try { window.fbq?.('consent', 'revoke') } catch { /* never loaded */ }
   started = false
 }

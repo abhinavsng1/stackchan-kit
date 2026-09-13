@@ -31,6 +31,11 @@ describe('Meta Pixel wiring', () => {
   it('withdrawing consent stops the pixel as well as Mixpanel', () => {
     expect(src).toMatch(/stopPixel\(\)/)
   })
+
+  it("drives Meta's consent API from our own banner, both ways", () => {
+    expect(pixel).toMatch(/'consent', 'grant'/)
+    expect(pixel).toMatch(/'consent', 'revoke'/)
+  })
 })
 
 describe('pixel runtime', () => {

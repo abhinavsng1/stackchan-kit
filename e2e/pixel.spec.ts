@@ -65,6 +65,7 @@ test('a completed reservation asks the pixel for Lead, the conversion', async ({
   const calls = await page.evaluate(() =>
     (window.fbq?.queue ?? []).map((c: unknown[]) => [c[0], c[1]].join(' ')))
 
+  expect(calls, 'consent is granted before anything is tracked').toContain('consent grant')
   expect(calls).toContain('init 1463673029143081')
   expect(calls).toContain('track PageView')
   expect(calls, 'the reservation is the conversion Meta should optimise for').toContain('track Lead')
