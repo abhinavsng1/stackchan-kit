@@ -36,13 +36,27 @@ export default function BuyBar() {
       if (!frame) frame = requestAnimationFrame(measure)
     }
 
+    /**
+     * A hash navigation — a nav link, or someone arriving on /#specs — moves
+     * the page without necessarily producing a scroll event we catch in time.
+     * Re-measure after it settles, so the bar is right however you got there.
+     */
+    const onHash = () => {
+      measure()
+      setTimeout(measure, 120)
+      setTimeout(measure, 600)
+    }
+
     measure()
+    onHash()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll, { passive: true })
+    window.addEventListener('hashchange', onHash)
     return () => {
       if (frame) cancelAnimationFrame(frame)
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
+      window.removeEventListener('hashchange', onHash)
     }
   }, [])
 

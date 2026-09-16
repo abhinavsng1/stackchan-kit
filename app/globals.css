@@ -53,7 +53,11 @@
 
 /* ---------- base ---------- */
 
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+/* No scroll-behavior: smooth. WebKit cancels a smooth scroll when layout
+   shifts mid-animation — and this page shifts constantly while the 3D scene,
+   the video and the photograph settle. The result on iOS was that every nav
+   link changed the hash and moved nothing. An instant jump always works. */
+html { -webkit-text-size-adjust: 100%; }
 
 body {
   background: var(--bg);
@@ -62,9 +66,10 @@ body {
   font-size: 16px;
   line-height: 1.6;
   margin: 0;
-  /* clip, not hidden: `hidden` would make body a scroll container and kill
-     position:sticky on the nav. */
-  overflow-x: clip;
+  /* No overflow-x here. `clip` was once needed for an over-wide hero glow, but
+     that was fixed at source, and in WebKit it silently breaks scroll-to-anchor
+     — every nav link on iOS became a no-op. Horizontal overflow is asserted
+     against at three widths in e2e/ instead. */
 }
 
 ::selection { background: var(--brand); color: #fff; }
@@ -223,7 +228,6 @@ body {
 .marquee:hover .marquee-track { animation-play-state: paused; }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: .01ms !important; animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;

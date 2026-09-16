@@ -10,6 +10,10 @@ const SWIFTSHADER = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsa
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  workers: 4,
+  expect: { timeout: 10_000 },
+  // Compiles every route before the first assertion runs. See the file.
+  globalSetup: './e2e/global-setup.ts',
   use: { baseURL: 'http://localhost:3000' },
   projects: [
     {

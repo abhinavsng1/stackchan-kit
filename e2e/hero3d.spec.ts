@@ -59,3 +59,36 @@ test.describe('reduced motion', () => {
   })
 })
 
+
+test('the hero shows a photograph of a real unit, not only a render', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  // The hidden half of the pair is aria-hidden, so it is deliberately absent
+  // from the accessibility tree. Match the element itself instead.
+  const photo = page.locator('img[src*="unit"]')
+  await expect(photo).toBeAttached()
+  await expect(photo).toHaveAttribute('alt', /assembled Pebble-chan/i)
+})
+
+test('the photograph is what a visitor without WebGL gets', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  await ctx.addInitScript(() => {
+    // Deny every WebGL context, as an older or locked-down browser would.
+    const get = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (type: string, ...rest: unknown[]) {
+      if (/webgl/i.test(type)) return null
+      // @ts-expect-error passthrough for every other context type
+      return get.call(this, type, ...rest)
+    }
+  })
+  const page = await ctx.newPage()
+  const glb: string[] = []
+  page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
+  await page.goto('/')
+  await page.waitForTimeout(2000)
+
+  await expect(page.getByRole('img', { name: /assembled Pebble-chan/i })).toBeVisible()
+  await expect(page.locator('canvas')).toHaveCount(0)
+  expect(glb, 'no model bytes when there is nothing to render them with').toEqual([])
+  await ctx.close()
+})

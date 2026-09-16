@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import Face from '@/components/Face'
+import Image from 'next/image'
 
 const Canvas = dynamic(() => import('@react-three/fiber').then((m) => m.Canvas), { ssr: false })
 const Robot = dynamic(() => import('@/components/robot3d/Robot'), { ssr: false })
@@ -13,7 +13,10 @@ const Environment = dynamic(
 const Lightformer = dynamic(
   () => import('@react-three/drei').then((m) => m.Lightformer), { ssr: false })
 
-/** Cheap, honest capability check. No WebGL means no 3D, so show the drawing. */
+/** How long each of the two views holds before the other takes over. */
+const SWAP_MS = 30_000
+
+/** Cheap, honest capability check. No WebGL means no 3D, so show the photograph. */
 function hasWebGL() {
   try {
     const c = document.createElement('canvas')
@@ -23,8 +26,14 @@ function hasWebGL() {
   }
 }
 
+/**
+ * The hero alternates between a model built from the real print files and a
+ * photograph of an assembled unit. The model is accurate and interactive; the
+ * photograph is proof the thing exists. Thirty seconds each.
+ */
 export default function Robot3D() {
-  const [mode, setMode] = useState<'probing' | '3d' | 'svg'>('probing')
+  const [mode, setMode] = useState<'probing' | '3d' | 'photo'>('probing')
+  const [showing, setShowing] = useState<'model' | 'photo'>('model')
   const pointer = useRef({ x: 0, y: 0 })
   const panOut = useRef<HTMLSpanElement>(null)
   const tiltOut = useRef<HTMLSpanElement>(null)
@@ -34,11 +43,20 @@ export default function Robot3D() {
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } })
       .connection?.saveData === true
 
-    // A static drawing is the right answer when motion is unwelcome, when the
-    // visitor has asked the browser to save data, or when there is no WebGL to
-    // render with. Everyone else gets the model, phones included.
-    setMode(reduced || saveData || !hasWebGL() ? 'svg' : '3d')
+    // With motion unwelcome, data restricted, or no WebGL, the photograph is a
+    // better answer than an empty frame — and it is 46 KB.
+    setMode(reduced || saveData || !hasWebGL() ? 'photo' : '3d')
   }, [])
+
+  // Alternate, but only once the model is actually the thing being shown.
+  useEffect(() => {
+    if (mode !== '3d') return
+    const id = setInterval(
+      () => setShowing((s) => (s === 'model' ? 'photo' : 'model')),
+      SWAP_MS,
+    )
+    return () => clearInterval(id)
+  }, [mode])
 
   useEffect(() => {
     if (mode !== '3d') return
@@ -66,46 +84,83 @@ export default function Robot3D() {
     }
   }, [mode])
 
-  if (mode !== '3d') return <Face />
+  const photoVisible = mode === 'photo' || showing === 'photo'
 
   return (
     <figure className="m-0 select-none">
       <div className="relative mx-auto w-full max-w-[240px] sm:max-w-[350px] lg:max-w-[440px] aspect-square">
-        <Canvas
-          camera={{ position: [44, 26, 178], fov: 32 }}
-          gl={{ antialias: true, alpha: true }}
-          dpr={[1, 2]}
-          shadows
+
+        {/* the assembled unit */}
+        <div
+          className="absolute inset-0 rounded-2xl overflow-hidden transition-opacity duration-700"
+          style={{ opacity: photoVisible ? 1 : 0 }}
+          aria-hidden={!photoVisible}
         >
-          <ambientLight intensity={0.9} />
-          <hemisphereLight args={['#ffffff', '#26303a', 0.7]} />
-          <directionalLight position={[60, 110, 90]} intensity={2.6} castShadow
-                            shadow-mapSize={[1024, 1024]} />
-          <directionalLight position={[-80, 30, -50]} intensity={0.8} color="#9ec5ff" />
-          <Suspense fallback={null}>
-            {/* Built from lightformers rather than an HDR file: the metal bezel
-                needs something to reflect, and this fetches nothing. */}
-            <Environment resolution={256}>
-              <Lightformer form="rect" intensity={3.2} position={[-60, 40, 60]}
-                           scale={[60, 90, 1]} target={[0, 0, 0]} />
-              <Lightformer form="rect" intensity={1.6} position={[70, 20, 40]}
-                           scale={[50, 60, 1]} target={[0, 0, 0]} color="#cfe0ff" />
-              <Lightformer form="rect" intensity={1.1} position={[0, -50, 30]}
-                           scale={[80, 40, 1]} target={[0, 0, 0]} />
-            </Environment>
-            <Robot pointer={pointer} />
-            <ContactShadows position={[0, -26, 0]} opacity={0.35} scale={190}
-                            blur={2.4} far={60} resolution={512} />
-          </Suspense>
-        </Canvas>
+          <Image
+            src="/media/unit.webp"
+            alt="An assembled Pebble-chan on a desk, its display showing the curious face and a status line reading ARMED"
+            width={1100}
+            height={1100}
+            sizes="(max-width: 640px) 240px, (max-width: 1024px) 350px, 440px"
+            priority
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* the model, built from the print files */}
+        {mode === '3d' && (
+          <div
+            className="absolute inset-0 transition-opacity duration-700"
+            style={{ opacity: photoVisible ? 0 : 1 }}
+            aria-hidden={photoVisible}
+          >
+            <Canvas
+              camera={{ position: [44, 26, 178], fov: 32 }}
+              gl={{ antialias: true, alpha: true }}
+              dpr={[1, 2]}
+              shadows
+              // Stop rendering entirely while the photograph is up.
+              frameloop={photoVisible ? 'never' : 'always'}
+            >
+              <ambientLight intensity={0.9} />
+              <hemisphereLight args={['#ffffff', '#26303a', 0.7]} />
+              <directionalLight position={[60, 110, 90]} intensity={2.6} castShadow
+                                shadow-mapSize={[1024, 1024]} />
+              <directionalLight position={[-80, 30, -50]} intensity={0.8} color="#9ec5ff" />
+              <Suspense fallback={null}>
+                {/* Lightformers rather than an HDR file: the metal bezel needs
+                    something to reflect, and this fetches nothing. */}
+                <Environment resolution={256}>
+                  <Lightformer form="rect" intensity={3.2} position={[-60, 40, 60]}
+                               scale={[60, 90, 1]} target={[0, 0, 0]} />
+                  <Lightformer form="rect" intensity={1.6} position={[70, 20, 40]}
+                               scale={[50, 60, 1]} target={[0, 0, 0]} color="#cfe0ff" />
+                  <Lightformer form="rect" intensity={1.1} position={[0, -50, 30]}
+                               scale={[80, 40, 1]} target={[0, 0, 0]} />
+                </Environment>
+                <Robot pointer={pointer} />
+                <ContactShadows position={[0, -26, 0]} opacity={0.35} scale={190}
+                                blur={2.4} far={60} resolution={512} />
+              </Suspense>
+            </Canvas>
+          </div>
+        )}
       </div>
 
-      <figcaption className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center gap-2">
-        <Readout label="Pan M1" ref_={panOut} />
-        <Readout label="Tilt M2" ref_={tiltOut} />
-        <span className="float t-mono text-[13px] hidden sm:flex items-center gap-2">
-          <span className="t-label">Travel</span>300.0°
-        </span>
+      <figcaption className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center gap-2 min-h-[38px]">
+        {photoVisible ? (
+          <span className="float t-mono text-[12px] sm:text-[13px] !px-3 !py-2 flex items-center gap-2">
+            <span className="t-label">Assembled unit</span>photographed, not rendered
+          </span>
+        ) : (
+          <>
+            <Readout label="Pan M1" ref_={panOut} />
+            <Readout label="Tilt M2" ref_={tiltOut} />
+            <span className="float t-mono text-[13px] hidden sm:flex items-center gap-2">
+              <span className="t-label">Travel</span>300.0°
+            </span>
+          </>
+        )}
       </figcaption>
     </figure>
   )

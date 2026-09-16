@@ -65,3 +65,15 @@ test('tap targets in the buy bar are big enough', async ({ page }) => {
   const b = await cta.boundingBox()
   expect(b!.height).toBeGreaterThanOrEqual(44)
 })
+
+test('every nav link actually moves the page', async ({ page }) => {
+  // Regression: `scroll-behavior: smooth` plus this page's settling layout made
+  // WebKit change the hash and scroll nowhere, so on iOS the nav was inert.
+  await page.goto('/')
+  for (const label of ['In the box', 'Specs', 'Build', 'FAQ']) {
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.locator('.navstrip a', { hasText: label }).click()
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY)),
+      { timeout: 8000 }).toBeGreaterThan(200)
+  }
+})
