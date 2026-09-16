@@ -42,7 +42,17 @@ describe('nothing placeholder ships', () => {
   })
 
   it('states one price, consistently', () => {
-    expect(PRICE.now).toBe('₹11,999')
-    expect(PRICE.mrp).toBe('₹16,999')
+    expect(PRICE.now).toBe('₹8,999')
+    expect(PRICE.mrp).toBe('₹13,999')
+  })
+
+  it('the saving actually equals the discount, so the page cannot lie', () => {
+    const rupees = (s: string) => Number(s.replace(/[^\d]/g, ''))
+    expect(rupees(PRICE.save)).toBe(rupees(PRICE.mrp) - rupees(PRICE.now))
+  })
+
+  it('the discounted price is below the price it is struck from', () => {
+    const rupees = (s: string) => Number(s.replace(/[^\d]/g, ''))
+    expect(rupees(PRICE.now)).toBeLessThan(rupees(PRICE.mrp))
   })
 })

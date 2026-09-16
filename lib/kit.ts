@@ -162,8 +162,8 @@ export const FAQS: Faq[] = [
 /* ---------------------------------------------------------------- */
 
 export const PRICE = {
-  mrp: '₹16,999',
-  now: '₹11,999',
+  mrp: '₹13,999',
+  now: '₹8,999',
   save: 'Save ₹5,000',
   ship: 'Ships in 1–2 weeks',
 } as const

@@ -35,7 +35,7 @@ describe('confirmation content', () => {
       const body = render(record)
       for (const needle of [
         'Asha', '12 Silicon Gardenia', 'Bengaluru', '560078',
-        '+919876543210', '₹11,999', 'support@pebblerobo.com',
+        '+919876543210', '₹8,999', 'support@pebblerobo.com',
       ]) {
         expect(body, needle).toContain(needle)
       }
