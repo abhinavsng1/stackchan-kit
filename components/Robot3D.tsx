@@ -14,7 +14,7 @@ const Lightformer = dynamic(
   () => import('@react-three/drei').then((m) => m.Lightformer), { ssr: false })
 
 /** How long each of the two views holds before the other takes over. */
-const SWAP_MS = 30_000
+const SWAP_MS = 10_000
 
 /** Cheap, honest capability check. No WebGL means no 3D, so show the photograph. */
 function hasWebGL() {
@@ -34,6 +34,8 @@ function hasWebGL() {
 export default function Robot3D() {
   const [mode, setMode] = useState<'probing' | '3d' | 'photo'>('probing')
   const [showing, setShowing] = useState<'model' | 'photo'>('model')
+  /** Bumped on every swap, manual or automatic, to restart the countdown ring. */
+  const [cycle, setCycle] = useState(0)
   const pointer = useRef({ x: 0, y: 0 })
   const panOut = useRef<HTMLSpanElement>(null)
   const tiltOut = useRef<HTMLSpanElement>(null)
@@ -48,15 +50,23 @@ export default function Robot3D() {
     setMode(reduced || saveData || !hasWebGL() ? 'photo' : '3d')
   }, [])
 
-  // Alternate, but only once the model is actually the thing being shown.
+  /**
+   * A timeout per hold rather than one interval, so choosing a view by hand
+   * restarts the countdown instead of leaving a half-elapsed one running.
+   */
   useEffect(() => {
     if (mode !== '3d') return
-    const id = setInterval(
-      () => setShowing((s) => (s === 'model' ? 'photo' : 'model')),
-      SWAP_MS,
-    )
-    return () => clearInterval(id)
-  }, [mode])
+    const id = setTimeout(() => {
+      setShowing((s) => (s === 'model' ? 'photo' : 'model'))
+      setCycle((c) => c + 1)
+    }, SWAP_MS)
+    return () => clearTimeout(id)
+  }, [mode, showing, cycle])
+
+  const choose = (view: 'model' | 'photo') => {
+    setShowing(view)
+    setCycle((c) => c + 1)
+  }
 
   useEffect(() => {
     if (mode !== '3d') return
@@ -147,7 +157,22 @@ export default function Robot3D() {
         )}
       </div>
 
-      <figcaption className="mt-4 sm:mt-6 flex flex-wrap items-center justify-center gap-2 min-h-[38px]">
+      {mode === '3d' && (
+        <div className="mt-3 flex items-center justify-center gap-1" role="group"
+             aria-label="Choose what the hero shows">
+          {(['model', 'photo'] as const).map((view) => (
+            <SwitchDot
+              key={view}
+              view={view}
+              active={showing === view}
+              cycle={cycle}
+              onSelect={() => choose(view)}
+            />
+          ))}
+        </div>
+      )}
+
+      <figcaption className="mt-2 sm:mt-3 flex flex-wrap items-center justify-center gap-2 min-h-[38px]">
         {photoVisible ? (
           <span className="float t-mono text-[12px] sm:text-[13px] !px-3 !py-2 flex items-center gap-2">
             <span className="t-label">Assembled unit</span>photographed, not rendered
@@ -163,6 +188,51 @@ export default function Robot3D() {
         )}
       </figcaption>
     </figure>
+  )
+}
+
+const R = 9
+const CIRCUMFERENCE = 2 * Math.PI * R
+
+/**
+ * One dot per view. The active one drains a ring over the hold, so the swap is
+ * announced rather than sprung; either can be pressed to go there now.
+ */
+function SwitchDot({
+  view, active, cycle, onSelect,
+}: {
+  view: 'model' | 'photo'
+  active: boolean
+  cycle: number
+  onSelect: () => void
+}) {
+  const label = view === 'model' ? 'the 3D model' : 'a photo of an assembled unit'
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      aria-label={`Show ${label}`}
+      title={`Show ${label}`}
+      className="switch-dot"
+    >
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+        <circle cx="11" cy="11" r={R} fill="none" stroke="currentColor"
+                strokeWidth="2" opacity={active ? 0.25 : 0.45} />
+        {active && (
+          <circle
+            // Remounting on each cycle restarts the animation from full.
+            key={cycle}
+            className="ring-progress"
+            cx="11" cy="11" r={R} fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            transform="rotate(-90 11 11)"
+            strokeDasharray={CIRCUMFERENCE}
+            style={{ ['--circumference' as string]: CIRCUMFERENCE, ['--hold' as string]: `${SWAP_MS}ms` }}
+          />
+        )}
+      </svg>
+    </button>
   )
 }
 

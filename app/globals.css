@@ -324,3 +324,29 @@ body {
   padding: 0 20px 10px;
 }
 .navstrip::-webkit-scrollbar { display: none; }
+
+/* ---------- hero view switcher ---------- */
+
+/* The ring drains over one hold, so the next swap is visible before it lands. */
+@keyframes ring-drain { from { stroke-dashoffset: 0; } to { stroke-dashoffset: var(--circumference); } }
+
+.ring-progress { animation: ring-drain var(--hold, 10s) linear forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-progress { animation: none; stroke-dashoffset: 0; }
+}
+
+.switch-dot {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  transition: color 160ms linear;
+}
+.switch-dot:hover { color: var(--ink); }
+.switch-dot[aria-pressed="true"] { color: var(--brand); }

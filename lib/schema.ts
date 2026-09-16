@@ -33,7 +33,8 @@ export const preorderSchema = z.object({
   name: z.string().trim().min(2, 'Enter your full name').max(80, 'Name is too long'),
   email: z.email('Enter a valid email address').max(160, 'Email is too long'),
   phone,
-  profession: z.enum(PROFESSIONS, { message: 'Pick the closest one' }),
+  /** Optional: useful to know, never worth losing a reservation over. */
+  profession: z.union([z.enum(PROFESSIONS), z.literal('')]).optional(),
   address: z.string().trim()
     .min(10, 'Enter the full address we should ship to')
     .max(300, 'Address is too long'),

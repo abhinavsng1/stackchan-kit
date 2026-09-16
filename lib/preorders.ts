@@ -4,7 +4,7 @@ export type PreorderRecord = {
   name: string
   email: string
   phone: string
-  profession: string
+  profession?: string
   address: string
   city: string
   pincode: string
@@ -42,7 +42,7 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
     insert into preorders (name, email, phone, profession, address, city, pincode, qty)
     values (
       ${input.name}, ${input.email.toLowerCase()}, ${input.phone},
-      ${input.profession}, ${input.address}, ${input.city}, ${input.pincode}, ${input.qty}
+      ${input.profession || null}, ${input.address}, ${input.city}, ${input.pincode}, ${input.qty}
     )
     on conflict (email) do nothing
     returning id

@@ -7,7 +7,7 @@ const fill = async (page: import('@playwright/test').Page, email = 'asha@example
   await page.getByLabel('Name', { exact: true }).fill('Asha Rao')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel(/^Phone/).fill('9876543210')
-  await page.getByLabel('Profession').selectOption('Embedded / firmware')
+  await page.getByLabel(/^Profession/).selectOption('Embedded / firmware')
   await page.getByLabel('Shipping address').fill('12 Silicon Gardenia, 12th Main, JP Nagar 5th Phase')
   await page.getByLabel('City', { exact: true }).fill('Bengaluru')
   await page.getByLabel('PIN code').fill('560078')
@@ -79,7 +79,6 @@ test('asks for every field it needs before calling the server', async ({ page })
     'Enter your full name',
     'Enter a valid email address',
     'Enter a 10-digit Indian mobile number',
-    'Pick the closest one',
     'Enter the full address we should ship to',
     'Enter your city',
     'Enter a 6-digit PIN code',
@@ -87,6 +86,22 @@ test('asks for every field it needs before calling the server', async ({ page })
     await expect(page.getByText(message)).toBeVisible()
   }
   expect(called).toBe(false)
+})
+
+test('a reservation goes through without a profession', async ({ page }) => {
+  let sent: Record<string, unknown> | null = null
+  await page.route('**/api/preorder', async (route) => {
+    sent = route.request().postDataJSON()
+    await route.fulfill({ status: 201, json: { status: 'created' } })
+  })
+
+  await page.goto('/#reserve')
+  await fill(page)
+  await page.getByLabel(/^Profession/).selectOption('')
+  await page.getByRole('button', { name: 'Reserve a kit' }).click()
+
+  await expect(page.getByText("You're on the list.")).toBeVisible()
+  expect(sent!.profession, 'an unanswered profession must not block the sale').toBe('')
 })
 
 test('rejects a phone number that is not a mobile', async ({ page }) => {

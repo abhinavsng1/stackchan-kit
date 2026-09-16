@@ -33,7 +33,7 @@ test('a completed reservation asks the pixel for Lead, the conversion', async ({
   await page.getByLabel('Name', { exact: true }).fill('Asha Rao')
   await page.getByLabel('Email', { exact: true }).fill('asha@example.com')
   await page.getByLabel(/^Phone/).fill('9876543210')
-  await page.getByLabel('Profession').selectOption('Robotics')
+  await page.getByLabel(/^Profession/).selectOption('Robotics')
   await page.getByLabel('Shipping address').fill('12 Silicon Gardenia, 12th Main, JP Nagar')
   await page.getByLabel('City', { exact: true }).fill('Bengaluru')
   await page.getByLabel('PIN code').fill('560078')

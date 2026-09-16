@@ -6,7 +6,7 @@ create table if not exists preorders (
   email      text        not null unique,
   name       text        not null,
   phone      text        not null,
-  profession text        not null,
+  profession text,
   address    text        not null,
   city       text        not null,
   pincode    text        not null,
@@ -20,6 +20,9 @@ alter table preorders add column if not exists phone      text;
 alter table preorders add column if not exists profession text;
 alter table preorders add column if not exists address    text;
 alter table preorders add column if not exists pincode    text;
+
+-- Profession was mandatory and is not any more.
+alter table preorders alter column profession drop not null;
 
 -- One person, one reservation, regardless of how they spell their number.
 create unique index if not exists preorders_phone_key on preorders (phone);

@@ -155,6 +155,14 @@ describe('POST /api/preorder', () => {
     expect(res.status).toBe(400)
   })
 
+  it('accepts a reservation with no profession at all', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    const { profession, ...rest } = body
+    const res = await POST(post(rest))
+    expect(res.status).toBe(201)
+    expect(createPreorder).toHaveBeenCalledOnce()
+  })
+
   it('returns 500 when the insert throws', async () => {
     createPreorder.mockRejectedValue(new Error('connection reset'))
     const res = await POST(post(body))

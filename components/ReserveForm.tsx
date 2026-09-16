@@ -120,11 +120,13 @@ export default function ReserveForm() {
                placeholder="98765 43210" hint="Indian mobile" error={errors.phone} disabled={busy} />
 
         <div>
-          <label htmlFor="profession" className="t-label block mb-2">Profession</label>
+          <label htmlFor="profession" className="t-label block mb-2">
+            Profession<span className="opacity-60"> — optional</span>
+          </label>
           <select id="profession" name="profession" defaultValue="" className="field" disabled={busy}
                   aria-invalid={errors.profession ? 'true' : undefined}
                   aria-describedby={errors.profession ? 'profession-err' : undefined}>
-            <option value="" disabled>Choose one</option>
+            <option value="">Prefer not to say</option>
             {PROFESSIONS.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
           {errors.profession && <Err id="profession-err">{errors.profession}</Err>}

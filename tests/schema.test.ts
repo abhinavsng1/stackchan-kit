@@ -59,7 +59,15 @@ describe('preorderSchema', () => {
       }
     })
     it('rejects anything off the list', () => reject({ profession: 'Astronaut' }))
-    it('is required', () => reject({ profession: '' }))
+
+    it('is optional — an empty answer is accepted', () => {
+      expect(preorderSchema.safeParse({ ...valid, profession: '' }).success).toBe(true)
+    })
+
+    it('is optional — an absent answer is accepted', () => {
+      const { profession, ...rest } = valid
+      expect(preorderSchema.safeParse(rest).success).toBe(true)
+    })
   })
 
   describe('address', () => {
@@ -99,7 +107,7 @@ describe('fieldErrors', () => {
     expect(r.success).toBe(false)
     if (!r.success) {
       expect(Object.keys(fieldErrors(r.error)).sort())
-        .toEqual(['address', 'city', 'email', 'name', 'phone', 'pincode', 'profession', 'qty'].sort())
+        .toEqual(['address', 'city', 'email', 'name', 'phone', 'pincode', 'qty'].sort())
     }
   })
 })
