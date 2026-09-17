@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track } from '@/lib/analytics'
 import { CONTACT } from '@/lib/kit'
@@ -17,6 +17,18 @@ const EMPTY: Record<string, string> = {}
 export default function ReserveForm() {
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
+  const qtyRef = useRef<HTMLSelectElement>(null)
+  const started = useRef(false)
+
+  // The buy box carries its quantity here, so nobody has to pick it twice.
+  useEffect(() => {
+    const onQty = (e: Event) => {
+      const n = (e as CustomEvent<number>).detail
+      if (qtyRef.current && n >= 1 && n <= 5) qtyRef.current.value = String(n)
+    }
+    window.addEventListener('sc:qty', onQty)
+    return () => window.removeEventListener('sc:qty', onQty)
+  }, [])
 
   if (state.kind === 'reserved' || state.kind === 'already') {
     const byPhone = state.kind === 'already' && state.field === 'phone'
@@ -73,8 +85,11 @@ export default function ReserveForm() {
     // that counts.
     const local = preorderSchema.safeParse(payload)
     if (!local.success) {
-      setErrors(fieldErrors(local.error))
+      const fields = fieldErrors(local.error)
+      setErrors(fields)
       setState({ kind: 'idle' })
+      // Which field is turning people away is the most actionable thing here.
+      track(EV.reserveFieldInvalid, { fields: Object.keys(fields).sort().join(',') })
       return
     }
 
@@ -111,8 +126,14 @@ export default function ReserveForm() {
 
   const busy = state.kind === 'submitting'
 
+  const onFirstTouch = () => {
+    if (started.current) return
+    started.current = true
+    track(EV.reserveFormStarted)
+  }
+
   return (
-    <form onSubmit={onSubmit} noValidate className="max-w-[600px]">
+    <form onSubmit={onSubmit} onFocusCapture={onFirstTouch} noValidate className="max-w-[600px]">
       <div className="grid gap-5 sm:grid-cols-2">
         <Field name="name" label="Name" autoComplete="name" error={errors.name} disabled={busy} />
         <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} disabled={busy} />
@@ -151,7 +172,7 @@ export default function ReserveForm() {
                placeholder="560078" error={errors.pincode} disabled={busy} />
         <div>
           <label htmlFor="qty" className="t-label block mb-2">Kits</label>
-          <select id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
+          <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
@@ -165,7 +186,7 @@ export default function ReserveForm() {
 
       <div className="mt-7 flex flex-wrap items-center gap-5">
         <button type="submit" className="btn btn-brand" disabled={busy}>
-          {busy ? 'Reserving…' : 'Reserve a kit'}
+          {busy ? 'Reserving…' : 'Place my reservation'}
         </button>
         <p className="t-label m-0">No payment now</p>
       </div>

@@ -29,7 +29,7 @@ test('a completed reservation asks the pixel for Lead, the conversion', async ({
   await page.waitForTimeout(1000)
 
   // Follow the journey a buyer actually takes: CTA, then the form.
-  await page.getByRole('link', { name: /Reserve a kit/ }).first().click()
+  await page.getByRole('button', { name: /^Reserve/ }).first().click()
   await page.getByLabel('Name', { exact: true }).fill('Asha Rao')
   await page.getByLabel('Email', { exact: true }).fill('asha@example.com')
   await page.getByLabel(/^Phone/).fill('9876543210')
@@ -37,7 +37,7 @@ test('a completed reservation asks the pixel for Lead, the conversion', async ({
   await page.getByLabel('Shipping address').fill('12 Silicon Gardenia, 12th Main, JP Nagar')
   await page.getByLabel('City', { exact: true }).fill('Bengaluru')
   await page.getByLabel('PIN code').fill('560078')
-  await page.getByRole('button', { name: 'Reserve a kit' }).click()
+  await page.getByRole('button', { name: 'Place my reservation' }).click()
 
   await expect(page.getByText("You're on the list.")).toBeVisible()
 
@@ -55,7 +55,8 @@ test('a completed reservation asks the pixel for Lead, the conversion', async ({
 test('unmapped events still reach Meta as custom events', async ({ page }) => {
   await page.route('**/connect.facebook.net/**', (r) => r.abort())
   await page.goto('/')
-  await page.locator('video').scrollIntoViewIfNeeded()
+  await page.locator('#box').scrollIntoViewIfNeeded()
+  await page.getByRole('button', { name: 'Show In the box' }).click()
   await page.waitForTimeout(2500)
 
   const custom = await page.evaluate(() =>

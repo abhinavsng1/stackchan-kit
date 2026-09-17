@@ -24,6 +24,9 @@ export default defineConfig({
       name: 'webgl',
       testMatch: /hero3d\.spec\.ts/,
       workers: 1,
+      // Software rasterising a 3D scene takes ten-odd seconds before the first
+      // frame. That is the renderer being slow, not the page being broken.
+      timeout: 60_000,
       use: { launchOptions: { args: SWIFTSHADER } },
     },
   ],

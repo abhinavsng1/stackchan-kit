@@ -73,6 +73,17 @@ export async function initAnalytics(): Promise<void> {
       debug: false,
     })
 
+    /**
+     * Attached to every event from here on, so any report can be split by
+     * device or traffic source without each call site remembering to pass them.
+     */
+    instance.register({
+      viewport: window.innerWidth < 640 ? 'phone'
+        : window.innerWidth < 1024 ? 'tablet' : 'desktop',
+      landing_path: window.location.pathname,
+      referrer_host: document.referrer ? new URL(document.referrer).host : 'direct',
+    })
+
     mp = instance
     for (const [name, props] of queue.splice(0)) instance.track(name, props)
   })()

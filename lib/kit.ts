@@ -51,35 +51,47 @@ export type Capability = {
   /** The part that makes this possible — receipts, not adjectives. */
   source: string
   tone: 'brand' | 'mint' | 'amber' | 'violet'
+  /**
+   * Slug of the clip that shows this capability, where one exists. Wi-Fi and
+   * a software licence are not things a camera can point at, so those two
+   * tiles stay drawn rather than filmed.
+   */
+  clip?: string
 }
 
 export const CAPABILITIES: Capability[] = [
   {
-    key: 'face', tone: 'brand',
+    key: 'face', clip: 'face', tone: 'brand',
     title: 'It has a face',
     body: 'A 320 × 240 display renders the eyes. Expressions, blinking and a slow breathing idle are what the Stack-chan avatar library does out of the box.',
     source: 'U1 · 2.0" IPS display',
   },
   {
-    key: 'move', tone: 'mint',
+    key: 'move', clip: 'move', tone: 'mint',
     title: 'It turns to look',
     body: 'Pan and tilt on two bus servos. Each reports the position it actually reached, so your code knows where the head is rather than guessing.',
     source: 'M1 + M2 · SCS0009',
   },
   {
-    key: 'see', tone: 'amber',
+    key: 'see', clip: 'see', tone: 'amber',
     title: 'It can see',
     body: 'An onboard camera plus a proximity and ambient-light sensor. Pointing the head at a face is the classic first project, and every part for it is in the box.',
     source: 'U1 · GC0308 + LTR-553ALS',
   },
   {
-    key: 'talk', tone: 'violet',
+    key: 'talk', clip: 'talk', tone: 'violet',
     title: 'It talks and listens',
     body: 'A 1 W speaker on an I²S amplifier and two microphones on a full-duplex codec. Speech in, speech out, no extra module.',
     source: 'U1 · AW88298 + ES7210',
   },
   {
-    key: 'net', tone: 'brand',
+    key: 'touch', clip: 'touch', tone: 'amber',
+    title: 'You can touch it',
+    body: 'The display is capacitive, so the face doubles as the interface. Tap it, swipe it, put a menu on it — the driver is already wired up.',
+    source: 'U1 · FT6336U',
+  },
+  {
+    key: 'net', clip: 'net', tone: 'brand',
     title: 'It gets online',
     body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like — the kit takes no view on that.',
     source: 'U1 · ESP32-S3',
@@ -109,35 +121,116 @@ export const BUILD_STEPS: Step[] = [
 
 /* ---------------------------------------------------------------- */
 
-export type Spec = { label: string; value: string }
+export type Spec = { label: string; value: string | string[] }
+export type SpecTable = { title: string; desig: string; rows: Spec[] }
 
-/** Source: docs.m5stack.com/en/core/CoreS3-Lite */
-export const CORE_SPECS: Spec[] = [
-  { label: 'MCU',           value: 'ESP32-S3 · Xtensa LX7 dual-core @ 240 MHz' },
-  { label: 'Flash / PSRAM', value: '16 MB / 8 MB' },
-  { label: 'Display',       value: '2.0" IPS · 320 × 240 · ILI9342C' },
-  { label: 'Touch',         value: 'Capacitive · FT6336U' },
-  { label: 'Camera',        value: 'GC0308 · 0.3 MP' },
-  { label: 'Microphone',    value: 'ES7210 codec · dual input' },
-  { label: 'Speaker',       value: 'AW88298 I²S amplifier · 1 W' },
-  { label: 'IMU',           value: 'BMI270 6-axis + BMM150 magnetometer' },
-  { label: 'Light sensor',  value: 'LTR-553ALS-WA proximity / ambient' },
-  { label: 'Power / RTC',   value: 'AXP2101 PMIC · BM8563 RTC' },
-  { label: 'Battery',       value: '200 mAh LiPo' },
-  { label: 'Storage',       value: 'microSD slot' },
-  { label: 'Ports',         value: 'HY2.0-4P (PORT.A) · M5-BUS' },
-  { label: 'USB',           value: 'USB-C · OTG and Serial/JTAG' },
-  { label: 'Dimensions',    value: '54.0 × 54.0 × 16.5 mm' },
-  { label: 'Mass',          value: '54 g' },
+/**
+ * Grouped by subsystem rather than listed flat: a reader looking for "can it
+ * hear me" wants one Audio row, not three lines scattered through sixteen.
+ * Controller figures come from docs.m5stack.com/en/core/CoreS3-Lite; servo
+ * figures from the supplier's line item.
+ */
+export const SPEC_TABLES: SpecTable[] = [
+  {
+    title: 'Controller', desig: 'U1',
+    rows: [
+      { label: 'Main controller', value: [
+        'ESP32-S3',
+        'Xtensa LX7 dual-core 32-bit, 240 MHz',
+        '16 MB Flash, 8 MB PSRAM',
+      ] },
+      { label: 'Wireless', value: ['2.4 GHz Wi-Fi', 'Bluetooth LE'] },
+      { label: 'Wired', value: ['USB-C, OTG and Serial/JTAG', 'HY2.0-4P (PORT.A), M5-BUS'] },
+      { label: 'Display', value: [
+        '2.0-inch IPS LCD, 320 × 240, ILI9342C driver',
+        'Capacitive touch, FT6336U driver',
+      ] },
+      { label: 'Camera', value: 'GC0308, 0.3 MP' },
+      { label: 'Audio', value: [
+        'AW88298 16-bit I²S amplifier, 1 W speaker',
+        'ES7210 codec, dual microphone input',
+      ] },
+      { label: 'Sensors', value: [
+        'BMI270 6-axis IMU + BMM150 magnetometer',
+        'LTR-553ALS-WA proximity and ambient light',
+      ] },
+      { label: 'Power', value: ['AXP2101 PMIC', 'BM8563 RTC', '200 mAh LiPo'] },
+      { label: 'Storage', value: 'microSD slot' },
+      { label: 'Dimensions', value: ['54.0 × 54.0 × 16.5 mm', '54 g'] },
+    ],
+  },
+  {
+    title: 'Motion', desig: 'M1 · M2',
+    rows: [
+      { label: 'Servo', value: 'SCS0009 serial bus servo, two supplied' },
+      { label: 'Bus', value: ['RS485, individually addressable', 'Position readback'] },
+      { label: 'Operating voltage', value: '6 V' },
+      { label: 'Stall torque', value: '2.3 kg·cm' },
+      { label: 'Travel', value: '300°' },
+      { label: 'Axes', value: ['Pan, driven by M1', 'Tilt, driven by M2'] },
+    ],
+  },
+  {
+    title: 'Power and driver', desig: 'A1 · PS1',
+    rows: [
+      { label: 'Driver board', value: ['Waveshare serial bus servo driver', 'ST/SC series compatible'] },
+      { label: 'Supply', value: ['5 V, 3 A', '5.5 mm DC barrel plug'] },
+      { label: 'Rail', value: 'Servo supply kept off the controller rail' },
+    ],
+  },
+  {
+    title: 'Software', desig: '—',
+    rows: [
+      { label: 'Firmware', value: ['Stack-chan on the Moddable SDK', 'Behaviour written in JavaScript'] },
+      { label: 'Also supported', value: 'Arduino core and M5Unified, in C++' },
+      { label: 'Licence', value: 'Apache License 2.0' },
+      { label: 'Expressions', value: 'Twelve face states, server-authoritative' },
+    ],
+  },
 ]
 
-export const SERVO_SPECS: Spec[] = [
-  { label: 'Model',    value: 'SCS0009 serial bus servo' },
-  { label: 'Voltage',  value: '6 V' },
-  { label: 'Torque',   value: '2.3 kg·cm' },
-  { label: 'Travel',   value: '300°' },
-  { label: 'Bus',      value: 'RS485, addressable' },
-  { label: 'Feedback', value: 'Position readback' },
+/* ---------------------------------------------------------------- */
+
+export type Build = { title: string; body: string; effort: string; tone: 'brand' | 'mint' | 'amber' | 'violet'; clip: string }
+
+/** Concrete projects, with an honest sense of how much work each one is. */
+export const BUILDS: Build[] = [
+  {
+    tone: 'brand', effort: 'An evening',
+    clip: 'build-1',
+    title: 'A desk companion that notices you',
+    body: 'Point the camera at your chair. It looks up when you sit down, follows you while you work, and goes sleepy when you leave. About forty lines once the face is drawing.',
+  },
+  {
+    tone: 'mint', effort: 'A weekend',
+    clip: 'build-2',
+    title: 'A voice assistant with a face',
+    body: 'Two microphones in, a 1 W speaker out, Wi-Fi in between. Wire it to whichever speech and language API you already pay for — it reacts while it thinks, which is most of why it feels alive.',
+  },
+  {
+    tone: 'amber', effort: 'An afternoon',
+    clip: 'build-3',
+    title: 'A standup bot for the team',
+    body: 'It turns to whoever is speaking, shows the build status on its face, and goes Error red when CI breaks. The twelve expressions are already there and settable over HTTP.',
+  },
+  {
+    tone: 'violet', effort: 'An hour',
+    clip: 'build-4',
+    title: 'A very good pomodoro timer',
+    body: 'Curious while you work, sleepy on a break, excited when the cycle completes. The least useful thing you can build with it and the one people keep on the desk.',
+  },
+  {
+    tone: 'brand', effort: 'A term',
+    clip: 'build-5',
+    title: 'A teaching rig',
+    body: 'One object that covers RS485, servo addressing, I²S audio, camera capture and an embedded JavaScript runtime. Students can break it and put it back together.',
+  },
+  {
+    tone: 'mint', effort: 'Ongoing',
+    clip: 'build-6',
+    title: 'Whatever you were going to build anyway',
+    body: 'It is a stock CoreS3 on a servo bus with the shell already printed. If you had a robotics idea waiting on a mechanical starting point, this is one.',
+  },
 ]
 
 /* ---------------------------------------------------------------- */

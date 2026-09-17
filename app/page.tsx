@@ -1,38 +1,69 @@
 import Image from 'next/image'
-import Robot3D from '@/components/Robot3D'
+import Gallery from '@/components/Gallery'
+import DemoVideo from '@/components/DemoVideo'
+import Clip from '@/components/Clip'
+import BuyBox from '@/components/BuyBox'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
-import DemoVideo from '@/components/DemoVideo'
+import BuyBar from '@/components/BuyBar'
 import PartArt from '@/components/PartArt'
 import Capabilities from '@/components/Capabilities'
-import BuyBar from '@/components/BuyBar'
+import { SignalFlow } from '@/components/Diagrams'
 import { TrackedLink, TrackedDetails } from '@/components/Tracked'
 import { EV } from '@/lib/events'
-import { ServoSweep, SignalFlow } from '@/components/Diagrams'
 import {
-  PARTS, BUILD_STEPS, CORE_SPECS, SERVO_SPECS, FAQS, PRICE, CONTACT,
+  PARTS, BUILD_STEPS, SPEC_TABLES, BUILDS, FAQS, PRICE, CONTACT,
 } from '@/lib/kit'
 
-function SpecRows({ rows }: { rows: { label: string; value: string }[] }) {
+const TONE: Record<string, string> = {
+  brand: 'var(--brand)', mint: 'var(--mint)', amber: 'var(--amber)', violet: 'var(--violet)',
+}
+
+function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
   return (
-    <table className="spec-table">
+    <table className="spec-grid">
+      <thead>
+        <tr><th scope="col">Specification</th><th scope="col">Parameter</th></tr>
+      </thead>
       <tbody>
-        {rows.map((r) => (
-          <tr key={r.label}><th scope="row">{r.label}</th><td>{r.value}</td></tr>
+        {table.rows.map((r) => (
+          <tr key={r.label}>
+            <th scope="row">{r.label}</th>
+            <td>
+              {Array.isArray(r.value)
+                ? r.value.map((line) => <div key={line}>{line}</div>)
+                : r.value}
+            </td>
+          </tr>
         ))}
       </tbody>
     </table>
   )
 }
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <p className="t-label m-0 mb-3">{children}</p>
+function Section({
+  id, eyebrow, title, lede, children, tint, center,
+}: {
+  id?: string; eyebrow: string; title: string; lede?: string
+  children: React.ReactNode; tint?: boolean; center?: boolean
+}) {
+  return (
+    <section id={id} className="py-12 md:py-20 scroll-mt-20"
+             style={tint ? { background: 'var(--surface)' } : undefined}>
+      <div className={center ? 'wrap text-center' : 'wrap'}>
+        <p className="t-label m-0 mb-3">{eyebrow}</p>
+        <h2 className="t-display text-[clamp(26px,4vw,38px)] mt-0 mb-3">{title}</h2>
+        {lede && <p className={`text-[var(--muted)] mt-0 mb-8 max-w-[58ch] ${center ? 'mx-auto' : ''}`}>{lede}</p>}
+        {!lede && <div className="mb-8" />}
+        {children}
+      </div>
+    </section>
+  )
 }
 
 export default function Page() {
   return (
     <>
-      {/* announcement */}
       <div className="text-center text-[12.5px] sm:text-[13px] py-2.5 px-4 whitespace-nowrap overflow-hidden"
            style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
         <span className="t-pixel text-[10.5px] mr-2.5 opacity-70">Batch 01</span>
@@ -43,71 +74,22 @@ export default function Page() {
       <Nav />
 
       <main id="top">
-        {/* ================= HERO ================= */}
-        <section className="wrap pt-8 pb-12 md:pt-16 md:pb-24">
-          <div className="grid gap-9 lg:gap-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] items-center">
+        {/* ================= PRODUCT ================= */}
+        <section className="wrap pt-5 pb-12 md:pt-8 md:pb-16">
+          <nav aria-label="Breadcrumb" className="t-mono text-[11.5px] text-[var(--muted)] mb-5">
+            Pebble Robo <span className="opacity-50">›</span> Kits{' '}
+            <span className="opacity-50">›</span> <span className="text-[var(--ink)]">Pebble-chan</span>
+          </nav>
 
-            <div className="rise order-2 lg:order-1">
-              <span className="badge badge-brand"><span className="dot" />Open source · Apache-2.0</span>
-
-              <h1 className="t-display text-[clamp(40px,6.6vw,66px)] mt-5 mb-0">
-                The desktop robot<br />you build{' '}
-                <span className="t-pixel text-[clamp(26px,4.4vw,45px)] text-[var(--brand)]">yourself</span>
-              </h1>
-
-              <p className="mt-5 mb-0 max-w-[46ch] text-[16px] sm:text-[17px] text-[var(--muted)]">
-                Pebble-chan looks at you, talks back and nods along. Every part that
-                makes it work is in one box, printed shell included.
-              </p>
-
-              <div className="mt-7 flex items-end gap-4 flex-wrap">
-                <span className="t-display text-[clamp(40px,7vw,58px)] leading-none">{PRICE.now}</span>
-                <span className="t-mono text-[17px] text-[var(--muted)] line-through mb-1">{PRICE.mrp}</span>
-                <span className="badge mb-1.5" style={{ color: 'var(--mint)', borderColor: 'color-mix(in srgb, var(--mint) 40%, transparent)', background: 'color-mix(in srgb, var(--mint) 10%, var(--surface))' }}>
-                  {PRICE.save}
-                </span>
-              </div>
-
-              <div id="hero-cta" className="mt-7 flex flex-wrap items-center gap-3">
-                <TrackedLink href="#reserve" event={EV.reserveCtaClicked} props={{ location: 'hero' }}
-                             className="btn btn-brand grow sm:grow-0 justify-center">Reserve a kit →</TrackedLink>
-                <a href="#does" className="btn btn-ghost grow sm:grow-0 justify-center">See what it does</a>
-              </div>
-
-              <ul className="mt-8 grid grid-cols-4 gap-x-3 gap-y-4 list-none p-0 m-0">
-                {[
-                  ['1–2 wks', 'Dispatch'],
-                  ['₹0', 'Due today'],
-                  [String(PARTS.length), 'Parts inside'],
-                  ['100%', 'Open source'],
-                ].map(([big, small]) => (
-                  <li key={small}>
-                    <div className="t-display text-[17px] sm:text-[21px]">{big}</div>
-                    <div className="t-label mt-0.5">{small}</div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* robot + floating spec chips */}
-            <div className="relative order-1 lg:order-2">
-              <Robot3D />
-
-              <div className="hidden sm:block absolute -left-2 top-[14%] float t-mono text-[12px] rotate-[-7deg]">
-                <div className="t-label mb-0.5">Display</div>320 × 240 IPS
-              </div>
-              <div className="hidden sm:block absolute -right-1 top-[42%] float t-mono text-[12px] rotate-[6deg]">
-                <div className="t-label mb-0.5">MCU</div>ESP32-S3
-              </div>
-              <div className="hidden sm:block absolute left-[1%] bottom-[26%] float t-mono text-[12px] rotate-[4deg]">
-                <div className="t-label mb-0.5">Servos</div>2 × SCS0009
-              </div>
-            </div>
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14">
+            <Gallery />
+            <BuyBox />
           </div>
         </section>
 
-        {/* ================= BOM TICKER ================= */}
-        <div className="marquee overflow-hidden border-y py-3.5" style={{ borderColor: 'var(--line)', background: 'var(--surface)' }}>
+        {/* ================= PART NUMBER TICKER ================= */}
+        <div className="marquee overflow-hidden border-y py-3.5"
+             style={{ borderColor: 'var(--line)', background: 'var(--surface)' }}>
           <div className="marquee-track">
             {[0, 1].map((dup) => (
               <div key={dup} className="flex shrink-0" aria-hidden={dup === 1}>
@@ -122,256 +104,220 @@ export default function Page() {
           </div>
         </div>
 
-        {/* ================= VIDEO ================= */}
-        <section className="wrap py-12 md:py-24">
-          <div className="max-w-[620px]">
-            <Eyebrow>Watch it run</Eyebrow>
-            <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-              Thirty seconds, no narration
-            </h2>
-            <p className="text-[var(--muted)] mt-0 mb-0 max-w-[50ch]">
-              An assembled kit, running. No narration, no music — just the thing working.
-            </p>
-          </div>
-          <div className="mt-9">
-            <DemoVideo />
+        {/* ================= DEMO ================= */}
+        <section id="demo" className="py-12 md:py-16 scroll-mt-20">
+          <div className="wrap">
+            <div className="max-w-[900px] mx-auto">
+              <p className="t-label m-0 mb-3">Demo</p>
+              <h2 className="t-display text-[clamp(24px,3.4vw,34px)] mt-0 mb-6">
+                This is it, assembled and running.
+              </h2>
+              <DemoVideo />
+            </div>
           </div>
         </section>
 
         {/* ================= WHAT IT DOES ================= */}
-        <section id="does" className="wrap py-12 md:py-24 scroll-mt-20">
-          <div className="flex flex-wrap items-end justify-between gap-5 mb-10">
-            <div>
-              <Eyebrow>What it does</Eyebrow>
-              <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-0">
-                Not an ornament. It runs.
-              </h2>
-            </div>
-            <p className="t-mono text-[12.5px] text-[var(--muted)] m-0 max-w-[30ch]">
-              Every tile cites the part that provides it.
-            </p>
-          </div>
-
+        <Section id="does" eyebrow="What it does" title="Not an ornament. It runs."
+                 lede="Every tile cites the part that provides it, so you can check the claim against the bill of materials.">
           <Capabilities />
-        </section>
+        </Section>
 
         {/* ================= IN THE BOX ================= */}
-        <section id="box" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--flatlay)' }}>
-          <div className="wrap">
-            <div className="flex flex-wrap items-end justify-between gap-6 max-w-full">
-              <div className="max-w-[620px]">
-                <Eyebrow>In the box</Eyebrow>
-                <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-                  {PARTS.length} parts. Nothing else to buy.
-                </h2>
-                <p className="text-[var(--muted)] mt-0 mb-0 max-w-[50ch]">
-                  Including the printed shell and the fasteners. You supply a USB-C
-                  cable and a computer.
-                </p>
-              </div>
-              <span className="badge"><span className="dot" />You assemble it — that is the point</span>
-            </div>
+        <Section id="box" eyebrow="In the box" title={`${PARTS.length} parts. Nothing else to buy.`}
+                 lede="Including the printed shell and the fasteners. You supply a USB-C cable and a computer."
+                 tint>
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)] lg:gap-8 lg:items-start">
+          <figure className="m-0 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--line)' }}>
+            <Image src="/kit-flatlay.webp" alt="Everything in the kit laid out beside its box"
+                   width={1672} height={941} sizes="(max-width: 1024px) 100vw, 620px"
+                   className="w-full h-auto block" />
+          </figure>
 
-            <figure className="m-0 mt-8 sm:mt-10 rounded-2xl overflow-hidden border"
-                    style={{ borderColor: 'var(--line)' }}>
-              <Image
-                src="/kit-flatlay.webp"
-                alt="Everything in the kit laid out beside its box: the controller, the bus servos, the driver board, the power supply and cable, the printed shell and brackets, the cabling and the fasteners."
-                width={1672}
-                height={941}
-                sizes="(max-width: 1200px) 100vw, 1160px"
-                priority={false}
-                className="w-full h-auto block"
-              />
-            </figure>
+          <ul className="grid gap-2 sm:grid-cols-2 list-none p-0 m-0">
+            {PARTS.map((p) => (
+              <li key={p.desig} className="card p-2.5 flex items-center gap-3">
+                <span className="w-[46px] h-[46px] shrink-0 rounded-lg grid place-items-center overflow-hidden"
+                      style={{ background: 'var(--flatlay)' }}>
+                  <span className="block w-[82%] [&>svg]:w-full [&>svg]:h-auto"><PartArt kind={p.art} /></span>
+                </span>
+                <span className="min-w-0">
+                  <span className="flex items-baseline gap-2">
+                    <span className="t-pixel text-[9.5px] text-[var(--brand)]">{p.desig}</span>
+                    <span className="t-mono text-[10.5px] text-[var(--muted)]">{p.qty}</span>
+                  </span>
+                  <span className="block text-[13px] font-semibold leading-tight mt-0.5">{p.name}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          </div>
+        </Section>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 mt-6 sm:mt-8">
-              {PARTS.map((p) => (
-                <article key={p.desig} className="card card-lift p-3 sm:p-5 flex flex-col sm:flex-row gap-3 sm:gap-4">
-                  <div className="w-full h-[74px] sm:w-[86px] sm:h-auto shrink-0 rounded-xl p-1.5 sm:p-2 grid place-items-center overflow-hidden"
-                       style={{ background: 'var(--flatlay)' }}>
-                    <div className="h-full sm:h-auto w-auto sm:w-full [&>svg]:h-full [&>svg]:w-auto sm:[&>svg]:w-full sm:[&>svg]:h-auto">
-                      <PartArt kind={p.art} />
-                    </div>
+        {/* ================= WHAT YOU CAN BUILD ================= */}
+        <Section id="build-ideas" eyebrow="What you can build"
+                 title="It arrives as parts. What it becomes is up to you."
+                 lede="Six things people have actually made with this hardware, with an honest sense of how long each one takes.">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {BUILDS.map((b) => (
+              <article key={b.title} className="card card-lift overflow-hidden flex flex-col">
+                <Clip src={`/media/clips/${b.clip}`} poster={`/media/clips/${b.clip}.webp`}
+                      alt={b.title} className="h-[168px]" />
+                <div className="p-5 flex flex-col flex-1">
+                  <h3 className="t-display text-[19px] mt-0 mb-2.5">{b.title}</h3>
+                  <p className="text-[14px] text-[var(--muted)] mt-0 mb-5 flex-1">{b.body}</p>
+                  <span className="t-mono text-[11.5px] pt-3.5 border-t"
+                        style={{ borderColor: 'var(--line)', color: TONE[b.tone] }}>
+                    {b.effort}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </Section>
+
+        {/* ================= SPECIFICATIONS ================= */}
+        <Section id="specs" eyebrow="Specifications" title="Read the whole datasheet"
+                 lede="Stock M5Stack and Feetech parts, named exactly. Look them up before you buy — we would." tint>
+          <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
+            {SPEC_TABLES.map((t) => (
+              <div key={t.title} className="card overflow-hidden">
+                {/* Folded on phones, where four full tables are most of the page.
+                    Rendered twice rather than toggled after mount, so neither
+                    layout flashes the wrong state. */}
+                <details className="lg:hidden group">
+                  <summary className="cursor-pointer list-none flex items-center gap-2.5 px-4 py-3">
+                    <span className="t-pixel text-[10px] text-[var(--brand)]">{t.desig}</span>
+                    <span className="text-[14px] font-semibold">{t.title}</span>
+                    <span className="t-label ml-auto">{t.rows.length} rows</span>
+                    <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[16px] leading-none group-open:rotate-45 transition-transform">+</span>
+                  </summary>
+                  <div className="overflow-x-auto border-t" style={{ borderColor: 'var(--line)' }}>
+                    <SpecGrid table={t} />
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="t-pixel text-[10px] text-[var(--brand)]">{p.desig}</span>
-                      <span className="t-mono text-[11px] text-[var(--muted)]">{p.qty}</span>
-                    </div>
-                    <h3 className="text-[13.5px] sm:text-[15px] font-semibold mt-0 mb-0 sm:mb-1.5 leading-snug">{p.name}</h3>
-                    <p className="hidden sm:block text-[13px] text-[var(--muted)] m-0">{p.note}</p>
+                </details>
+
+                <div className="hidden lg:block">
+                  <div className="flex items-center gap-2.5 px-4 py-3 border-b" style={{ borderColor: 'var(--line)' }}>
+                    <span className="t-pixel text-[10px] text-[var(--brand)]">{t.desig}</span>
+                    <span className="text-[14px] font-semibold">{t.title}</span>
                   </div>
-                </article>
-              ))}
-            </div>
-
-          </div>
-        </section>
-
-        {/* ================= SPECS ================= */}
-        <section id="specs" className="wrap py-12 md:py-24 scroll-mt-20">
-          <div className="max-w-[620px]">
-            <Eyebrow>Specifications</Eyebrow>
-            <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-              Read the whole datasheet
-            </h2>
-            <p className="text-[var(--muted)] mt-0 mb-0 max-w-[50ch]">
-              Stock M5Stack and Feetech parts, named exactly. Look them up before
-              you buy — we would.
-            </p>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] mt-10">
-            <div className="card overflow-hidden">
-              {/* Phones get the datasheet folded away; it is 16 rows of detail
-                  that would otherwise be most of a screen of scrolling. */}
-              <TrackedDetails event={EV.specsExpanded} className="sm:hidden group">
-                <summary className="cursor-pointer list-none flex items-center gap-2.5 px-4 py-3.5">
-                  <span className="t-pixel text-[10px] text-[var(--brand)]">U1</span>
-                  <span className="text-[14px] font-semibold">M5Stack CoreS3 Lite</span>
-                  <span className="t-label ml-auto">{CORE_SPECS.length} specs</span>
-                  <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[16px] leading-none group-open:rotate-45 transition-transform">+</span>
-                </summary>
-                <div className="overflow-x-auto border-t" style={{ borderColor: 'var(--line)' }}>
-                  <SpecRows rows={CORE_SPECS} />
+                  <div className="overflow-x-auto"><SpecGrid table={t} /></div>
                 </div>
-              </TrackedDetails>
-
-              <div className="hidden sm:block">
-                <div className="flex items-center gap-2.5 px-4 py-3.5 border-b" style={{ borderColor: 'var(--line)' }}>
-                  <span className="t-pixel text-[10px] text-[var(--brand)]">U1</span>
-                  <span className="text-[14px] font-semibold">M5Stack CoreS3 Lite</span>
-                </div>
-                <div className="overflow-x-auto"><SpecRows rows={CORE_SPECS} /></div>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-6">
-              <div className="card overflow-hidden">
-                <div className="flex items-center gap-2.5 px-4 py-3.5 border-b" style={{ borderColor: 'var(--line)' }}>
-                  <span className="t-pixel text-[10px] text-[var(--mint)]">M1 · M2</span>
-                  <span className="text-[14px] font-semibold">SCS0009 bus servo</span>
-                </div>
-                <SpecRows rows={SERVO_SPECS} />
-              </div>
-              <div className="card p-5 hidden sm:block">
-                <div className="t-label mb-3">Travel</div>
-                <div className="max-w-[260px] mx-auto"><ServoSweep /></div>
-              </div>
-            </div>
+            ))}
           </div>
-        </section>
+        </Section>
 
         {/* ================= BUILD ================= */}
-        <section id="build" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
-          <div className="wrap">
-            <div className="max-w-[620px]">
-              <Eyebrow>How you build it</Eyebrow>
-              <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-                Four steps, one evening
-              </h2>
-              <p className="text-[var(--muted)] mt-0 mb-0 max-w-[50ch]">
-                In order, because the order matters — set the servo addresses before
-                anything is bolted shut.
-              </p>
-            </div>
+        <Section id="build" eyebrow="How you build it" title="Four steps, one evening"
+                 lede="In order, because the order matters.">
+          <ol className="grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 list-none p-0 m-0">
+            {BUILD_STEPS.map((s) => (
+              <li key={s.n} className="card p-4 sm:p-6 flex sm:block gap-4">
+                <span className="t-pixel text-[22px] sm:text-[26px] text-[var(--brand)] leading-none shrink-0">
+                  {String(s.n).padStart(2, '0')}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="t-display text-[17px] sm:text-[19px] mt-0 sm:mt-4 mb-1.5">{s.title}</h3>
+                  <p className="text-[13.5px] text-[var(--muted)] m-0">{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
 
-            <ol className="grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 mt-8 sm:mt-10 list-none p-0">
-              {BUILD_STEPS.map((s) => (
-                <li key={s.n} className="card p-4 sm:p-6 flex sm:block gap-4">
-                  <span className="t-pixel text-[22px] sm:text-[26px] text-[var(--brand)] leading-none shrink-0">
-                    {String(s.n).padStart(2, '0')}
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="t-display text-[17px] sm:text-[19px] mt-0 sm:mt-4 mb-1.5 sm:mb-2">{s.title}</h3>
-                    <p className="text-[13.5px] sm:text-[14px] text-[var(--muted)] m-0">{s.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-
-            <div className="card p-6 md:p-8 mt-6">
-              <div className="t-label mb-5">How a command reaches a servo</div>
-              <div className="overflow-x-auto"><div className="min-w-[560px]"><SignalFlow /></div></div>
-            </div>
+          <div className="card p-5 md:p-7 mt-5">
+            <div className="t-label mb-4">How a command reaches a servo</div>
+            <div className="overflow-x-auto"><div className="min-w-[560px]"><SignalFlow /></div></div>
           </div>
-        </section>
+        </Section>
+
+        {/* ================= DOCUMENTS ================= */}
+        <Section eyebrow="Learn and documents" title="Everything is someone else's open source"
+                 lede="We sell the parts, printed and matched. The software belongs to the Stack-chan project and always will.">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ['Stack-chan', 'The project this kit builds. Apache-2.0.', 'https://github.com/meganetaaan/stack-chan'],
+              ['Moddable SDK', 'The JavaScript runtime the firmware uses.', 'https://www.moddable.com/'],
+              ['CoreS3 Lite', 'The controller datasheet, from M5Stack.', 'https://docs.m5stack.com/en/core/CoreS3-Lite'],
+            ].map(([title, body, href]) => (
+              <TrackedLink key={href} href={href} target="_blank" rel="noreferrer noopener"
+                           event={EV.outboundClicked} props={{ to: title }}
+                           className="card card-lift p-5 no-underline text-[var(--ink)] block">
+                <span className="t-display text-[17px] block">{title} ↗</span>
+                <span className="text-[13.5px] text-[var(--muted)] block mt-1.5">{body}</span>
+              </TrackedLink>
+            ))}
+          </div>
+        </Section>
 
         {/* ================= FAQ ================= */}
-        <section id="faq" className="wrap py-12 md:py-24 scroll-mt-20">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-            <div>
-              <Eyebrow>Questions</Eyebrow>
-              <h2 className="t-display text-[clamp(30px,5vw,42px)] mt-0 mb-4">
-                The things people ask first
-              </h2>
-              <p className="text-[var(--muted)] mt-0 mb-0 max-w-[38ch]">
-                Something not covered here?{' '}
-                <a href={`mailto:${CONTACT.email}`}
-                   className="text-[var(--ink)] underline underline-offset-4">Write to us</a>
-                {' '}— a person answers.
-              </p>
-            </div>
-
-            <div className="card overflow-hidden">
-              {FAQS.map((f, i) => (
-                <TrackedDetails key={f.q} event={EV.faqOpened} props={{ question: f.q }}
-                                className="group border-b last:border-b-0" style={{ borderColor: 'var(--line)' }} open={i === 0}>
-                  <summary className="cursor-pointer list-none px-5 py-4 flex items-start gap-4 text-[15px] font-semibold">
-                    <span className="flex-1">{f.q}</span>
-                    <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[18px] leading-none mt-0.5 group-open:rotate-45 transition-transform">+</span>
-                  </summary>
-                  <p className="px-5 pb-5 pt-0 mt-0 mb-0 text-[14.5px] text-[var(--muted)] max-w-[62ch]">{f.a}</p>
-                </TrackedDetails>
-              ))}
-            </div>
+        <Section id="faq" eyebrow="Questions" title="The things people ask first" tint center>
+          <div className="card overflow-hidden max-w-[760px] mx-auto text-left">
+            {FAQS.map((f, i) => (
+              <TrackedDetails key={f.q} event={EV.faqOpened} props={{ question: f.q }}
+                              className="group border-b last:border-b-0"
+                              style={{ borderColor: 'var(--line)' }} open={i === 0}>
+                <summary className="cursor-pointer list-none px-5 py-4 flex items-start gap-4 text-[15px] font-semibold">
+                  <span className="flex-1">{f.q}</span>
+                  <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[18px] leading-none mt-0.5 group-open:rotate-45 transition-transform">+</span>
+                </summary>
+                <p className="px-5 pb-5 pt-0 mt-0 mb-0 text-[14.5px] text-[var(--muted)] max-w-[62ch]">{f.a}</p>
+              </TrackedDetails>
+            ))}
           </div>
-        </section>
+        </Section>
 
         {/* ================= RESERVE ================= */}
-        <section id="reserve" className="py-12 md:py-24 scroll-mt-20" style={{ background: 'var(--surface)' }}>
-          <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:gap-16">
+        <section id="reserve" className="py-12 md:py-20 scroll-mt-20">
+          <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)] lg:gap-14">
             <div>
-              <Eyebrow>Reserve</Eyebrow>
-              <h2 className="t-display text-[clamp(30px,5vw,46px)] mt-0 mb-4">
-                Hold one from batch 01
-              </h2>
+              <p className="t-label m-0 mb-3">Reserve</p>
+              <h2 className="t-display text-[clamp(26px,4vw,38px)] mt-0 mb-3">Hold one from batch 01</h2>
               <p className="text-[var(--muted)] mt-0 mb-8 max-w-[46ch]">
-                Nothing is charged now. We email you when your kit is boxed, and you
-                pay then.
+                Nothing is charged now. We email you when your kit is boxed, and you pay then.
               </p>
               <ReserveForm />
             </div>
 
-            <aside className="card p-7 h-fit">
+            <aside className="card p-6 h-fit lg:sticky lg:top-24">
               <div className="flex items-baseline gap-3">
-                <span className="t-display text-[38px] leading-none">{PRICE.now}</span>
-                <span className="t-mono text-[15px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
+                <span className="t-display text-[34px] leading-none">{PRICE.now}</span>
+                <span className="t-mono text-[14px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
               </div>
-              <span className="badge mt-4" style={{ color: 'var(--mint)', borderColor: 'color-mix(in srgb, var(--mint) 40%, transparent)', background: 'color-mix(in srgb, var(--mint) 10%, var(--surface))' }}>
-                {PRICE.save}
-              </span>
-              <dl className="mt-6 m-0 grid gap-0">
+
+              <p className="t-label mt-2 mb-0">{PRICE.ship}</p>
+
+              <ol className="mt-6 mb-0 p-0 list-none grid gap-4">
                 {[
-                  ['Dispatch', '1–2 weeks'],
-                  ['Due today', '₹0'],
-                  ['Parts inside', String(PARTS.length)],
-                  ['Shell', 'Printed, included'],
-                  ['Licence', 'Apache-2.0'],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-4 py-3 border-b last:border-b-0" style={{ borderColor: 'var(--line)' }}>
-                    <dt className="t-label">{k}</dt>
-                    <dd className="t-mono text-[13px] m-0 text-right">{v}</dd>
-                  </div>
+                  ['You reserve', 'Nothing is charged. Your details are held for this batch only.'],
+                  ['We box your kit', 'Parts matched, shell printed, servos addressed and centred.'],
+                  ['We email you', 'A payment link, and the shipping window for your address.'],
+                  ['You pay, we ship', 'Dispatch within 1–2 weeks of the batch closing.'],
+                ].map(([title, body], i) => (
+                  <li key={title} className="flex gap-3">
+                    <span className="t-pixel text-[11px] text-[var(--brand)] pt-[3px] shrink-0">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-semibold">{title}</span>
+                      <span className="block text-[13px] text-[var(--muted)] mt-0.5">{body}</span>
+                    </span>
+                  </li>
                 ))}
-              </dl>
+              </ol>
+
+              <p className="text-[12.5px] text-[var(--muted)] mt-6 mb-0 pt-4 border-t"
+                 style={{ borderColor: 'var(--line)' }}>
+                Questions before you commit? Write to{' '}
+                <a href={`mailto:${CONTACT.email}`}
+                   className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>.
+              </p>
             </aside>
           </div>
         </section>
       </main>
 
-      {/* ================= FOOTER ================= */}
       <footer className="border-t pb-24 lg:pb-0" style={{ borderColor: 'var(--line)' }}>
         <div className="wrap py-12 grid gap-9 md:grid-cols-3">
           <div>
@@ -388,9 +334,10 @@ export default function Page() {
             <div className="t-label mb-3">Attribution</div>
             <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
               Based on{' '}
-              <TrackedLink href="https://github.com/meganetaaan/stack-chan" target="_blank" rel="noreferrer noopener"
-                 event={EV.outboundClicked} props={{ to: 'stack-chan repo' }}
-                 className="text-[var(--ink)] underline underline-offset-4">Stack-chan</TrackedLink>{' '}
+              <TrackedLink href="https://github.com/meganetaaan/stack-chan" target="_blank"
+                           rel="noreferrer noopener" event={EV.outboundClicked}
+                           props={{ to: 'stack-chan repo' }}
+                           className="text-[var(--ink)] underline underline-offset-4">Stack-chan</TrackedLink>{' '}
               by Shinya Ishikawa and contributors, used under the Apache License 2.0.
               Pebble-chan is not an official Stack-chan or M5Stack product.
             </p>
@@ -403,7 +350,7 @@ export default function Page() {
               on its way. Nothing else, and we do not pass them on.
             </p>
             <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
-              We record how this page is used — clicks, scrolling, session
+              We record how this page is used — clicks, scrolling and session
               replays — and share some of it with Meta so our ads reach the
               right people. What you type into the form is never recorded.
             </p>

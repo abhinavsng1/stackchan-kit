@@ -31,6 +31,39 @@ export default function Analytics() {
     return () => { cancelled = true }
   }, [])
 
+  /**
+   * Scroll depth is the bluntest dropoff measure there is: it says how far down
+   * the page people got before they left, without needing a section to be
+   * instrumented.
+   */
+  useEffect(() => {
+    const marks = [25, 50, 75, 90]
+    const seen = new Set<number>()
+    let frame = 0
+
+    const measure = () => {
+      frame = 0
+      const doc = document.documentElement
+      const max = doc.scrollHeight - window.innerHeight
+      if (max <= 0) return
+      const pct = Math.round((window.scrollY / max) * 100)
+      for (const m of marks) {
+        if (pct >= m && !seen.has(m)) {
+          seen.add(m)
+          track(EV.scrollDepth, { percent: m })
+        }
+      }
+    }
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(measure) }
+
+    measure()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      if (frame) cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [])
+
   // Which sections people actually reach.
   useEffect(() => {
     const seen = new Set<string>()

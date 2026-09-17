@@ -14,6 +14,7 @@ test('every section anchor the nav points at exists', async ({ page }) => {
 })
 
 test('the robot tracks the pointer', async ({ page }) => {
+  test.skip(true, 'needs WebGL; covered in the webgl project by hero3d.spec.ts')
   await page.goto('/')
   const readout = page.locator('figcaption span').filter({ hasText: '°' }).first()
   await page.mouse.move(100, 400)

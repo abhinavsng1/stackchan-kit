@@ -5,7 +5,7 @@ import { PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 
 /**
- * Phone-only buy bar. Appears once the hero CTA has scrolled away, and retreats
+ * Phone-only buy bar. Appears once the buy box has scrolled away, and retreats
  * over the reserve section so it never covers the form it points at.
  *
  * Deliberately a scroll handler rather than IntersectionObserver: IO only fires
@@ -21,15 +21,15 @@ export default function BuyBar() {
 
     const measure = () => {
       frame = 0
-      const hero = document.getElementById('hero-cta')
+      const box = document.getElementById('buybox')
       const reserve = document.getElementById('reserve')
-      if (!hero || !reserve) return
+      if (!box || !reserve) return
 
-      const heroGone = hero.getBoundingClientRect().bottom < 0
+      const boxGone = box.getBoundingClientRect().bottom < 0
       const r = reserve.getBoundingClientRect()
       const atForm = r.top < window.innerHeight * 0.9 && r.bottom > 0
 
-      setShow(heroGone && !atForm)
+      setShow(boxGone && !atForm)
     }
 
     const onScroll = () => {

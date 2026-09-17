@@ -5,6 +5,7 @@ import { PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 
 const LINKS = [
+  ['Demo', '#demo'],
   ['What it does', '#does'],
   ['In the box', '#box'],
   ['Specs', '#specs'],
