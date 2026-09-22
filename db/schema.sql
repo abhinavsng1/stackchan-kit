@@ -22,7 +22,7 @@ alter table preorders add column if not exists address    text;
 alter table preorders add column if not exists city       text;
 alter table preorders add column if not exists pincode    text;
 
--- Name, email, and quantity reserve a place; fulfillment details come later.
+-- Name, email, and quantity reserve a place. Fulfillment details come later.
 -- Only relax constraints: existing reservations and their details stay intact.
 alter table preorders alter column phone drop not null;
 alter table preorders alter column profession drop not null;
