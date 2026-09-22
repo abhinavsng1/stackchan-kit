@@ -136,11 +136,34 @@ describe('POST /api/preorder', () => {
     await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'phone' })
   })
 
-  it('rejects an address that is missing', async () => {
-    const { address, ...rest } = body
-    const res = await POST(post(rest))
+  it('stores and confirms a reservation with only name, email, and quantity', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    const minimal = { name: body.name, email: body.email, qty: 1 }
+    const res = await POST(post(minimal))
+    await settleBackground()
+    expect(res.status).toBe(201)
+    expect(createPreorder).toHaveBeenCalledWith(minimal)
+    expect(sendReservationEmail).toHaveBeenCalledWith(minimal)
+  })
+
+  it('normalizes blank optional details from an older form', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    const res = await POST(post({
+      ...body, phone: '', profession: '  ', address: '', city: ' ', pincode: '',
+    }))
+    expect(res.status).toBe(201)
+    const record = createPreorder.mock.calls[0][0]
+    for (const field of ['phone', 'profession', 'address', 'city', 'pincode']) {
+      expect(record[field]).toBeUndefined()
+    }
+  })
+
+  it.each([
+    ['address', 'here'], ['city', 'A'], ['pincode', '123'],
+  ])('rejects a malformed optional %s when supplied', async (field, value) => {
+    const res = await POST(post({ ...body, [field]: value }))
     expect(res.status).toBe(400)
-    expect((await res.json()).fields.address).toBeTruthy()
+    expect((await res.json()).fields[field]).toBeTruthy()
     expect(createPreorder).not.toHaveBeenCalled()
   })
 

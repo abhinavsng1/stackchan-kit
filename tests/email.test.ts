@@ -48,6 +48,31 @@ describe('confirmation content', () => {
     expect(reservationHtml(record).toLowerCase()).toContain('nothing has been charged')
   })
 
+  it.each([['text', reservationText], ['html', reservationHtml]])(
+    'the %s version collects delivery details later for a minimal reservation',
+    (_label, render) => {
+      const body = render({ name: record.name, email: record.email, qty: 1 })
+      expect(body).toContain('collect any remaining phone and shipping details before payment and shipping')
+      expect(body.toLowerCase()).not.toContain('where we will send it')
+      expect(body).not.toMatch(/undefined|null/)
+    },
+  )
+
+  it.each([['text', reservationText], ['html', reservationHtml]])(
+    'the %s version shows supplied partial details without claiming an address is ready',
+    (_label, render) => {
+      const body = render({
+        name: record.name, email: record.email, qty: 1,
+        phone: record.phone, city: 'Bengaluru',
+      })
+      expect(body).toContain('+919876543210')
+      expect(body).toContain('Bengaluru')
+      expect(body).toContain('collect any remaining phone and shipping details')
+      expect(body.toLowerCase()).not.toContain('where we will send it')
+      expect(body).not.toMatch(/undefined|null/)
+    },
+  )
+
   it('credits the upstream project', () => {
     expect(reservationText(record)).toContain('Stack-chan')
     expect(reservationText(record)).toContain('Apache License 2.0')

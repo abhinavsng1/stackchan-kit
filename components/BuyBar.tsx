@@ -68,12 +68,12 @@ export default function BuyBar() {
             <span className="t-display text-[19px] leading-none">{PRICE.now}</span>
             <span className="t-mono text-[12px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
           </div>
-          <div className="t-label mt-1 truncate">{PRICE.ship}</div>
+          <div className="t-label mt-1 truncate">Per kit · ₹0 today</div>
         </div>
         <a href="#reserve" className="btn btn-brand ml-auto shrink-0 !py-3"
            onClick={() => track(EV.reserveCtaClicked, { location: 'buybar' })}
            tabIndex={show ? undefined : -1}>
-          Reserve a kit
+          Reserve free
         </a>
       </div>
     </div>

@@ -30,6 +30,14 @@ psql "$DATABASE_URL" -f db/schema.sql
 
 `DATABASE_URL` is server-side only. Never expose it through `NEXT_PUBLIC_*`.
 
+Before deploying the simplified reservation form, run `db/schema.sql` against
+the production database. It is an idempotent migration that makes phone,
+profession, address, city and PIN optional while preserving existing records
+and unique indexes. Deploy the application only after that migration succeeds.
+The form collects name, email and quantity; contact and shipping details are
+requested by email when the reservation is confirmed. Older clients that send
+the full details are still accepted and validated.
+
 ## The twelve faces
 
 `lib/faces.ts` transcribes the firmware's face atlas (stackchan-bench,
@@ -77,33 +85,47 @@ Each falls back to the authored SVG robot and fetches none of the 3D code
 
 ## Analytics
 
-Mixpanel, with session replay and heatmaps, gated behind consent.
+Meta Pixel and Mixpanel (including session replay and heatmaps) run only on
+`pebblerobo.com` and `www.pebblerobo.com`. Local development and preview hosts
+send no analytics, even when production publishable tokens are configured.
 
 ```bash
 vercel env add NEXT_PUBLIC_MIXPANEL_TOKEN production
-vercel env add NEXT_PUBLIC_MIXPANEL_TOKEN preview
-vercel --prod
+vercel env add NEXT_PUBLIC_META_PIXEL_ID production
 ```
 
 The token is a publishable project token, not a secret — it identifies the
 project to the browser and is meant to ship in client code.
 
-With no token set, the analytics layer is inert: no banner, no SDK, no events.
+Either service can be configured independently. With neither publishable token
+set, no analytics SDK is loaded.
 
 What is recorded, and what is not:
 
-- Nothing loads until the visitor agrees. The SDK is dynamically imported on
-  consent, so declining downloads no Mixpanel code at all (verified in `e2e/`).
-- Global Privacy Control and Do Not Track are honoured without asking.
+- Collection starts automatically on the two live hostnames. The footer
+  discloses analytics use; there is currently no consent or opt-out interface.
 - `record_mask_all_inputs` stays on, so the name and email typed into the
   reserve form are masked in every replay.
 - Tracked events carry quantity and outcome, never a name, email or city.
-- The footer offers "Change your analytics choice" to reverse the decision.
 
 Funnel events: `Reserve CTA Clicked` → `Reserve Submitted` →
 `Reserve Succeeded` / `Reserve Already Held` / `Reserve Failed`, plus
 `Page Viewed`, `Section Viewed`, `FAQ Opened`, `Specs Expanded`,
 `Theme Toggled`, `Outbound Link Clicked`.
+
+`Reserve Submitted` measures an attempt, not a completed reservation. Only an
+HTTP 201 response with `status: "created"` fires `Reserve Succeeded`, which maps
+to both Meta `Lead` and `CompleteRegistration`. The latter matches the existing
+campaign's conversion event; `Lead` remains available for reports and audience
+exclusions. These are two signals for the same reservation: do not add their
+counts together. Duplicate, validation, server-error and honeypot responses do
+not fire either successful-conversion event.
+
+Playwright enables `NEXT_PUBLIC_ANALYTICS_TEST_MODE=1` on loopback hosts only.
+This records events in the local Pixel queue without loading or contacting Meta
+or Mixpanel. Leave that flag unset in ordinary development and production.
+The browser tests mock reservation responses and run with database and email
+credentials cleared, so they do not create real reservations or send email.
 
 ## Before launch
 

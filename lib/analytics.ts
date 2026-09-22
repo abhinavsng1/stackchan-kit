@@ -1,13 +1,9 @@
 /**
  * Mixpanel, with session replay and heatmaps.
  *
- * Two rules shape this file:
- *
- * 1. Nothing loads or records until the visitor has said yes. The SDK is
- *    dynamically imported on consent, so a visitor who declines never even
- *    downloads it.
- * 2. Typed input is never recorded. record_mask_all_inputs stays on, so the
- *    reserve form's name and email are masked in every replay.
+ * Collection starts on the live website. Local and preview builds stay out of
+ * production analytics. Typed input is never recorded: record_mask_all_inputs
+ * stays on, so the reserve form's name and email are masked in every replay.
  *
  * NEXT_PUBLIC_MIXPANEL_TOKEN is a publishable project token — it identifies a
  * project to the browser and is designed to ship in client code. It is not a
@@ -26,6 +22,7 @@ export { EV } from '@/lib/events'
 
 import { EV as EVENTS } from '@/lib/events'
 import { initPixel, pixelStandard, pixelCustom, stopPixel, pixelConfigured } from '@/lib/pixel'
+import { analyticsMode } from '@/lib/analytics-environment'
 
 /**
  * Meta understands a fixed vocabulary of standard events and reports on them
@@ -45,8 +42,11 @@ export function analyticsConfigured(): boolean {
 }
 
 export async function initAnalytics(): Promise<void> {
+  const mode = analyticsMode()
+  if (mode === 'off') return
   // The pixel is independent of Mixpanel: either can be configured alone.
   initPixel()
+  if (mode === 'test') return
 
   const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN
   if (!token || mp || loading) return loading ?? undefined
@@ -96,10 +96,19 @@ export async function initAnalytics(): Promise<void> {
  * queued by that SDK rather than dropped.
  */
 export function track(event: string, props?: Props) {
+  const mode = analyticsMode()
+  if (mode === 'off') return
   // Meta, mapped to a standard event where one fits.
   const standard = META_STANDARD[event]
   if (standard) pixelStandard(standard, { content_name: event, ...props })
   else pixelCustom(event.replace(/\s+/g, ''), props)
+
+  // The existing campaign optimizes for CompleteRegistration. Keep Lead for
+  // existing reports and retargeting exclusions; both mean confirmed success.
+  if (event === EVENTS.reserveSucceeded) {
+    pixelStandard('CompleteRegistration', { content_name: event, status: true })
+  }
+  if (mode === 'test') return
 
   // Mixpanel.
   if (mp) { mp.track(event, props); return }

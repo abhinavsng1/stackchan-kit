@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
+import { preorderSchema, fieldErrors } from '@/lib/schema'
 import { EV, track } from '@/lib/analytics'
 import { CONTACT } from '@/lib/kit'
 
@@ -48,8 +48,8 @@ export default function ReserveForm() {
 
         <p className="max-w-[48ch] text-[var(--muted)] m-0">
           {state.kind === 'reserved' ? (
-            <>Check your inbox — a confirmation is on its way. Reserving costs nothing and
-            commits you to nothing; you pay when we confirm your batch.</>
+            <>Your reservation is saved. We&apos;ll email you to confirm your batch and
+            collect your shipping details before payment. Nothing has been charged.</>
           ) : byPhone ? (
             <>We hold one reservation per person, and that phone number already has one —
             under a different email address. To change the email or the address on it, write
@@ -57,8 +57,8 @@ export default function ReserveForm() {
                   className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>{' '}
             and we&apos;ll update it.</>
           ) : (
-            <>That email is already reserved, so there is nothing more to do. We&apos;ll write to
-            you when your kit ships.</>
+            <>That email is already reserved, so there is nothing more to do. We&apos;ll email
+            you to confirm your batch and collect your shipping details before payment.</>
           )}
         </p>
       </div>
@@ -72,11 +72,6 @@ export default function ReserveForm() {
     const payload = {
       name: get('name'),
       email: get('email'),
-      phone: get('phone'),
-      profession: get('profession'),
-      address: get('address'),
-      city: get('city'),
-      pincode: get('pincode'),
       qty: get('qty') || '1',
       company: get('company'),
     }
@@ -95,8 +90,8 @@ export default function ReserveForm() {
 
     setErrors(EMPTY)
     setState({ kind: 'submitting' })
-    // Quantity and profession only. Never a name, email, phone or address.
-    track(EV.reserveSubmitted, { qty: local.data.qty, profession: local.data.profession })
+    // Quantity only. Never a name or email address.
+    track(EV.reserveSubmitted, { qty: local.data.qty })
 
     try {
       const res = await fetch('/api/preorder', {
@@ -106,7 +101,12 @@ export default function ReserveForm() {
       })
       const body = await res.json().catch(() => ({}))
 
-      if (res.status === 201) { track(EV.reserveSucceeded); return setState({ kind: 'reserved' }) }
+      if (res.status === 201 && body.status === 'created') {
+        // The server gives bots a harmless success response for a filled
+        // honeypot. Keep that feedback without counting a customer conversion.
+        if (!payload.company) track(EV.reserveSucceeded)
+        return setState({ kind: 'reserved' })
+      }
       if (res.status === 409) {
         const field = body.field === 'phone' ? 'phone' : 'email'
         track(EV.reserveDuplicate, { field })
@@ -114,6 +114,10 @@ export default function ReserveForm() {
       }
       if (res.status === 400 && body.fields) {
         setErrors(body.fields)
+        track(EV.reserveFieldInvalid, {
+          fields: Object.keys(body.fields).sort().join(','),
+          source: 'server',
+        })
         return setState({ kind: 'idle' })
       }
       track(EV.reserveFailed, { status: res.status })
@@ -137,45 +141,16 @@ export default function ReserveForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <Field name="name" label="Name" autoComplete="name" error={errors.name} disabled={busy} />
         <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} disabled={busy} />
-        <Field name="phone" label="Phone" type="tel" autoComplete="tel"
-               placeholder="98765 43210" hint="Indian mobile" error={errors.phone} disabled={busy} />
-
-        <div>
-          <label htmlFor="profession" className="t-label block mb-2">
-            Profession<span className="opacity-60"> — optional</span>
-          </label>
-          <select id="profession" name="profession" defaultValue="" className="field" disabled={busy}
-                  aria-invalid={errors.profession ? 'true' : undefined}
-                  aria-describedby={errors.profession ? 'profession-err' : undefined}>
-            <option value="">Prefer not to say</option>
-            {PROFESSIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-          {errors.profession && <Err id="profession-err">{errors.profession}</Err>}
-        </div>
       </div>
 
-      <div className="mt-5">
-        <label htmlFor="address" className="t-label block mb-2">Shipping address</label>
-        <textarea
-          id="address" name="address" rows={3} className="field resize-y"
-          autoComplete="street-address" disabled={busy}
-          placeholder="Flat / house, street, area, landmark"
-          aria-invalid={errors.address ? 'true' : undefined}
-          aria-describedby={errors.address ? 'address-err' : undefined}
-        />
-        {errors.address && <Err id="address-err">{errors.address}</Err>}
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-3 mt-5">
-        <Field name="city" label="City" autoComplete="address-level2" error={errors.city} disabled={busy} />
-        <Field name="pincode" label="PIN code" inputMode="numeric" autoComplete="postal-code"
-               placeholder="560078" error={errors.pincode} disabled={busy} />
-        <div>
-          <label htmlFor="qty" className="t-label block mb-2">Kits</label>
-          <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
-            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
+      <div className="mt-5 max-w-[160px]">
+        <label htmlFor="qty" className="t-label block mb-2">Kits</label>
+        <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}
+                aria-invalid={errors.qty ? 'true' : undefined}
+                aria-describedby={errors.qty ? 'qty-err' : undefined}>
+          {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+        {errors.qty && <Err id="qty-err">{errors.qty}</Err>}
       </div>
 
       {/* Honeypot. Hidden from people and from screen readers alike. */}
@@ -186,14 +161,14 @@ export default function ReserveForm() {
 
       <div className="mt-7 flex flex-wrap items-center gap-5">
         <button type="submit" className="btn btn-brand" disabled={busy}>
-          {busy ? 'Reserving…' : 'Place my reservation'}
+          {busy ? 'Reserving…' : 'Reserve free'}
         </button>
-        <p className="t-label m-0">No payment now</p>
+        <p className="t-label m-0">₹0 today · no commitment</p>
       </div>
 
       <p className="text-[12.5px] text-[var(--muted)] mt-4 mb-0 max-w-[52ch]">
-        Your address and phone are used to ship the kit and to tell you when it is on
-        its way. Nothing else, and we do not pass them on.
+        We use your name and email to hold your kit and contact you about your batch.
+        We&apos;ll ask for your phone and delivery address when we confirm it.
       </p>
 
       {state.kind === 'error' && (

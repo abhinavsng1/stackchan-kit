@@ -31,9 +31,19 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
+    command: 'node node_modules/next/dist/bin/next dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    // Always own the server so tests cannot reuse a dev server with live credentials.
+    reuseExistingServer: false,
     timeout: 120_000,
+    env: {
+      NEXT_PUBLIC_ANALYTICS_TEST_MODE: '1',
+      NEXT_PUBLIC_META_PIXEL_ID: 'test-pixel',
+      NEXT_PUBLIC_MIXPANEL_TOKEN: '',
+      DATABASE_URL: '',
+      RESEND_API_KEY: '',
+      SMTP_USER: '',
+      SMTP_PASSWORD: '',
+    },
   },
 })
