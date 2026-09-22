@@ -10,8 +10,7 @@ test('navigation is reachable on a phone', async ({ page }) => {
   const links = page.locator('.navstrip a')
   // the desktop nav is hidden below lg, so the strip is what must carry them
   await expect(links.filter({ hasText: 'In the box' }).first()).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Reserve', exact: true }).or(
-    page.getByRole('link', { name: 'Reserve a kit' })).first()).toBeVisible()
+  await expect(page.locator('#buybox').getByRole('button', { name: 'Reserve free' })).toBeVisible()
 })
 
 test('buy bar appears after the hero and retreats over the form', async ({ page }) => {

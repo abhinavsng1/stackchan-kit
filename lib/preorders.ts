@@ -3,11 +3,11 @@ import { neon } from '@neondatabase/serverless'
 export type PreorderRecord = {
   name: string
   email: string
-  phone: string
+  phone?: string
   profession?: string
-  address: string
-  city: string
-  pincode: string
+  address?: string
+  city?: string
+  pincode?: string
   qty: number
 }
 
@@ -30,9 +30,8 @@ function client() {
 
 /**
  * Idempotent by construction: the UNIQUE constraint on email means a retry,
- * a double-click, or a replayed request can never create a second row. Phone is
- * unique too, so a duplicate on either one surfaces as 'duplicate' rather than
- * a 500.
+ * a double-click, or a replayed request can never create a second row. Supplied
+ * phones are unique too. SQL NULL leaves an omitted phone free of collisions.
  */
 export async function createPreorder(input: PreorderRecord): Promise<CreateResult> {
   const sql = client()
@@ -41,8 +40,9 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
   const rows = await sql`
     insert into preorders (name, email, phone, profession, address, city, pincode, qty)
     values (
-      ${input.name}, ${input.email.toLowerCase()}, ${input.phone},
-      ${input.profession || null}, ${input.address}, ${input.city}, ${input.pincode}, ${input.qty}
+      ${input.name}, ${input.email.toLowerCase()}, ${input.phone?.trim() || null},
+      ${input.profession?.trim() || null}, ${input.address?.trim() || null},
+      ${input.city?.trim() || null}, ${input.pincode?.trim() || null}, ${input.qty}
     )
     on conflict (email) do nothing
     returning id

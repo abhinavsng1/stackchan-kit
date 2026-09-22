@@ -20,6 +20,20 @@ describe('preorderSchema', () => {
     expect(preorderSchema.safeParse(valid).success).toBe(true)
   })
 
+  it('accepts a free reservation with only name, email, and quantity', () => {
+    expect(preorderSchema.parse({ name: valid.name, email: valid.email, qty: 1 }))
+      .toEqual({ name: valid.name, email: valid.email, qty: 1 })
+  })
+
+  it.each(['phone', 'profession', 'address', 'city', 'pincode'])(
+    'normalizes an omitted or blank %s to an absent detail', (field) => {
+      for (const value of [undefined, '', '   ']) {
+        const result = preorderSchema.parse({ ...valid, [field]: value })
+        expect(result[field as keyof typeof result]).toBeUndefined()
+      }
+    },
+  )
+
   describe('name', () => {
     it('rejects one that is too short', () => reject({ name: 'A' }))
     it('rejects one that is too long', () => reject({ name: 'x'.repeat(200) }))
@@ -49,7 +63,6 @@ describe('preorderSchema', () => {
     it('rejects too few digits', () => reject({ phone: '98765432' }))
     it('rejects a landline-style leading digit', () => reject({ phone: '1234567890' }))
     it('rejects letters', () => reject({ phone: 'call me maybe' }))
-    it('is required', () => reject({ phone: '' }))
   })
 
   describe('profession', () => {
@@ -73,7 +86,11 @@ describe('preorderSchema', () => {
   describe('address', () => {
     it('rejects a stub', () => reject({ address: 'here' }))
     it('rejects one that is too long', () => reject({ address: 'x'.repeat(400) }))
-    it('is required', () => reject({ address: '' }))
+  })
+
+  describe('city', () => {
+    it('rejects a supplied city that is too short', () => reject({ city: 'A' }))
+    it('rejects a supplied city that is too long', () => reject({ city: 'x'.repeat(81) }))
   })
 
   describe('pincode', () => {
@@ -87,6 +104,7 @@ describe('preorderSchema', () => {
   })
 
   describe('qty', () => {
+    it('is required', () => reject({ qty: undefined }))
     it('rejects zero', () => reject({ qty: 0 }))
     it('rejects more than five', () => reject({ qty: 6 }))
     it('rejects a fraction', () => reject({ qty: 2.5 }))
@@ -107,7 +125,7 @@ describe('fieldErrors', () => {
     expect(r.success).toBe(false)
     if (!r.success) {
       expect(Object.keys(fieldErrors(r.error)).sort())
-        .toEqual(['address', 'city', 'email', 'name', 'phone', 'pincode', 'qty'].sort())
+        .toEqual(['email', 'name', 'phone', 'qty'].sort())
     }
   })
 })

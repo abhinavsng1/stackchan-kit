@@ -37,7 +37,24 @@ export function reservationSubject() {
   return 'Your Pebble-chan is reserved'
 }
 
+function deliveryDetails(r: PreorderRecord) {
+  const rows: [string, string][] = [['Name', r.name]]
+  if (r.address?.trim()) rows.push(['Address', r.address.trim()])
+  const city = [r.city?.trim(), r.pincode?.trim()].filter(Boolean).join(' ')
+  if (city) rows.push(['City / PIN', city])
+  if (r.phone?.trim()) rows.push(['Phone', r.phone.trim()])
+  const complete = [r.address, r.city, r.pincode, r.phone].every((v) => v?.trim())
+  return {
+    rows,
+    heading: complete ? 'Where we will send it' : 'Delivery details',
+    message: complete
+      ? 'Please check these details. If anything is wrong, just reply to this email and we will correct it.'
+      : 'We will email you to collect any remaining phone and shipping details before payment and shipping.',
+  }
+}
+
 export function reservationText(r: PreorderRecord) {
+  const delivery = deliveryDetails(r)
   return `Hi ${firstName(r.name)},
 
 Your Pebble-chan kit is reserved. Nothing has been charged, and nothing will be
@@ -48,18 +65,14 @@ WHAT YOU RESERVED
   ${PRICE.now} each (was ${PRICE.mrp})
   Dispatch: 1-2 weeks
 
-WHERE WE WILL SEND IT
-  ${r.name}
-  ${r.address}
-  ${r.city} ${r.pincode}
-  ${r.phone}
+${delivery.heading.toUpperCase()}
+${delivery.rows.map(([label, value]) => `  ${label}: ${value}`).join('\n')}
 
-Please check that address. If anything is wrong, just reply to this email and
-we will correct it.
+${delivery.message}
 
 WHAT HAPPENS NEXT
-  We box the batch, email you a payment link, and ship once it clears. You are
-  under no obligation until you pay.
+  We confirm the batch and your delivery details, email you a payment link,
+  and ship once it clears. You are under no obligation until you pay.
 
 Questions, changes, second thoughts: reply to this message. A person reads it.
 
@@ -74,6 +87,7 @@ const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 export function reservationHtml(r: PreorderRecord) {
+  const delivery = deliveryDetails(r)
   const row = (k: string, v: string) =>
     `<tr><td style="padding:6px 16px 6px 0;color:#5a6672;font-size:13px;white-space:nowrap">${esc(k)}</td>` +
     `<td style="padding:6px 0;color:#0b0f14;font-size:14px">${esc(v)}</td></tr>`
@@ -100,21 +114,19 @@ export function reservationHtml(r: PreorderRecord) {
   </div>
 
   <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">
-    <p style="margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">Where we will send it</p>
+    <p style="margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">${delivery.heading}</p>
     <table style="border-collapse:collapse;width:100%">
-      ${row('Name', r.name)}
-      ${row('Address', r.address)}
-      ${row('City', `${r.city} ${r.pincode}`)}
-      ${row('Phone', r.phone)}
+      ${delivery.rows.map(([label, value]) => row(label, value)).join('\n      ')}
     </table>
     <p style="margin:12px 0 0;font-size:13px;color:#5a6672">
-      Please check that address. If anything is wrong, just reply to this email.
+      ${delivery.message}
     </p>
   </div>
 
   <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
-    <strong style="color:#0b0f14">What happens next.</strong> We box the batch, email you a
-    payment link, and ship once it clears. You are under no obligation until you pay.
+    <strong style="color:#0b0f14">What happens next.</strong> We confirm the batch and your
+    delivery details, email you a payment link, and ship once it clears. You are under
+    no obligation until you pay.
   </p>
 
   <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3d4752">

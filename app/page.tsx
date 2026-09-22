@@ -275,7 +275,8 @@ export default function Page() {
               <p className="t-label m-0 mb-3">Reserve</p>
               <h2 className="t-display text-[clamp(26px,4vw,38px)] mt-0 mb-3">Hold one from batch 01</h2>
               <p className="text-[var(--muted)] mt-0 mb-8 max-w-[46ch]">
-                Nothing is charged now. We email you when your kit is boxed, and you pay then.
+                Reserve free with your name and email. ₹0 today; {PRICE.now} per kit when
+                we confirm your batch. We&apos;ll collect delivery details then.
               </p>
               <ReserveForm />
             </div>
@@ -286,14 +287,14 @@ export default function Page() {
                 <span className="t-mono text-[14px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
               </div>
 
-              <p className="t-label mt-2 mb-0">{PRICE.ship}</p>
+              <p className="t-label mt-2 mb-0">Per kit when confirmed · ₹0 today</p>
 
               <ol className="mt-6 mb-0 p-0 list-none grid gap-4">
                 {[
-                  ['You reserve', 'Nothing is charged. Your details are held for this batch only.'],
+                  ['You reserve', 'Leave your name and email. No payment or delivery address needed now.'],
                   ['We box your kit', 'Parts matched, shell printed, servos addressed and centred.'],
-                  ['We email you', 'A payment link, and the shipping window for your address.'],
-                  ['You pay, we ship', 'Dispatch within 1–2 weeks of the batch closing.'],
+                  ['We confirm with you', 'We email to collect your phone and delivery address, then send a payment link.'],
+                  ['You pay, we ship', 'We confirm your shipping window before you pay.'],
                 ].map(([title, body], i) => (
                   <li key={title} className="flex gap-3">
                     <span className="t-pixel text-[11px] text-[var(--brand)] pt-[3px] shrink-0">
@@ -309,7 +310,7 @@ export default function Page() {
 
               <p className="text-[12.5px] text-[var(--muted)] mt-6 mb-0 pt-4 border-t"
                  style={{ borderColor: 'var(--line)' }}>
-                Questions before you commit? Write to{' '}
+                Questions about the kit? Write to{' '}
                 <a href={`mailto:${CONTACT.email}`}
                    className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>.
               </p>
@@ -345,9 +346,9 @@ export default function Page() {
           <div>
             <div className="t-label mb-3">Your data</div>
             <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
-              Reserving stores your name, email, phone, shipping address and
-              profession. We use them to ship the kit and to tell you when it is
-              on its way. Nothing else, and we do not pass them on.
+              Reserving stores your name, email and kit quantity so we can hold your kit
+              and contact you about your batch. We ask for your phone and delivery address
+              when we confirm it, before payment and shipping.
             </p>
             <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
               We record how this page is used — clicks, scrolling and session

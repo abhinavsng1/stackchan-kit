@@ -1,12 +1,14 @@
 /**
  * Meta Pixel.
  *
- * Loads only behind consent, like Mixpanel — arguably more so, since this data
- * leaves for an advertising network rather than a product-analytics tool.
+ * Loads only on the live website. Local browser tests use an in-memory queue
+ * without loading Meta's SDK or sending events to the production Pixel.
  *
  * NEXT_PUBLIC_META_PIXEL_ID is a publishable identifier: it names the pixel to
  * the browser and carries no privileges. It is not a secret.
  */
+
+import { analyticsMode } from '@/lib/analytics-environment'
 
 type FbqArgs = [string, string, Record<string, unknown>?]
 type Fbq = ((...args: FbqArgs) => void) & {
@@ -56,17 +58,19 @@ function installStub() {
 
 export function initPixel() {
   const id = pixelId()
-  if (!id || started || typeof window === 'undefined') return
+  const mode = analyticsMode()
+  if (!id || started || mode === 'off') return
   started = true
 
   installStub()
-  const script = document.createElement('script')
-  script.async = true
-  script.src = SRC
-  document.head.appendChild(script)
+  if (mode === 'live') {
+    const script = document.createElement('script')
+    script.async = true
+    script.src = SRC
+    document.head.appendChild(script)
+  }
 
-  // We only reach here behind our own banner, so tell Meta consent is granted.
-  // Without this, a pixel configured for consent mode queues and never sends.
+  // Preserve the live site's existing consent-mode configuration.
   window.fbq!('consent', 'grant')
   window.fbq!('init', id)
   window.fbq!('track', 'PageView')
