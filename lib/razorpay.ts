@@ -19,7 +19,7 @@ const API = 'https://api.razorpay.com/v1'
 export const MAX_QTY = 5
 
 export type OrderResult =
-  | { status: 'created'; orderId: string; amountPaise: number; currency: 'INR' }
+  | { status: 'created'; orderId: string; amountPaise: number; currency: 'INR'; keyId: string }
   | { status: 'unconfigured' }
   | { status: 'upstream_error'; detail: string }
 
@@ -89,7 +89,11 @@ export async function createOrder(qty: number): Promise<OrderResult> {
   const order = (await res.json()) as { id?: string; amount?: number }
   if (!order.id) return { status: 'upstream_error', detail: 'malformed_order' }
 
-  return { status: 'created', orderId: order.id, amountPaise, currency: 'INR' }
+  // The key id goes back with the order rather than being embedded in the
+  // page. It is publishable — Razorpay's checkout script needs it in the
+  // browser — but there is no reason to publish it to people who are not
+  // paying, so it travels with a response that already required a valid token.
+  return { status: 'created', orderId: order.id, amountPaise, currency: 'INR', keyId: creds.id }
 }
 
 /**

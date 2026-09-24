@@ -65,15 +65,12 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
   // has re-rendered with the busy state.
   const busy = useRef(false)
 
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
-
   async function pay() {
     if (busy.current) return
     busy.current = true
     setState({ phase: 'working' })
 
     try {
-      if (!keyId) throw new Error('Payments are not configured.')
       await loadCheckout()
 
       const orderRes = await fetch('/api/create-order', {
@@ -83,12 +80,13 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
       })
       const order = await orderRes.json()
       if (!orderRes.ok) throw new Error(order?.error ?? 'Could not start the payment.')
+      if (!order.key_id) throw new Error('Payments are not configured.')
 
       const Razorpay = window.Razorpay
       if (!Razorpay) throw new Error('Could not start the payment.')
 
       const rzp = new Razorpay({
-        key: keyId,
+        key: order.key_id,
         order_id: order.order_id,
         amount: order.amount,
         currency: order.currency,

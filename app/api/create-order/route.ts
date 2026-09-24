@@ -74,6 +74,7 @@ export async function POST(request: Request) {
   await attachOrder(reservation.id, order.orderId)
 
   return json({
+    key_id: order.keyId,
     order_id: order.orderId,
     amount: order.amountPaise,
     currency: order.currency,
