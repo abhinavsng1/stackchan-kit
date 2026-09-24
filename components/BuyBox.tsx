@@ -62,7 +62,7 @@ export default function BuyBox() {
         </button>
       </div>
 
-      <p className="t-label mt-3 mb-0">₹0 today · just your name and email</p>
+      <p className="t-label mt-3 mb-0">Card · UPI · netbanking · EMI</p>
 
       <dl className="mt-7 m-0 grid gap-0 border-t" style={{ borderColor: 'var(--line)' }}>
         {[
