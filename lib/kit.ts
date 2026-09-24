@@ -257,6 +257,14 @@ export const FAQS: Faq[] = [
 export const PRICE = {
   mrp: '₹13,999',
   now: '₹8,999',
+  /**
+   * The same price as `now`, in paise, for the payment gateway.
+   *
+   * This is the only figure the server will charge. It is deliberately not
+   * derived from the display string, and the client is never allowed to send
+   * an amount — see lib/razorpay.ts. A unit test asserts the two stay in step.
+   */
+  nowPaise: 899_900,
   save: 'Save ₹5,000',
   ship: 'Ships in 1–2 weeks',
 } as const

@@ -33,3 +33,25 @@ alter table preorders alter column pincode drop not null;
 -- Supplied numbers stay unique. PostgreSQL permits multiple NULL values here,
 -- so reservations without a phone do not collide with one another.
 create unique index if not exists preorders_phone_key on preorders (phone);
+
+-- ---------------------------------------------------------------------------
+-- Payments. Additive and safe to re-run.
+--
+-- A reservation is paid for through a link we email, never through an open
+-- checkout, so each row carries an unguessable token. That token is the only
+-- way to start a payment, which means every payment is attributable to exactly
+-- one reservation and nobody can create orders against the account at will.
+alter table preorders add column if not exists payment_token      text;
+alter table preorders add column if not exists razorpay_order_id  text;
+alter table preorders add column if not exists razorpay_payment_id text;
+alter table preorders add column if not exists amount_paid_paise  integer;
+alter table preorders add column if not exists paid_at            timestamptz;
+
+-- Tokens and order ids are looked up on every payment request, and neither may
+-- ever point at two reservations.
+create unique index if not exists preorders_payment_token_key on preorders (payment_token);
+create unique index if not exists preorders_order_id_key      on preorders (razorpay_order_id);
+
+-- Tokens are generated in application code with Node's CSPRNG rather than in
+-- SQL, so this schema needs no pgcrypto extension. Backfill older rows with:
+--   npm run backfill-tokens

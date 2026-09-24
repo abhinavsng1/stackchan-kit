@@ -146,17 +146,13 @@ export function reservationHtml(r: PreorderRecord) {
 
 /* -------------------------------- sending ------------------------------- */
 
-export async function sendReservationEmail(r: PreorderRecord): Promise<SendResult> {
+type Payload = { to: string; subject: string; text: string; html: string }
+
+/** Whichever provider is configured, same failure contract: never throws. */
+async function deliver(payload: Payload): Promise<SendResult> {
   const which = provider()
   if (which === 'none') {
     return { ok: false, provider: 'none', reason: 'no email provider configured' }
-  }
-
-  const payload = {
-    to: r.email,
-    subject: reservationSubject(),
-    text: reservationText(r),
-    html: reservationHtml(r),
   }
 
   try {
@@ -184,4 +180,99 @@ export async function sendReservationEmail(r: PreorderRecord): Promise<SendResul
   } catch (e) {
     return { ok: false, provider: which, reason: e instanceof Error ? e.message : String(e) }
   }
+}
+
+export async function sendReservationEmail(r: PreorderRecord): Promise<SendResult> {
+  return deliver({
+    to: r.email,
+    subject: reservationSubject(),
+    text: reservationText(r),
+    html: reservationHtml(r),
+  })
+}
+
+/* ------------------------------- receipt ------------------------------- */
+
+export type Receipt = {
+  name: string
+  email: string
+  qty: number
+  amountPaise: number
+  paymentId: string
+}
+
+const rupees = (paise: number) =>
+  '₹' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+
+export function receiptSubject() {
+  return 'Payment received — your Pebble-chan is on its way'
+}
+
+export function receiptText(r: Receipt) {
+  return `Hi ${firstName(r.name)},
+
+We have received your payment. Your Pebble-chan kit is confirmed and moving to
+dispatch.
+
+  Kits            ${r.qty}
+  Paid            ${rupees(r.amountPaise)}
+  Payment id      ${r.paymentId}
+
+${PRICE.ship}. We will email you the tracking details the moment it leaves.
+
+Keep this email — the payment id above is your reference if you ever need to
+ask us about this order.
+
+Questions? Just reply, or write to ${CONTACT.email}.
+
+— Pebble Robo
+`
+}
+
+export function receiptHtml(r: Receipt) {
+  const esc = (v: string) => v.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]!))
+  const row = (label: string, value: string) => `
+    <tr>
+      <td style="padding:6px 0;font-size:13px;color:#5a6672">${label}</td>
+      <td style="padding:6px 0;font-size:14px;text-align:right;font-weight:600">${esc(value)}</td>
+    </tr>`
+
+  return `<!doctype html>
+<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
+  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Payment received</p>
+  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your kit is confirmed, ${esc(firstName(r.name))}.</h1>
+
+  <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
+    Thank you — the payment came through and your Pebble-chan is moving to dispatch.
+  </p>
+
+  <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">
+    <table style="width:100%;border-collapse:collapse">
+      ${row('Kits', String(r.qty))}
+      ${row('Paid', rupees(r.amountPaise))}
+      ${row('Payment id', r.paymentId)}
+    </table>
+  </div>
+
+  <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3d4752">
+    ${esc(PRICE.ship)}. We will email tracking details the moment it leaves.
+    Keep this email — the payment id is your reference for any question about this order.
+  </p>
+
+  <hr style="border:0;border-top:1px solid #e2e7ec;margin:0 0 16px">
+  <p style="margin:0;font-size:12px;line-height:1.6;color:#5a6672">
+    Pebble Robo · <a href="mailto:${CONTACT.email}" style="color:#2f6bff">${CONTACT.email}</a>
+  </p>
+</div>
+</body></html>`
+}
+
+export async function sendPaymentReceiptEmail(r: Receipt): Promise<SendResult> {
+  return deliver({
+    to: r.email,
+    subject: receiptSubject(),
+    text: receiptText(r),
+    html: receiptHtml(r),
+  })
 }

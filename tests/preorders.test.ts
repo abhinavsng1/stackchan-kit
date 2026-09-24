@@ -17,18 +17,22 @@ afterEach(() => vi.unstubAllEnvs())
 describe('reservation persistence', () => {
   it('writes SQL NULL for every omitted optional detail, preserving email and quantity', async () => {
     await expect(createPreorder(minimal)).resolves.toEqual({ status: 'created' })
-    expect(sql.mock.calls[0].slice(1)).toEqual([
+    const values = sql.mock.calls[0].slice(1)
+    expect(values.slice(0, 8)).toEqual([
       'Asha Rao', 'asha@example.com', null, null, null, null, null, 1,
     ])
+    expect(values[8]).toMatch(/^[a-f0-9]{32}$/)
   })
 
   it('writes blank optional fields as NULL instead of a shared empty phone', async () => {
     await createPreorder({
       ...minimal, phone: ' ', profession: '', address: '\t', city: '', pincode: ' ',
     })
-    expect(sql.mock.calls[0].slice(1)).toEqual([
+    const values = sql.mock.calls[0].slice(1)
+    expect(values.slice(0, 8)).toEqual([
       'Asha Rao', 'asha@example.com', null, null, null, null, null, 1,
     ])
+    expect(values[8]).toMatch(/^[a-f0-9]{32}$/)
   })
 
   it('preserves all supplied details from the earlier full form', async () => {
@@ -36,10 +40,12 @@ describe('reservation persistence', () => {
       ...minimal, phone: '+919876543210', profession: 'Robotics',
       address: '12 Silicon Gardenia', city: 'Bengaluru', pincode: '560078', qty: 2,
     })
-    expect(sql.mock.calls[0].slice(1)).toEqual([
+    const values = sql.mock.calls[0].slice(1)
+    expect(values.slice(0, 8)).toEqual([
       'Asha Rao', 'asha@example.com', '+919876543210', 'Robotics',
       '12 Silicon Gardenia', 'Bengaluru', '560078', 2,
     ])
+    expect(values[8]).toMatch(/^[a-f0-9]{32}$/)
   })
 
   it('still identifies an email duplicate when no phone was supplied', async () => {
