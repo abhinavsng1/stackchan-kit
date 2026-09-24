@@ -11,8 +11,9 @@ const MAX = 5
  * The buy box. Sticky beside the gallery, so the price and the way to act on it
  * stay in view however far the specifications run.
  *
- * The quantity chosen here is carried to the short reservation form so
- * nobody enters it twice.
+ * It does not contain the form: ordering asks for a shipping address, and
+ * eight fields do not belong in a sticky panel. The quantity chosen here is
+ * carried to the form so nobody enters it twice.
  */
 export default function BuyBox() {
   const [qty, setQty] = useState(1)
@@ -45,8 +46,6 @@ export default function BuyBox() {
         }}>{PRICE.save}</span>
       </div>
 
-      <p className="text-[14px] text-[var(--muted)] mt-2 mb-0">Per kit, when your batch is confirmed</p>
-
       <p className="text-[14px] text-[var(--muted)] mt-2 mb-0 flex items-center gap-2">
         <span className="dot" />In stock · {PRICE.ship}
       </p>
@@ -59,7 +58,7 @@ export default function BuyBox() {
           <StepButton label="More kits" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
         </div>
         <button type="button" onClick={reserve} className="btn btn-brand flex-1 justify-center">
-          Reserve free
+          Order {qty > 1 ? `${qty} kits` : 'a kit'}
         </button>
       </div>
 

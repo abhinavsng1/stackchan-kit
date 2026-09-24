@@ -21,6 +21,13 @@ export const EV = {
   reserveSucceeded: 'Reserve Succeeded',
   reserveDuplicate: 'Reserve Already Held',
   reserveFailed: 'Reserve Failed',
+
+  /* Payment. The order exists by this point, so a drop-off here is a very
+     different problem from a drop-off in the form, and is measured apart. */
+  paymentOpened: 'Payment Opened',
+  paymentSucceeded: 'Payment Succeeded',
+  paymentDismissed: 'Payment Dismissed',
+  paymentFailed: 'Payment Failed',
 } as const
 
 /**
@@ -34,4 +41,5 @@ export const FUNNEL: string[] = [
   EV.reserveFormStarted,
   EV.reserveSubmitted,
   EV.reserveSucceeded,
+  EV.paymentSucceeded,
 ]

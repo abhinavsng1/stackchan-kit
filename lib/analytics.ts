@@ -31,7 +31,12 @@ import { analyticsMode } from '@/lib/analytics-environment'
  */
 const META_STANDARD: Record<string, string> = {
   [EVENTS.reserveCtaClicked]: 'InitiateCheckout',
+  // The order exists but is not paid for yet: a lead, not a sale.
   [EVENTS.reserveSucceeded]: 'Lead',
+  // Money actually moved. This is the conversion Meta should optimise towards,
+  // and reporting it as anything weaker trains the ad delivery on the wrong
+  // outcome.
+  [EVENTS.paymentSucceeded]: 'Purchase',
   [EVENTS.sectionViewed]: 'ViewContent',
 }
 

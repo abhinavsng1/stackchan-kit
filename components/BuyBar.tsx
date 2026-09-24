@@ -73,7 +73,7 @@ export default function BuyBar() {
         <a href="#reserve" className="btn btn-brand ml-auto shrink-0 !py-3"
            onClick={() => track(EV.reserveCtaClicked, { location: 'buybar' })}
            tabIndex={show ? undefined : -1}>
-          Reserve free
+          Order a kit
         </a>
       </div>
     </div>

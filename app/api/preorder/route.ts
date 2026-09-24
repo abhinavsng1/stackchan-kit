@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   // Honeypot: hidden from real users, so any content means a bot. Answer 201
   // so the bot cannot distinguish rejection from success, and write nothing.
-  if (company) return json({ status: 'created' }, 201)
+  if (company) return json({ status: 'created', token: null }, 201)
 
   try {
     const outcome = await createPreorder(record)
@@ -79,7 +79,12 @@ export async function POST(request: Request) {
       )
     }
 
-    if (outcome.status === 'created') return json({ status: 'created' }, 201)
+    // The token goes back to the browser that just created this order so it
+    // can open checkout immediately. It is the buyer's own reservation, and
+    // the token only permits paying for it.
+    if (outcome.status === 'created') {
+      return json({ status: 'created', token: outcome.token }, 201)
+    }
 
     // Tell them which detail was already taken. "You're already on the list"
     // is confusing when they deliberately used a different email.

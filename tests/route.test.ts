@@ -136,31 +136,25 @@ describe('POST /api/preorder', () => {
     await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'phone' })
   })
 
-  it('stores and confirms a reservation with only name, email, and quantity', async () => {
-    createPreorder.mockResolvedValue({ status: 'created' })
-    const minimal = { name: body.name, email: body.email, qty: 1 }
-    const res = await POST(post(minimal))
-    await settleBackground()
-    expect(res.status).toBe(201)
-    expect(createPreorder).toHaveBeenCalledWith(minimal)
-    expect(sendReservationEmail).toHaveBeenCalledWith(minimal)
+  it('refuses an order that could not be shipped', async () => {
+    const res = await POST(post({ name: body.name, email: body.email, qty: 1 }))
+    expect(res.status).toBe(400)
+    const fields = (await res.json()).fields
+    for (const f of ['phone', 'address', 'city', 'pincode']) expect(fields[f]).toBeTruthy()
+    expect(createPreorder).not.toHaveBeenCalled()
   })
 
-  it('normalizes blank optional details from an older form', async () => {
-    createPreorder.mockResolvedValue({ status: 'created' })
-    const res = await POST(post({
-      ...body, phone: '', profession: '  ', address: '', city: ' ', pincode: '',
-    }))
+  it('hands the payment token back so checkout can open straight away', async () => {
+    createPreorder.mockResolvedValue({ status: 'created', token: 'a'.repeat(32) })
+    const res = await POST(post(body))
+    await settleBackground()
     expect(res.status).toBe(201)
-    const record = createPreorder.mock.calls[0][0]
-    for (const field of ['phone', 'profession', 'address', 'city', 'pincode']) {
-      expect(record[field]).toBeUndefined()
-    }
+    await expect(res.json()).resolves.toEqual({ status: 'created', token: 'a'.repeat(32) })
   })
 
   it.each([
     ['address', 'here'], ['city', 'A'], ['pincode', '123'],
-  ])('rejects a malformed optional %s when supplied', async (field, value) => {
+  ])('rejects a malformed %s', async (field, value) => {
     const res = await POST(post({ ...body, [field]: value }))
     expect(res.status).toBe(400)
     expect((await res.json()).fields[field]).toBeTruthy()

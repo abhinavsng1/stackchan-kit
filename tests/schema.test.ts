@@ -20,19 +20,24 @@ describe('preorderSchema', () => {
     expect(preorderSchema.safeParse(valid).success).toBe(true)
   })
 
-  it('accepts a free reservation with only name, email, and quantity', () => {
-    expect(preorderSchema.parse({ name: valid.name, email: valid.email, qty: 1 }))
-      .toEqual({ name: valid.name, email: valid.email, qty: 1 })
-  })
-
-  it.each(['phone', 'profession', 'address', 'city', 'pincode'])(
-    'normalizes an omitted or blank %s to an absent detail', (field) => {
+  // Payment is taken on the page now, so a kit gets boxed and shipped straight
+  // away. Everything needed to put it in a box is required at the point of sale.
+  it.each(['phone', 'address', 'city', 'pincode'])(
+    'refuses an order with no %s, because it could not be shipped', (field) => {
       for (const value of [undefined, '', '   ']) {
-        const result = preorderSchema.parse({ ...valid, [field]: value })
-        expect(result[field as keyof typeof result]).toBeUndefined()
+        const result = preorderSchema.safeParse({ ...valid, [field]: value })
+        expect(result.success).toBe(false)
       }
     },
   )
+
+  it('still treats profession as optional — worth knowing, not worth a lost sale', () => {
+    for (const value of [undefined, '', '   ']) {
+      const result = preorderSchema.safeParse({ ...valid, profession: value })
+      expect(result.success).toBe(true)
+      expect(result.success && result.data.profession).toBeUndefined()
+    }
+  })
 
   describe('name', () => {
     it('rejects one that is too short', () => reject({ name: 'A' }))
@@ -121,11 +126,13 @@ describe('preorderSchema', () => {
 
 describe('fieldErrors', () => {
   it('names every field that failed', () => {
+    // An empty submission should light up every required field at once, not
+    // reveal them one at a time across six round trips.
     const r = preorderSchema.safeParse({ name: '', email: 'nope', phone: '1', qty: 99 })
     expect(r.success).toBe(false)
     if (!r.success) {
       expect(Object.keys(fieldErrors(r.error)).sort())
-        .toEqual(['email', 'name', 'phone', 'qty'].sort())
+        .toEqual(['address', 'city', 'email', 'name', 'phone', 'pincode', 'qty'].sort())
     }
   })
 })

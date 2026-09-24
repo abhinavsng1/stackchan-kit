@@ -16,7 +16,7 @@ afterEach(() => vi.unstubAllEnvs())
 
 describe('reservation persistence', () => {
   it('writes SQL NULL for every omitted optional detail, preserving email and quantity', async () => {
-    await expect(createPreorder(minimal)).resolves.toEqual({ status: 'created' })
+    await expect(createPreorder(minimal)).resolves.toMatchObject({ status: 'created' })
     const values = sql.mock.calls[0].slice(1)
     expect(values.slice(0, 8)).toEqual([
       'Asha Rao', 'asha@example.com', null, null, null, null, null, 1,

@@ -18,7 +18,8 @@ export type PreorderRecord = {
 }
 
 export type CreateResult =
-  | { status: 'created' }
+  /** The token is returned so the caller can send the buyer straight to pay. */
+  | { status: 'created'; token: string }
   /** Which field collided, so the visitor can be told something useful. */
   | { status: 'duplicate'; field: 'email' | 'phone' }
   | { status: 'unconfigured' }
@@ -43,13 +44,15 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
   const sql = client()
   if (!sql) return { status: 'unconfigured' }
 
+  const token = newPaymentToken()
+
   const rows = await sql`
     insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token)
     values (
       ${input.name}, ${input.email.toLowerCase()}, ${input.phone?.trim() || null},
       ${input.profession?.trim() || null}, ${input.address?.trim() || null},
       ${input.city?.trim() || null}, ${input.pincode?.trim() || null}, ${input.qty},
-      ${newPaymentToken()}
+      ${token}
     )
     on conflict (email) do nothing
     returning id
@@ -57,7 +60,9 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
 
   // ON CONFLICT (email) swallows an email collision, so zero rows means email.
   // A phone collision throws 23505 instead and is classified by the caller.
-  return rows.length > 0 ? { status: 'created' } : { status: 'duplicate', field: 'email' }
+  return rows.length > 0
+    ? { status: 'created', token }
+    : { status: 'duplicate', field: 'email' }
 }
 
 /**
