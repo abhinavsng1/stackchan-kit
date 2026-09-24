@@ -243,3 +243,56 @@ describe('order confirmation shows where it is going', () => {
     expect(receiptText(full)).not.toMatch(/nothing has been charged/i)
   })
 })
+
+describe('payment failures are reportable', () => {
+  const ORDER_URL = 'http://localhost/api/create-order'
+
+  async function attempt(fetchImpl: typeof fetch) {
+    vi.stubGlobal('fetch', fetchImpl)
+    vi.stubGlobal('window', {
+      Razorpay: function () { return { open() {}, on() {} } },
+      document: undefined,
+    } as unknown as Window)
+    const { openCheckout, CheckoutError } = await import('@/lib/checkout')
+    try {
+      await openCheckout({ token: 'a'.repeat(32), entity: 'Pebble Robo', description: 'kit' })
+      return null
+    } catch (e) {
+      return e instanceof CheckoutError ? e.detail : { stage: 'not-a-CheckoutError' }
+    }
+  }
+
+  it('names an expired or wrong gateway key, the failure nobody can pay through', async () => {
+    // This is the one that cost hours: every buyer blocked, and no signal.
+    const detail = await attempt(async () =>
+      new Response(JSON.stringify({ error: 'nope', code: 'gateway_unauthorized' }), { status: 401 }))
+    expect(detail).toMatchObject({
+      stage: 'create_order', code: 'gateway_unauthorized', httpStatus: 401,
+    })
+  })
+
+  it('distinguishes a dead network from a refusal', async () => {
+    const detail = await attempt(async () => { throw new TypeError('Failed to fetch') })
+    expect(detail).toMatchObject({ stage: 'create_order', code: 'network' })
+  })
+
+  it('reports an unusable payment link separately from a gateway fault', async () => {
+    const detail = await attempt(async () =>
+      new Response(JSON.stringify({ error: 'no', code: 'unknown_token' }), { status: 404 }))
+    expect(detail).toMatchObject({ stage: 'create_order', code: 'unknown_token', httpStatus: 404 })
+  })
+
+  it('falls back to a code rather than reporting nothing', async () => {
+    const detail = await attempt(async () => new Response('not json', { status: 500 }))
+    expect(detail).toMatchObject({ stage: 'create_order', code: 'http_error', httpStatus: 500 })
+  })
+
+  it('carries no buyer details into analytics', async () => {
+    const detail = await attempt(async () =>
+      new Response(JSON.stringify({ error: 'x', code: 'gateway_error' }), { status: 500 }))
+    const keys = Object.keys(detail ?? {})
+    for (const forbidden of ['name', 'email', 'phone', 'address', 'amount', 'card']) {
+      expect(keys).not.toContain(forbidden)
+    }
+  })
+})

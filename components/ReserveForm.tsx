@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track } from '@/lib/analytics'
 import { CONTACT, PRICE } from '@/lib/kit'
-import { openCheckout } from '@/lib/checkout'
+import { openCheckout, CheckoutError } from '@/lib/checkout'
 
 type State =
   | { kind: 'idle' }
@@ -171,7 +171,9 @@ export default function ReserveForm() {
         track(EV.paymentDismissed)
         return setState({ kind: 'idle' })
       }
-      track(EV.paymentFailed, { reason: outcome.status })
+      // Everything the gateway told us, so a dashboard can tell a declined
+      // card apart from a key that stopped working for everybody.
+      track(EV.paymentFailed, { outcome: outcome.status, ...outcome.detail })
       setState({
         kind: 'error',
         message: outcome.status === 'unconfirmed'
@@ -179,7 +181,10 @@ export default function ReserveForm() {
           : outcome.message,
       })
     } catch (e) {
-      track(EV.paymentFailed, { reason: 'open_failed' })
+      track(EV.paymentFailed, {
+        outcome: 'not_started',
+        ...(e instanceof CheckoutError ? e.detail : { stage: 'unknown', code: 'exception' }),
+      })
       setState({
         kind: 'error',
         message: e instanceof Error ? e.message : 'Could not start the payment.',

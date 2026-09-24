@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
   const result = bodySchema.safeParse(parsed)
   if (!result.success) {
-    return json({ status: 'invalid', error: 'Missing or malformed payment details.' }, 400)
+    return json({ status: 'invalid', error: 'Missing or malformed payment details.', code: 'malformed' }, 400)
   }
 
   const ok = verifyPaymentSignature({
@@ -62,7 +62,10 @@ export async function POST(request: Request) {
   if (!ok) {
     // A failed check means tampering or a replay. Nothing is recorded as paid,
     // and the response says no more than it has to.
-    return json({ status: 'invalid', error: 'Payment could not be verified.' }, 400)
+    console.error('[verify-payment] signature did not match', {
+      order_id: result.data.razorpay_order_id,
+    })
+    return json({ status: 'invalid', error: 'Payment could not be verified.', code: 'bad_signature' }, 400)
   }
 
   // The signature holds, so settle the reservation now rather than making the
@@ -80,7 +83,18 @@ export async function POST(request: Request) {
   })
 
   if (settled.status === 'unknown_order') {
-    return json({ status: 'invalid', error: 'Payment could not be verified.' }, 400)
+    console.error('[verify-payment] no reservation holds this order', {
+      order_id: result.data.razorpay_order_id,
+    })
+    return json({ status: 'invalid', error: 'Payment could not be verified.', code: 'unknown_order' }, 400)
+  }
+
+  if (settled.status === 'amount_mismatch') {
+    console.error('[verify-payment] amount mismatch — left unpaid', {
+      order_id: result.data.razorpay_order_id,
+      expected_paise: settled.expectedPaise, paid_paise: settled.paidPaise,
+    })
+    return json({ status: 'invalid', error: 'Payment could not be verified.', code: 'amount_mismatch' }, 400)
   }
 
   // Whichever of this and the webhook settles first sends the receipt; the

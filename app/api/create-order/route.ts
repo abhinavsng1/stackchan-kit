@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   const result = bodySchema.safeParse(parsed)
   if (!result.success) {
-    return json({ error: 'This payment link is not valid.' }, 400)
+    return json({ error: 'This payment link is not valid.', code: 'bad_token' }, 400)
   }
 
   const reservation = await findByPaymentToken(result.data.token)
@@ -50,22 +50,31 @@ export async function POST(request: Request) {
   // A bad token and a missing reservation are answered identically, so the
   // endpoint cannot be used to find out which tokens exist.
   if (!reservation) {
-    return json({ error: 'This payment link is not valid.' }, 404)
+    return json({ error: 'This payment link is not valid.', code: 'unknown_token' }, 404)
   }
 
   if (reservation.paidAt) {
-    return json({ error: 'This reservation has already been paid for.' }, 409)
+    return json({ error: 'This reservation has already been paid for.', code: 'already_paid' }, 409)
   }
 
   const order = await createOrder(reservation.qty)
 
   if (order.status === 'unconfigured') {
-    return json({ error: 'Payments are not configured yet.' }, 503)
+    console.error('[create-order] Razorpay keys are not set')
+    return json({ error: 'Payments are not configured yet.', code: 'not_configured' }, 503)
   }
 
   if (order.status === 'upstream_error') {
-    const status = order.detail === 'unauthorized' ? 401 : 500
-    return json({ error: 'Could not start the payment. Try again in a moment.' }, status)
+    // `code` is a fixed vocabulary, never upstream text, so it is safe to hand
+    // to the browser — and the browser is what reports it to analytics. An
+    // expired or wrong key shows up as gateway_unauthorized, which is the
+    // single most useful thing to see in a dashboard: it means nobody can pay.
+    const unauthorized = order.detail === 'unauthorized'
+    console.error('[create-order] payment gateway refused', { detail: order.detail })
+    return json({
+      error: 'Could not start the payment. Try again in a moment.',
+      code: unauthorized ? 'gateway_unauthorized' : 'gateway_error',
+    }, unauthorized ? 401 : 500)
   }
 
   // Recorded before the visitor pays, so the webhook that follows can find the

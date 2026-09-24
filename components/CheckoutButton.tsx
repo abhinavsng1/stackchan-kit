@@ -2,7 +2,8 @@
 
 import { useRef, useState } from 'react'
 import { CONTACT, PRICE } from '@/lib/kit'
-import { openCheckout } from '@/lib/checkout'
+import { openCheckout, CheckoutError } from '@/lib/checkout'
+import { EV, track } from '@/lib/analytics'
 
 /**
  * Pays for an order that already exists, from the link we email.
@@ -28,6 +29,7 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
     if (busy.current) return
     busy.current = true
     setState({ phase: 'working' })
+    track(EV.paymentOpened, { from: 'payment_link' })
 
     try {
       const outcome = await openCheckout({
@@ -35,8 +37,15 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
         entity: CONTACT.entity,
         description: `Pebble-chan kit \u00d7 ${qty} \u2014 batch 01`,
       })
-      if (outcome.status === 'paid') return setState({ phase: 'paid', paymentId: outcome.paymentId })
-      if (outcome.status === 'dismissed') return setState({ phase: 'idle' })
+      if (outcome.status === 'paid') {
+        track(EV.paymentSucceeded, { from: 'payment_link' })
+        return setState({ phase: 'paid', paymentId: outcome.paymentId })
+      }
+      if (outcome.status === 'dismissed') {
+        track(EV.paymentDismissed, { from: 'payment_link' })
+        return setState({ phase: 'idle' })
+      }
+      track(EV.paymentFailed, { from: 'payment_link', outcome: outcome.status, ...outcome.detail })
       setState({
         phase: 'error',
         message: outcome.status === 'unconfirmed'
@@ -44,6 +53,10 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
           : outcome.message,
       })
     } catch (err) {
+      track(EV.paymentFailed, {
+        from: 'payment_link', outcome: 'not_started',
+        ...(err instanceof CheckoutError ? err.detail : { stage: 'unknown', code: 'exception' }),
+      })
       setState({
         phase: 'error',
         message: err instanceof Error ? err.message : 'Something went wrong.',
