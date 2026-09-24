@@ -1,6 +1,5 @@
 import { preorderSchema, fieldErrors } from '@/lib/schema'
 import { createPreorder, duplicateField } from '@/lib/preorders'
-import { sendReservationEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 
 /** Generous for four short fields, small enough to refuse junk outright. */
@@ -64,20 +63,10 @@ export async function POST(request: Request) {
       return json({ error: 'Reservations are not open yet. Try again shortly.' }, 503)
     }
 
-    // Only a genuinely new reservation gets a confirmation. Someone who
-    // submits twice already has one, and a second copy reads as a bug.
-    if (outcome.status === 'created') {
-      afterResponse(
-        sendReservationEmail(record).then((result) => {
-          if (!result.ok) {
-            // The reservation is safe in Postgres; this is a delivery problem.
-            console.error('[preorder] confirmation email not sent', {
-              provider: result.provider, reason: result.reason,
-            })
-          }
-        }),
-      )
-    }
+    // No email here. This row is an order that has not been paid for, and
+    // telling someone their kit is confirmed before their money has moved is
+    // a promise we cannot keep — they may close the payment window and never
+    // come back. The confirmation is sent when the payment settles instead.
 
     // The token goes back to the browser that just created this order so it
     // can open checkout immediately. It is the buyer's own reservation, and

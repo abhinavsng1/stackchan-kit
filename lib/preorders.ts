@@ -137,7 +137,11 @@ export type MarkPaidResult =
    * status is returned exactly once per reservation, a receipt sent here is
    * sent once no matter how many times the webhook is redelivered.
    */
-  | { status: 'paid'; name: string; email: string; qty: number; amountPaise: number }
+  | {
+      status: 'paid'
+      name: string; email: string; qty: number; amountPaise: number
+      phone: string | null; address: string | null; city: string | null; pincode: string | null
+    }
   /** Already settled — a webhook retry or a refreshed success page. */
   | { status: 'already_paid' }
   /** No reservation holds this order id. Nothing is written. */
@@ -171,8 +175,8 @@ export async function markPaid(input: {
   if (!sql) return { status: 'unknown_order' }
 
   const rows = await sql`
-    select id, name, email, qty, paid_at from preorders
-     where razorpay_order_id = ${input.orderId} limit 1`
+    select id, name, email, qty, phone, address, city, pincode, paid_at
+      from preorders where razorpay_order_id = ${input.orderId} limit 1`
 
   const row = rows[0]
   if (!row) return { status: 'unknown_order' }
@@ -196,11 +200,16 @@ export async function markPaid(input: {
 
   if (done.length === 0) return { status: 'already_paid' }
 
+  const text = (v: unknown) => (v === null || v === undefined ? null : String(v))
   return {
     status: 'paid',
     name: String(row.name),
     email: String(row.email),
     qty: Number(row.qty),
     amountPaise: settledPaise,
+    phone: text(row.phone),
+    address: text(row.address),
+    city: text(row.city),
+    pincode: text(row.pincode),
   }
 }

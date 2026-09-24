@@ -194,16 +194,20 @@ describe('POST /api/preorder', () => {
   })
 })
 
-describe('confirmation email', () => {
-  it('is sent to the address that reserved, once, on a new reservation', async () => {
-    createPreorder.mockResolvedValue({ status: 'created' })
+describe('email is tied to payment, not to placing an order', () => {
+  // The route used to confirm the moment the row was written. Once payment
+  // moved onto the page that became a promise made before any money had
+  // moved: someone who closed the payment window was told their kit was
+  // reserved. Confirmation now comes from the payment settling instead.
+
+  it('sends nothing when an order is placed but not yet paid for', async () => {
+    createPreorder.mockResolvedValue({ status: 'created', token: 'a'.repeat(32) })
     await POST(post(body))
     await settleBackground()
-    expect(sendReservationEmail).toHaveBeenCalledOnce()
-    expect(sendReservationEmail.mock.calls[0][0].email).toBe('asha@example.com')
+    expect(sendReservationEmail).not.toHaveBeenCalled()
   })
 
-  it('is not sent again to someone already on the list', async () => {
+  it('sends nothing to someone who already ordered', async () => {
     createPreorder.mockResolvedValue({ status: 'duplicate', field: 'email' })
     const res = await POST(post(body))
     await settleBackground()
@@ -211,52 +215,17 @@ describe('confirmation email', () => {
     expect(sendReservationEmail).not.toHaveBeenCalled()
   })
 
-  it('is not sent when the database is unconfigured', async () => {
+  it('sends nothing when the database is unconfigured', async () => {
     createPreorder.mockResolvedValue({ status: 'unconfigured' })
     await POST(post(body))
     await settleBackground()
     expect(sendReservationEmail).not.toHaveBeenCalled()
   })
 
-  it('is not sent to a bot that filled the honeypot', async () => {
+  it('sends nothing to a bot that filled the honeypot', async () => {
     await POST(post({ ...body, company: 'Acme' }))
     await settleBackground()
     expect(sendReservationEmail).not.toHaveBeenCalled()
-  })
-
-  it('does not make the visitor wait for the mail server', async () => {
-    createPreorder.mockResolvedValue({ status: 'created' })
-
-    // An email that never finishes. If the route awaited it, this test would
-    // hang rather than fail — which is exactly the bug worth catching.
-    let release!: () => void
-    sendReservationEmail.mockImplementation(
-      () => new Promise((resolve) => { release = () => resolve({ ok: true, provider: 'resend' }) }),
-    )
-
-    const res = await POST(post(body))
-    expect(res.status).toBe(201)
-    await expect(res.json()).resolves.toEqual({ status: 'created' })
-
-    release()
-    await settleBackground()
-  })
-
-  it('a failed email still leaves the visitor reserved', async () => {
-    createPreorder.mockResolvedValue({ status: 'created' })
-    sendReservationEmail.mockResolvedValue({ ok: false, provider: 'smtp', reason: 'auth failed' })
-    const res = await POST(post(body))
-    await settleBackground()
-    expect(res.status).toBe(201)
-    await expect(res.json()).resolves.toEqual({ status: 'created' })
-  })
-
-  it('an email that throws cannot break the request', async () => {
-    createPreorder.mockResolvedValue({ status: 'created' })
-    sendReservationEmail.mockRejectedValue(new Error('mail server on fire'))
-    const res = await POST(post(body))
-    await expect(settleBackground()).rejects.toThrow()
-    expect(res.status).toBe(201)
   })
 })
 

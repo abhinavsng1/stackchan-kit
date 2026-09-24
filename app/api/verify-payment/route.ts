@@ -91,6 +91,10 @@ export async function POST(request: Request) {
       email: settled.email,
       qty: settled.qty,
       amountPaise: settled.amountPaise,
+      phone: settled.phone,
+      address: settled.address,
+      city: settled.city,
+      pincode: settled.pincode,
       paymentId: result.data.razorpay_payment_id,
     })
     try { waitUntil(receipt) } catch { void receipt.catch(() => {}) }

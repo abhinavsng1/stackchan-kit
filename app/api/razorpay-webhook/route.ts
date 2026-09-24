@@ -96,6 +96,10 @@ export async function POST(request: Request) {
       email: result.email,
       qty: result.qty,
       amountPaise: result.amountPaise,
+      phone: result.phone,
+      address: result.address,
+      city: result.city,
+      pincode: result.pincode,
       paymentId: payment.id,
     }))
   }

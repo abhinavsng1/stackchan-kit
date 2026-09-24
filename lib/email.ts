@@ -199,29 +199,54 @@ export type Receipt = {
   qty: number
   amountPaise: number
   paymentId: string
+  /** Shown back so a wrong address is caught now, not at the courier. */
+  phone?: string | null
+  address?: string | null
+  city?: string | null
+  pincode?: string | null
 }
 
 const rupees = (paise: number) =>
   '₹' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })
 
 export function receiptSubject() {
-  return 'Payment received — your Pebble-chan is on its way'
+  return 'Order confirmed — your Pebble-chan is on its way'
+}
+
+/** The address as it will be printed on the label, or nothing if absent. */
+function shipsTo(r: Receipt): string[] {
+  const lines: string[] = []
+  if (r.address?.trim()) lines.push(r.address.trim())
+  const town = [r.city?.trim(), r.pincode?.trim()].filter(Boolean).join(' ')
+  if (town) lines.push(town)
+  if (r.phone?.trim()) lines.push(r.phone.trim())
+  return lines
 }
 
 export function receiptText(r: Receipt) {
+  const to = shipsTo(r)
   return `Hi ${firstName(r.name)},
 
-We have received your payment. Your Pebble-chan kit is confirmed and moving to
-dispatch.
+Your payment has gone through and your Pebble-chan kit is confirmed. Nothing
+more is needed from you.
 
-  Kits            ${r.qty}
-  Paid            ${rupees(r.amountPaise)}
-  Payment id      ${r.paymentId}
+WHAT YOU ORDERED
+  Pebble-chan kit   x${r.qty}
+  Paid              ${rupees(r.amountPaise)}
+  Payment id        ${r.paymentId}
+${to.length ? `
+SHIPPING TO
+${to.map((l) => '  ' + l).join('\n')}
 
-${PRICE.ship}. We will email you the tracking details the moment it leaves.
+If any of that is wrong, reply to this email today and we will correct it
+before the box is sealed.
+` : ''}
+WHAT HAPPENS NEXT
+  We match the parts, print the shell, and address and centre the servos.
+  ${PRICE.ship}, and we email tracking the moment it leaves.
 
-Keep this email — the payment id above is your reference if you ever need to
-ask us about this order.
+Keep this email. The payment id above is your reference for any question
+about this order.
 
 Questions? Just reply, or write to ${CONTACT.email}.
 
@@ -240,24 +265,31 @@ export function receiptHtml(r: Receipt) {
   return `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
-  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Payment received</p>
+  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Order confirmed</p>
   <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your kit is confirmed, ${esc(firstName(r.name))}.</h1>
 
   <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
-    Thank you — the payment came through and your Pebble-chan is moving to dispatch.
+    Your payment has gone through. Nothing more is needed from you.
   </p>
 
   <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">
     <table style="width:100%;border-collapse:collapse">
-      ${row('Kits', String(r.qty))}
+      ${row('Pebble-chan kit', '\u00d7 ' + r.qty)}
       ${row('Paid', rupees(r.amountPaise))}
       ${row('Payment id', r.paymentId)}
     </table>
   </div>
-
+${shipsTo(r).length ? `
+  <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">
+    <p style="margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">Shipping to</p>
+    <p style="margin:0;font-size:14px;line-height:1.6">${shipsTo(r).map(esc).join('<br>')}</p>
+    <p style="margin:12px 0 0;font-size:13px;color:#5a6672">
+      Wrong address? Reply today and we will fix it before the box is sealed.
+    </p>
+  </div>` : ''}
   <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3d4752">
-    ${esc(PRICE.ship)}. We will email tracking details the moment it leaves.
-    Keep this email — the payment id is your reference for any question about this order.
+    We match the parts, print the shell, and address and centre the servos.
+    ${esc(PRICE.ship)}, and we email tracking the moment it leaves.
   </p>
 
   <hr style="border:0;border-top:1px solid #e2e7ec;margin:0 0 16px">

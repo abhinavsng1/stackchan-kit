@@ -210,3 +210,36 @@ describe('payment receipt', () => {
     await expect(sendPaymentReceiptEmail(receipt)).resolves.toMatchObject({ ok: false, provider: 'none' })
   })
 })
+
+describe('order confirmation shows where it is going', () => {
+  const full = {
+    name: 'Asha Rao', email: 'asha@example.com', qty: 1,
+    amountPaise: 899_900, paymentId: 'pay_ABC',
+    phone: '+919876543210', address: '12 Silicon Gardenia, JP Nagar',
+    city: 'Bengaluru', pincode: '560078',
+  }
+
+  it('prints the address back so a mistake is caught before the label', async () => {
+    const { receiptText, receiptHtml } = await import('@/lib/email')
+    for (const body of [receiptText(full), receiptHtml(full)]) {
+      expect(body).toContain('12 Silicon Gardenia')
+      expect(body).toContain('Bengaluru')
+      expect(body).toContain('560078')
+      expect(body).toContain('+919876543210')
+    }
+  })
+
+  it('omits the shipping block entirely when there is no address', async () => {
+    const { receiptText, receiptHtml } = await import('@/lib/email')
+    const bare = { ...full, phone: null, address: null, city: null, pincode: null }
+    // An empty "Shipping to" heading is worse than none at all.
+    expect(receiptText(bare)).not.toContain('SHIPPING TO')
+    expect(receiptHtml(bare)).not.toContain('Shipping to')
+  })
+
+  it('says the order is confirmed, not merely reserved', async () => {
+    const { receiptSubject, receiptText } = await import('@/lib/email')
+    expect(receiptSubject()).toContain('confirmed')
+    expect(receiptText(full)).not.toMatch(/nothing has been charged/i)
+  })
+})
