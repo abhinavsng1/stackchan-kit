@@ -60,8 +60,10 @@ test('the whole page stays under a sane scroll length', async ({ page }) => {
   // A guard against runaway growth, not a fixed budget. Raise it deliberately
   // when a section is added, never to make a red test go green.
   // Raised from 17 when the demo band, the touch tile and twelve section clips
-  // landed: measured 17.6 after those, so this keeps roughly the same headroom.
-  expect(screens).toBeLessThan(19)
+  // landed, then from 19 when the video hero went in — measured 19.3 after it.
+  // Worth watching rather than nudging again: the page is long for a phone,
+  // and the product block below the hero now repeats some of its work.
+  expect(screens).toBeLessThan(21)
 })
 
 test('tap targets in the buy bar are big enough', async ({ page }) => {

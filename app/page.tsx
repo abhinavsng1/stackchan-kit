@@ -5,6 +5,7 @@ import DemoVideo from '@/components/DemoVideo'
 import Clip from '@/components/Clip'
 import StructuredData from '@/components/StructuredData'
 import Cut from '@/components/Cut'
+import Hero from '@/components/Hero'
 import BuyBox from '@/components/BuyBox'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
@@ -78,6 +79,8 @@ export default function Page() {
       <Nav />
 
       <main id="top">
+        <Hero />
+
         {/* ================= PRODUCT ================= */}
         <section className="wrap pt-5 pb-12 md:pt-8 md:pb-16">
           <nav aria-label="Breadcrumb" className="t-mono text-[11.5px] text-[var(--muted)] mb-5">
