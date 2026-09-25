@@ -76,10 +76,10 @@ export default function Page() {
         {PRICE.ship} · {PRICE.save}
       </div>
 
-      <Nav />
-
       <main id="top">
         <Hero />
+
+        <Nav />
 
         {/* ================= PRODUCT ================= */}
         <section className="wrap pt-5 pb-12 md:pt-8 md:pb-16">
