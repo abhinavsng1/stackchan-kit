@@ -68,6 +68,15 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: ['/og.jpg'],
   },
+  /**
+   * Search Console's HTML-tag check. Read from the environment so the token
+   * can be set without a code change — `vercel env add` then redeploy.
+   * Absent is fine: Next omits the tag entirely rather than emitting an empty
+   * one, which would fail verification in a confusing way.
+   */
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   robots: {
     index: true, follow: true,
     googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
