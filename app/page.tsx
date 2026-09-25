@@ -113,7 +113,7 @@ export default function Page() {
             <div className="max-w-[900px] mx-auto">
               <p className="t-label m-0 mb-3">Demo</p>
               <h2 className="t-display text-[clamp(24px,3.4vw,34px)] mt-0 mb-6">
-                This is it, assembled and running.
+                Forty seconds on what it is.
               </h2>
               <DemoVideo />
             </div>

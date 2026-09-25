@@ -29,7 +29,7 @@ function hasWebGL() {
 /**
  * The hero alternates between a model built from the real print files and a
  * photograph of an assembled unit. The model is accurate and interactive; the
- * photograph is proof the thing exists. Thirty seconds each.
+ * photograph is proof the thing exists. Ten seconds each.
  */
 export default function Robot3D() {
   const [mode, setMode] = useState<'probing' | '3d' | 'photo'>('probing')

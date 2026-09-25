@@ -6,12 +6,14 @@ async function openVideo(page: import('@playwright/test').Page) {
   return page.getByTestId('gallery-video')
 }
 
-test('the demo is silent by construction, not just muted', async ({ page }) => {
+test('the film starts muted, and can be unmuted', async ({ page }) => {
   await page.goto('/')
   const video = await openVideo(page)
+  // The file now carries a soundtrack, so silence is a decision rather than a
+  // property of the asset. Autoplaying audio at someone is how a tab gets
+  // closed; `controls` is what makes turning it on possible.
   await expect(video).toHaveJSProperty('muted', true)
   await expect(video).toHaveJSProperty('loop', true)
-  // A muted attribute can be toggled; a file with no audio track cannot.
   expect((await page.request.get('/media/demo.mp4')).status()).toBe(200)
 })
 
@@ -27,7 +29,7 @@ test('downloads nothing until the video is actually chosen', async ({ page }) =>
   await expect.poll(() => media.length, { timeout: 15000 }).toBeGreaterThan(0)
 })
 
-test('runs for thirty seconds', async ({ page }) => {
+test('runs for forty seconds, as the caption claims', async ({ page }) => {
   await page.goto('/')
   const video = await openVideo(page)
   const seconds = await video.evaluate((v: HTMLVideoElement) =>
@@ -35,7 +37,9 @@ test('runs for thirty seconds', async ({ page }) => {
       if (v.duration) return resolve(v.duration)
       v.addEventListener('loadedmetadata', () => resolve(v.duration), { once: true })
     }))
-  expect(Math.round(seconds)).toBe(30)
+  // The caption states a duration. If the asset is swapped for one of a
+  // different length, the page starts lying and this is what catches it.
+  expect(Math.round(seconds)).toBe(40)
 })
 
 test('the demo band under the hero plays itself, silently', async ({ page }) => {
@@ -75,4 +79,21 @@ test.describe('section clips', () => {
     expect(await vids.evaluateAll((vs) => vs.every((v) => (v as HTMLVideoElement).muted))).toBe(true)
     await expect(page.locator('#does').getByRole('button', { name: /Sound/ })).toHaveCount(1)
   })
+})
+
+test('the caption and the file agree on how long the film is', async ({ page }) => {
+  await page.goto('/')
+  // The band loads nothing until it is near the viewport, so there is no
+  // duration to read until it has been reached.
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+  const caption = await page.locator('#demo figcaption').innerText()
+  // innerText returns the rendered text, and the label is uppercased in CSS.
+  const claimed = Number(caption.match(/(\d+)\s*seconds/i)?.[1])
+  expect(claimed).not.toBeNaN()
+  const actual = await page.getByTestId('demo-video').evaluate((v: HTMLVideoElement) =>
+    new Promise<number>((resolve) => {
+      if (v.duration) return resolve(v.duration)
+      v.addEventListener('loadedmetadata', () => resolve(v.duration), { once: true })
+    }), { timeout: 20_000 })
+  expect(Math.round(actual)).toBe(claimed)
 })

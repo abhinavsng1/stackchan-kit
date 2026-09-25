@@ -15,7 +15,7 @@ const VIEWS: View[] = [
   { id: 'model', label: '3D model', caption: 'Built from the print files. Move your pointer — it follows.' },
   { id: 'unit', label: 'Assembled', caption: 'An assembled unit. Photographed, not rendered.' },
   { id: 'box', label: 'In the box', caption: 'Everything that ships, beside its box.' },
-  { id: 'video', label: 'Video', caption: '30 seconds of it running. No sound.' },
+  { id: 'video', label: 'Video', caption: 'A 40-second film. Starts muted.' },
 ]
 
 /** How long a view holds while the gallery is still advancing on its own. */
@@ -117,7 +117,7 @@ export default function Gallery() {
             {view === 'video' && (
               <video data-testid="gallery-video" className="w-full h-full object-contain" poster="/media/demo-poster.webp"
                      preload="none" muted loop playsInline controls autoPlay
-                     aria-label="Thirty seconds of an assembled Pebble-chan running">
+                     aria-label="Forty-second film introducing the Pebble-chan kit">
                 <source src="/media/demo.webm" type="video/webm" />
                 <source src="/media/demo.mp4" type="video/mp4" />
               </video>

@@ -5,9 +5,11 @@ import { track } from '@/lib/analytics'
 import { EV } from '@/lib/events'
 
 /**
- * The product demo. Silent by design — there is no audio track in the file at
- * all, so "muted" is a property of the asset rather than a setting a browser
- * could override.
+ * The launch film.
+ *
+ * It carries a soundtrack, so muting is now a decision rather than a property
+ * of the file: it autoplays silent because a page that makes noise at someone
+ * is a page they close. `controls` is what lets them turn it on.
  *
  * Nothing downloads until the section is actually on screen: the poster is
  * 29 KB, the video is a megabyte, and most visitors never scroll this far.
@@ -75,7 +77,7 @@ export default function DemoVideo({ dark }: { dark?: boolean } = {}) {
           height={576}
           onPlay={onPlay}
           onTimeUpdate={onTimeUpdate}
-          aria-label="Thirty seconds of an assembled Pebble-chan running"
+          aria-label="Forty-second film introducing the Pebble-chan kit"
         >
           <source src="/media/demo.webm" type="video/webm" />
           <source src="/media/demo.mp4" type="video/mp4" />
@@ -83,7 +85,7 @@ export default function DemoVideo({ dark }: { dark?: boolean } = {}) {
         </video>
       </div>
       <figcaption className="t-label mt-3" style={dark ? { color: 'rgba(255,255,255,.55)' } : undefined}>
-        30 seconds · no sound · plays when you reach it
+        40 seconds · starts muted · unmute with the controls
       </figcaption>
     </figure>
   )
