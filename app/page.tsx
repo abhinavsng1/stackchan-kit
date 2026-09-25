@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import Image from 'next/image'
 import Gallery from '@/components/Gallery'
 import DemoVideo from '@/components/DemoVideo'
@@ -345,6 +346,23 @@ export default function Page() {
             </p>
           </div>
           <div>
+            <div className="t-label mb-3">Policies</div>
+            <ul className="list-none p-0 m-0 mb-7 grid gap-1.5">
+              {[
+                ['Returns and refunds', '/returns'],
+                ['Shipping and delivery', '/shipping'],
+                ['Terms of sale', '/terms'],
+                ['Privacy', '/privacy'],
+                ['Contact', '/contact'],
+              ].map(([label, href]) => (
+                <li key={href}>
+                  <Link href={href} className="text-[13.5px] text-[var(--muted)] no-underline hover:underline underline-offset-4">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
             <div className="t-label mb-3">Your data</div>
             <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
               Ordering stores your name, email, phone, shipping address and

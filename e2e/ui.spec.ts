@@ -75,3 +75,43 @@ test.describe('discoverability', () => {
     expect(text).toContain('Ships to India only')
   })
 })
+
+test.describe('policies', () => {
+  const PAGES = ['/returns', '/shipping', '/terms', '/privacy', '/contact']
+
+  test('every policy page is reachable from the product page', async ({ page }) => {
+    await page.goto('/')
+    for (const href of PAGES) {
+      await expect(page.locator(`footer a[href="${href}"]`)).toBeVisible()
+    }
+  })
+
+  test.describe('each page loads and is indexable', () => {
+    for (const href of PAGES) {
+      test(href, async ({ page }) => {
+        const res = await page.goto(href)
+        expect(res?.status()).toBe(200)
+        await expect(page.locator('h1')).toBeVisible()
+        // Policies that crawlers cannot read do not satisfy anybody's review.
+        await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0)
+      })
+    }
+  })
+
+  test('the return terms state the facts a reviewer looks for', async ({ page }) => {
+    // Merchant Center rejects vague return policies specifically: it wants a
+    // window, who pays, and a refund timeline, each as a number.
+    await page.goto('/returns')
+    const body = await page.locator('main').innerText()
+    expect(body).toMatch(/7 days/i)              // the window
+    expect(body).toMatch(/you pay the return postage/i) // who pays
+    expect(body).toMatch(/7 working days/i)      // refund timeline
+  })
+
+  test('policies are in the sitemap', async ({ page }) => {
+    const xml = await (await page.request.get('/sitemap.xml')).text()
+    for (const href of PAGES) expect(xml).toContain(`https://pebblerobo.com${href}`)
+    // But the token-bearing checkout page is not.
+    expect(xml).not.toContain('/checkout')
+  })
+})
