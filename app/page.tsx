@@ -4,6 +4,7 @@ import Gallery from '@/components/Gallery'
 import DemoVideo from '@/components/DemoVideo'
 import Clip from '@/components/Clip'
 import StructuredData from '@/components/StructuredData'
+import Cut from '@/components/Cut'
 import BuyBox from '@/components/BuyBox'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
@@ -98,7 +99,7 @@ export default function Page() {
               <div key={dup} className="flex shrink-0" aria-hidden={dup === 1}>
                 {PARTS.map((p) => (
                   <span key={p.desig} className="flex items-center gap-2.5 px-6 whitespace-nowrap">
-                    <span className="t-pixel text-[10px] text-[var(--brand)]">{p.desig}</span>
+                    <span className="t-mono text-[11px] text-[var(--muted)]">{p.desig}</span>
                     <span className="t-mono text-[12.5px] text-[var(--muted)]">{p.name}</span>
                   </span>
                 ))}
@@ -119,6 +120,9 @@ export default function Page() {
             </div>
           </div>
         </section>
+
+        {/* The brand's one graphic gesture. Once per layout — see Cut.tsx. */}
+        <Cut className="py-2" />
 
         {/* ================= WHAT IT DOES ================= */}
         <Section id="does" eyebrow="What it does" title="Not an ornament. It runs."
@@ -146,7 +150,7 @@ export default function Page() {
                 </span>
                 <span className="min-w-0">
                   <span className="flex items-baseline gap-2">
-                    <span className="t-pixel text-[9.5px] text-[var(--brand)]">{p.desig}</span>
+                    <span className="t-mono text-[10.5px] text-[var(--muted)]">{p.desig}</span>
                     <span className="t-mono text-[10.5px] text-[var(--muted)]">{p.qty}</span>
                   </span>
                   <span className="block text-[13px] font-semibold leading-tight mt-0.5">{p.name}</span>
@@ -190,7 +194,7 @@ export default function Page() {
                     layout flashes the wrong state. */}
                 <details className="lg:hidden group">
                   <summary className="cursor-pointer list-none flex items-center gap-2.5 px-4 py-3">
-                    <span className="t-pixel text-[10px] text-[var(--brand)]">{t.desig}</span>
+                    <span className="t-mono text-[11px] text-[var(--muted)]">{t.desig}</span>
                     <span className="text-[14px] font-semibold">{t.title}</span>
                     <span className="t-label ml-auto">{t.rows.length} rows</span>
                     <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[16px] leading-none group-open:rotate-45 transition-transform">+</span>
@@ -202,7 +206,7 @@ export default function Page() {
 
                 <div className="hidden lg:block">
                   <div className="flex items-center gap-2.5 px-4 py-3 border-b" style={{ borderColor: 'var(--line)' }}>
-                    <span className="t-pixel text-[10px] text-[var(--brand)]">{t.desig}</span>
+                    <span className="t-mono text-[11px] text-[var(--muted)]">{t.desig}</span>
                     <span className="text-[14px] font-semibold">{t.title}</span>
                   </div>
                   <div className="overflow-x-auto"><SpecGrid table={t} /></div>
@@ -218,7 +222,7 @@ export default function Page() {
           <ol className="grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 list-none p-0 m-0">
             {BUILD_STEPS.map((s) => (
               <li key={s.n} className="card p-4 sm:p-6 flex sm:block gap-4">
-                <span className="t-pixel text-[22px] sm:text-[26px] text-[var(--brand)] leading-none shrink-0">
+                <span className="t-mono text-[22px] sm:text-[26px] text-[var(--pebble-mist)] leading-none shrink-0">
                   {String(s.n).padStart(2, '0')}
                 </span>
                 <div className="min-w-0">
@@ -299,7 +303,7 @@ export default function Page() {
                   ['You build it', 'Four steps, one evening. Everything you need is in the box.'],
                 ].map(([title, body], i) => (
                   <li key={title} className="flex gap-3">
-                    <span className="t-pixel text-[11px] text-[var(--brand)] pt-[3px] shrink-0">
+                    <span className="t-mono text-[12px] text-[var(--muted)] pt-[3px] shrink-0">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span className="min-w-0">
@@ -324,10 +328,8 @@ export default function Page() {
       <footer className="border-t pb-24 lg:pb-0" style={{ borderColor: 'var(--line)' }}>
         <div className="wrap py-12 grid gap-9 md:grid-cols-3">
           <div>
-            <div className="t-display text-[19px] tracking-[-0.04em] mb-3">
-              Pebble<span className="text-[var(--brand)]">·</span>chan
-            </div>
-            <p className="t-mono text-[13px] m-0">{CONTACT.entity}</p>
+            <Image src="/brand/logo-horizontal.svg" alt="Pebble Robotics"
+                   width={160} height={17} className="w-[150px] h-auto block mb-4" />
             <a href={`mailto:${CONTACT.email}`}
                className="t-mono text-[13px] mt-1 mb-0 inline-block text-[var(--ink)] underline underline-offset-4">
               {CONTACT.email}

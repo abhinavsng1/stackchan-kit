@@ -130,10 +130,10 @@ export default function Gallery() {
             <>
               <Readout label="Pan M1" ref_={panOut} />
               <Readout label="Tilt M2" ref_={tiltOut} />
-              <span className="t-label">{shown.caption}</span>
+              <span className="text-[13px] leading-[20px] text-[var(--muted)]">{shown.caption}</span>
             </>
           ) : (
-            <span className="t-label">{shown.caption}</span>
+            <span className="text-[13px] leading-[20px] text-[var(--muted)]">{shown.caption}</span>
           )}
         </div>
       </div>

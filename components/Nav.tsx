@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+
 import { useEffect, useState } from 'react'
 import { PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
@@ -33,8 +35,11 @@ export default function Nav() {
       }}
     >
       <div className="wrap flex items-center gap-6 h-16">
-        <a href="#top" className="t-display text-[19px] tracking-[-0.04em] no-underline text-[var(--ink)] shrink-0">
-          Pebble<span className="text-[var(--brand)]">·</span>chan
+        <a href="#top" className="shrink-0 no-underline" aria-label="Pebble Robotics — home">
+          {/* Supplied artwork, never retyped. 140px is the stated minimum
+              width for the horizontal lockup on screen. */}
+          <Image src="/brand/logo-horizontal.svg" alt="Pebble Robotics"
+                 width={160} height={17} priority className="w-[150px] h-auto block" />
         </a>
 
         <nav className="hidden lg:flex items-center gap-7 ml-2">
