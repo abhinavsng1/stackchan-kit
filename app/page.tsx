@@ -1,27 +1,23 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import Gallery from '@/components/Gallery'
 import DemoVideo from '@/components/DemoVideo'
 import Clip from '@/components/Clip'
 import StructuredData from '@/components/StructuredData'
 import Cut from '@/components/Cut'
 import Hero from '@/components/Hero'
+import Playground from '@/components/Playground'
 import BuyBox from '@/components/BuyBox'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
 import BuyBar from '@/components/BuyBar'
 import PartArt from '@/components/PartArt'
-import Capabilities from '@/components/Capabilities'
+import OpenSource from '@/components/OpenSource'
 import { SignalFlow } from '@/components/Diagrams'
 import { TrackedLink, TrackedDetails } from '@/components/Tracked'
 import { EV } from '@/lib/events'
 import {
   PARTS, BUILD_STEPS, SPEC_TABLES, BUILDS, FAQS, PRICE, CONTACT,
 } from '@/lib/kit'
-
-const TONE: Record<string, string> = {
-  brand: 'var(--brand)', mint: 'var(--mint)', amber: 'var(--amber)', violet: 'var(--violet)',
-}
 
 function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
   return (
@@ -45,20 +41,35 @@ function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
   )
 }
 
+/**
+ * A section heading at the size the design system specifies.
+ *
+ * The old helper set every H2 at clamp(26px, 4vw, 38px) — about half the
+ * Display specification — which is most of the reason the page read as timid
+ * whatever else was done to it. Headings that carry the argument are set at
+ * Display size; the lede that follows is Body large, not small print.
+ */
 function Section({
-  id, eyebrow, title, lede, children, tint, center,
+  id, eyebrow, title, lede, children, tint, center, wide,
 }: {
   id?: string; eyebrow: string; title: string; lede?: string
-  children: React.ReactNode; tint?: boolean; center?: boolean
+  children: React.ReactNode; tint?: boolean; center?: boolean; wide?: boolean
 }) {
   return (
-    <section id={id} className="py-12 md:py-20 scroll-mt-20"
+    <section id={id} className="py-14 md:py-28 scroll-mt-20"
              style={tint ? { background: 'var(--surface)' } : undefined}>
-      <div className={center ? 'wrap text-center' : 'wrap'}>
-        <p className="t-label m-0 mb-3">{eyebrow}</p>
-        <h2 className="t-display text-[clamp(26px,4vw,38px)] mt-0 mb-3">{title}</h2>
-        {lede && <p className={`text-[var(--muted)] mt-0 mb-8 max-w-[58ch] ${center ? 'mx-auto' : ''}`}>{lede}</p>}
-        {!lede && <div className="mb-8" />}
+      <div className={`${wide ? 'wrap-wide' : 'wrap'} ${center ? 'text-center' : ''}`}>
+        <p className="t-label m-0 mb-4">{eyebrow}</p>
+        <h2 className="t-display mt-0 mb-5"
+            style={{ fontSize: 'clamp(32px, 5.2vw, 64px)', lineHeight: 1.02 }}>
+          {title}
+        </h2>
+        {lede && (
+          <p className={`text-[17px] leading-[28px] text-[var(--muted)] mt-0 mb-12 max-w-[56ch] ${center ? 'mx-auto' : ''}`}>
+            {lede}
+          </p>
+        )}
+        {!lede && <div className="mb-12" />}
         {children}
       </div>
     </section>
@@ -81,16 +92,24 @@ export default function Page() {
 
         <Nav />
 
-        {/* ================= PRODUCT ================= */}
-        <section className="wrap pt-5 pb-12 md:pt-8 md:pb-16">
-          <nav aria-label="Breadcrumb" className="t-mono text-[11.5px] text-[var(--muted)] mb-5">
-            Pebble Robo <span className="opacity-50">›</span> Kits{' '}
-            <span className="opacity-50">›</span> <span className="text-[var(--ink)]">Pebble-chan</span>
-          </nav>
-
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-14">
-            <Gallery />
-            <BuyBox />
+        {/* ================= PRODUCT =================
+            One large photograph of a real unit, at the scale the guideline
+            asks for, with the order panel beside it. */}
+        <section className="wrap-wide pt-12 pb-16 md:pt-20 md:pb-24">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-16 items-start">
+            <figure className="m-0">
+              <div className="relative overflow-hidden"
+                   style={{ borderRadius: 'var(--radius-tile)', background: 'var(--surface-2)' }}>
+                <Image src="/media/unit.webp" alt="An assembled Pebble-chan on a desk, its display showing a face"
+                       width={1100} height={1100} priority
+                       sizes="(max-width: 1024px) 94vw, 780px"
+                       className="w-full h-auto block" />
+              </div>
+              <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4">
+                An assembled unit. Photographed, not rendered. · SKU PBL-KIT-01
+              </figcaption>
+            </figure>
+            <div className="lg:sticky lg:top-24"><BuyBox /></div>
           </div>
         </section>
 
@@ -111,42 +130,56 @@ export default function Page() {
           </div>
         </div>
 
-        {/* ================= DEMO ================= */}
-        <section id="demo" className="py-12 md:py-16 scroll-mt-20">
-          <div className="wrap">
-            <div className="max-w-[900px] mx-auto">
-              <p className="t-label m-0 mb-3">Demo</p>
-              <h2 className="t-display text-[clamp(24px,3.4vw,34px)] mt-0 mb-6">
-                Forty seconds on what it is.
-              </h2>
-              <DemoVideo />
-            </div>
+        {/* ================= DEMO =================
+            The dark counterweight the guideline calls for: one per page, and
+            this is the right one, because the film is already dark. */}
+        <section id="demo" className="px-3 md:px-4 py-14 md:py-24 scroll-mt-20">
+          <div className="overflow-hidden p-6 sm:p-10 lg:p-14"
+               style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+            <p className="t-label m-0 mb-4" style={{ color: 'rgba(243,241,237,.55)' }}>Demo</p>
+            <h2 className="t-display mt-0 mb-10 max-w-[18ch]"
+                style={{ fontSize: 'clamp(32px,5.2vw,64px)', lineHeight: 1.02, color: 'var(--pebble-white)' }}>
+              Forty seconds on what it is.
+            </h2>
+            <DemoVideo />
           </div>
         </section>
 
         {/* The brand's one graphic gesture. Once per layout — see Cut.tsx. */}
         <Cut className="py-2" />
 
-        {/* ================= WHAT IT DOES ================= */}
-        <Section id="does" eyebrow="What it does" title="Not an ornament. It runs."
-                 lede="Every tile cites the part that provides it, so you can check the claim against the bill of materials.">
-          <Capabilities />
+        {/* ================= PLAY =================
+            This replaced a six-tile grid that claimed these capabilities in
+            150px cards. A claim you can operate beats a claim you can read. */}
+        <Section id="does" eyebrow="What it does"
+                 title="Not an ornament. It runs."
+                 lede="Seven claims, and you can execute every one of them here. The model is built from the print files that ship in the box, its screen is drawn at the panel's real resolution, and the camera and microphone demos use your own — nothing is recorded, nothing is uploaded."
+                 tint wide>
+          <Playground />
         </Section>
+
+        {/* ================= SOFTWARE ================= */}
+        <section className="px-3 md:px-4 py-14 md:py-24">
+          <OpenSource />
+        </section>
 
         {/* ================= IN THE BOX ================= */}
         <Section id="box" eyebrow="In the box" title={`${PARTS.length} parts. Nothing else to buy.`}
                  lede="Including the printed shell and the fasteners. You supply a USB-C cable and a computer."
-                 tint>
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)] lg:gap-8 lg:items-start">
-          <figure className="m-0 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--line)' }}>
+                 wide>
+          <figure className="m-0 overflow-hidden"
+                  style={{ borderRadius: 'var(--radius-tile)', background: 'var(--surface-2)' }}>
             <Image src="/kit-flatlay.webp" alt="Everything in the kit laid out beside its box"
-                   width={1672} height={941} sizes="(max-width: 1024px) 100vw, 620px"
+                   width={1672} height={941} sizes="(max-width: 1200px) 96vw, 1200px"
                    className="w-full h-auto block" />
           </figure>
+          <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4 mb-10">
+            Every part of one kit, as packed · {PARTS.length} parts
+          </figcaption>
 
-          <ul className="grid gap-2 sm:grid-cols-2 list-none p-0 m-0">
+          <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 list-none p-0 m-0">
             {PARTS.map((p) => (
-              <li key={p.desig} className="card p-2.5 flex items-center gap-3">
+              <li key={p.desig} className="card p-3 flex items-center gap-3">
                 <span className="w-[46px] h-[46px] shrink-0 rounded-lg grid place-items-center overflow-hidden"
                       style={{ background: 'var(--flatlay)' }}>
                   <span className="block w-[82%] [&>svg]:w-full [&>svg]:h-auto"><PartArt kind={p.art} /></span>
@@ -161,34 +194,67 @@ export default function Page() {
               </li>
             ))}
           </ul>
-          </div>
         </Section>
 
-        {/* ================= WHAT YOU CAN BUILD ================= */}
+        {/* ================= WHAT YOU CAN BUILD =================
+            Two up rather than three, so the footage is large enough to read.
+            The effort line is mono because it is a fact, and uncoloured
+            because the site has no accent. */}
         <Section id="build-ideas" eyebrow="What you can build"
                  title="It arrives as parts. What it becomes is up to you."
-                 lede="Six things people have actually made with this hardware, with an honest sense of how long each one takes.">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                 lede="Six things people have actually made with this hardware, with an honest sense of how long each one takes."
+                 tint wide>
+          {/* A swipe rail on a phone. Six of these stacked was two and a half
+              screens of scrolling for one section — the reason the capability
+              grid was a rail in the first place. */}
+          <div className="rail rail-2">
             {BUILDS.map((b) => (
-              <article key={b.title} className="card card-lift overflow-hidden flex flex-col">
-                <Clip src={`/media/clips/${b.clip}`} poster={`/media/clips/${b.clip}.webp`}
-                      alt={b.title} className="h-[168px]" />
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="t-display text-[19px] mt-0 mb-2.5">{b.title}</h3>
-                  <p className="text-[14px] text-[var(--muted)] mt-0 mb-5 flex-1">{b.body}</p>
-                  <span className="t-mono text-[11.5px] pt-3.5 border-t"
-                        style={{ borderColor: 'var(--line)', color: TONE[b.tone] }}>
-                    {b.effort}
-                  </span>
+              <article key={b.title} className="m-0">
+                <div className="overflow-hidden"
+                     style={{ borderRadius: 'var(--radius-tile)', background: 'var(--surface-2)' }}>
+                  <Clip src={`/media/clips/${b.clip}`} poster={`/media/clips/${b.clip}.webp`}
+                        alt={b.title} className="h-[190px] md:h-[300px]" />
+                </div>
+                <div className="pt-5">
+                  <div className="flex items-baseline justify-between gap-4 mb-2.5">
+                    <h3 className="t-display text-[22px] sm:text-[26px] m-0">{b.title}</h3>
+                    <span className="t-mono text-[11px] text-[var(--muted)] shrink-0">{b.effort}</span>
+                  </div>
+                  <p className="text-[15px] leading-[24px] text-[var(--muted)] m-0 max-w-[52ch]">{b.body}</p>
                 </div>
               </article>
             ))}
           </div>
         </Section>
 
+        {/* ================= BUILD ================= */}
+        <Section id="build" eyebrow="How you build it" title="Four steps, one evening"
+                 lede="In order, because the order matters." wide>
+          <ol className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 list-none p-0 m-0">
+            {BUILD_STEPS.map((s) => (
+              <li key={s.n} className="flex sm:block gap-4 pt-5 border-t"
+                  style={{ borderColor: 'var(--ink)' }}>
+                <span className="t-mono text-[13px] text-[var(--muted)] shrink-0">
+                  {String(s.n).padStart(2, '0')}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="t-display text-[20px] sm:text-[24px] mt-0 sm:mt-4 mb-2">{s.title}</h3>
+                  <p className="text-[14.5px] leading-[23px] text-[var(--muted)] m-0">{s.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <div className="card p-5 md:p-8 mt-10">
+            <div className="t-label mb-5">How a command reaches a servo</div>
+            <div className="overflow-x-auto"><div className="min-w-[560px]"><SignalFlow /></div></div>
+          </div>
+        </Section>
+
         {/* ================= SPECIFICATIONS ================= */}
         <Section id="specs" eyebrow="Specifications" title="Read the whole datasheet"
-                 lede="Stock M5Stack and Feetech parts, named exactly. Look them up before you buy — we would." tint>
+                 lede="Stock M5Stack and Feetech parts, named exactly. Look them up before you buy — we would."
+                 tint wide>
           <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
             {SPEC_TABLES.map((t) => (
               <div key={t.title} className="card overflow-hidden">
@@ -200,7 +266,7 @@ export default function Page() {
                     <span className="t-mono text-[11px] text-[var(--muted)]">{t.desig}</span>
                     <span className="text-[14px] font-semibold">{t.title}</span>
                     <span className="t-label ml-auto">{t.rows.length} rows</span>
-                    <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[16px] leading-none group-open:rotate-45 transition-transform">+</span>
+                    <span aria-hidden="true" className="t-mono text-[16px] leading-none group-open:rotate-45 transition-transform">+</span>
                   </summary>
                   <div className="overflow-x-auto border-t" style={{ borderColor: 'var(--line)' }}>
                     <SpecGrid table={t} />
@@ -219,32 +285,10 @@ export default function Page() {
           </div>
         </Section>
 
-        {/* ================= BUILD ================= */}
-        <Section id="build" eyebrow="How you build it" title="Four steps, one evening"
-                 lede="In order, because the order matters.">
-          <ol className="grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4 list-none p-0 m-0">
-            {BUILD_STEPS.map((s) => (
-              <li key={s.n} className="card p-4 sm:p-6 flex sm:block gap-4">
-                <span className="t-mono text-[22px] sm:text-[26px] text-[var(--pebble-mist)] leading-none shrink-0">
-                  {String(s.n).padStart(2, '0')}
-                </span>
-                <div className="min-w-0">
-                  <h3 className="t-display text-[17px] sm:text-[19px] mt-0 sm:mt-4 mb-1.5">{s.title}</h3>
-                  <p className="text-[13.5px] text-[var(--muted)] m-0">{s.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-
-          <div className="card p-5 md:p-7 mt-5">
-            <div className="t-label mb-4">How a command reaches a servo</div>
-            <div className="overflow-x-auto"><div className="min-w-[560px]"><SignalFlow /></div></div>
-          </div>
-        </Section>
-
         {/* ================= DOCUMENTS ================= */}
         <Section eyebrow="Learn and documents" title="Everything is someone else's open source"
-                 lede="We sell the parts, printed and matched. The software belongs to the Stack-chan project and always will.">
+                 lede="We sell the parts, printed and matched. The software belongs to the Stack-chan project and always will."
+                 wide>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               ['Stack-chan', 'The project this kit builds. Apache-2.0.', 'https://github.com/meganetaaan/stack-chan'],
@@ -253,9 +297,9 @@ export default function Page() {
             ].map(([title, body, href]) => (
               <TrackedLink key={href} href={href} target="_blank" rel="noreferrer noopener"
                            event={EV.outboundClicked} props={{ to: title }}
-                           className="card card-lift p-5 no-underline text-[var(--ink)] block">
-                <span className="t-display text-[17px] block">{title} ↗</span>
-                <span className="text-[13.5px] text-[var(--muted)] block mt-1.5">{body}</span>
+                           className="card card-lift p-6 no-underline text-[var(--ink)] block">
+                <span className="t-display text-[19px] block">{title} ↗</span>
+                <span className="text-[14px] text-[var(--muted)] block mt-2">{body}</span>
               </TrackedLink>
             ))}
           </div>
@@ -270,7 +314,7 @@ export default function Page() {
                               style={{ borderColor: 'var(--line)' }} open={i === 0}>
                 <summary className="cursor-pointer list-none px-5 py-4 flex items-start gap-4 text-[15px] font-semibold">
                   <span className="flex-1">{f.q}</span>
-                  <span aria-hidden="true" className="t-mono text-[var(--brand)] text-[18px] leading-none mt-0.5 group-open:rotate-45 transition-transform">+</span>
+                  <span aria-hidden="true" className="t-mono text-[18px] leading-none mt-0.5 group-open:rotate-45 transition-transform">+</span>
                 </summary>
                 <p className="px-5 pb-5 pt-0 mt-0 mb-0 text-[14.5px] text-[var(--muted)] max-w-[62ch]">{f.a}</p>
               </TrackedDetails>
@@ -279,12 +323,15 @@ export default function Page() {
         </Section>
 
         {/* ================= RESERVE ================= */}
-        <section id="reserve" className="py-12 md:py-20 scroll-mt-20">
+        <section id="reserve" className="py-14 md:py-28 scroll-mt-20">
           <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)] lg:gap-14">
             <div>
-              <p className="t-label m-0 mb-3">Order</p>
-              <h2 className="t-display text-[clamp(26px,4vw,38px)] mt-0 mb-3">Order from batch 01</h2>
-              <p className="text-[var(--muted)] mt-0 mb-8 max-w-[46ch]">
+              <p className="t-label m-0 mb-4">Order</p>
+              <h2 className="t-display mt-0 mb-5"
+                  style={{ fontSize: 'clamp(32px,5.2vw,64px)', lineHeight: 1.02 }}>
+                Order from batch 01
+              </h2>
+              <p className="text-[17px] leading-[28px] text-[var(--muted)] mt-0 mb-10 max-w-[46ch]">
                 {PRICE.now} per kit, paid now. {PRICE.ship} to the address you give us.
               </p>
               <ReserveForm />
@@ -374,6 +421,11 @@ export default function Page() {
               profession. We use them to ship the kit and to tell you when it is
               on its way. Nothing else, and we do not pass them on. Card details
               go to Razorpay and never reach us.
+            </p>
+            <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
+              The camera and microphone demos on this page run entirely in your
+              browser. Nothing from either is recorded, stored or sent anywhere,
+              and both stop the moment you switch away.
             </p>
             <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
               We record how this page is used — clicks, scrolling and session

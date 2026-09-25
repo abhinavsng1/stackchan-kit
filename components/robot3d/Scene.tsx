@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import type { PanelState } from '@/lib/panel'
+import type { ScreenHit } from '@/components/robot3d/Robot'
 
 const Canvas = dynamic(() => import('@react-three/fiber').then((m) => m.Canvas), { ssr: false })
 const Robot = dynamic(() => import('@/components/robot3d/Robot'), { ssr: false })
@@ -14,13 +16,26 @@ const Lightformer = dynamic(
 
 /** The model, built from the same STLs that print the shell. */
 export default function Scene({
-  active, onAngles,
+  active, onAngles, panel, dragTarget, onHit, onDrag,
 }: {
   /** Rendering stops entirely when this is false. */
   active: boolean
   onAngles?: (pan: number, tilt: number) => void
+  /** Everything the panel is currently showing. Read inside the render loop. */
+  panel: React.RefObject<PanelState>
+  /** When given, the head follows drags inside this element rather than the
+      pointer's position in the window — which is what makes it a toy rather
+      than an ambient effect. */
+  dragTarget?: React.RefObject<HTMLElement | null>
+  /** A pointer landing on the robot's own screen, in panel pixels. */
+  onHit?: (hit: ScreenHit) => void
+  onDrag?: (hit: ScreenHit) => void
 }) {
   const pointer = useRef({ x: 0, y: 0 })
+  // Set by the screen mesh, which receives pointerdown before it bubbles to
+  // the frame. Touching the screen is touching the screen; it should not also
+  // swing the head around.
+  const onGlass = useRef(false)
 
   useEffect(() => {
     if (!active) return
@@ -31,6 +46,56 @@ export default function Scene({
       pointer.current.x = Math.max(-1, Math.min(1, (e.clientX / window.innerWidth) * 2 - 1))
       pointer.current.y = Math.max(-1, Math.min(1, (e.clientY / window.innerHeight) * 2 - 1))
     }
+    const host = dragTarget?.current
+    if (host) {
+      // Inside a frame, position is meaningless — what matters is how far the
+      // visitor has dragged from where they grabbed.
+      let dragging = false
+      let startX = 0, startY = 0, baseX = 0, baseY = 0
+      const down = (e: PointerEvent) => {
+        if (onGlass.current) { onGlass.current = false; return }
+        // The controls sit on the frame, so a press on one arrives here too.
+        // Capturing it would retarget the click to the frame and the button
+        // would never fire — the price of putting the controls where they
+        // belong rather than in a column beside the device.
+        if ((e.target as HTMLElement | null)?.closest('button, a, input, label')) return
+        dragging = true
+        startX = e.clientX; startY = e.clientY
+        baseX = pointer.current.x; baseY = pointer.current.y
+        host.setPointerCapture?.(e.pointerId)
+      }
+      const move = (e: PointerEvent) => {
+        if (!dragging) return
+        const r = host.getBoundingClientRect()
+        pointer.current.x = Math.max(-1, Math.min(1, baseX + (e.clientX - startX) / (r.width * 0.5)))
+        pointer.current.y = Math.max(-1, Math.min(1, baseY + (e.clientY - startY) / (r.height * 0.5)))
+      }
+      const up = (e: PointerEvent) => {
+        dragging = false
+        onGlass.current = false
+        host.releasePointerCapture?.(e.pointerId)
+      }
+      host.addEventListener('pointerdown', down)
+      host.addEventListener('pointermove', move)
+      host.addEventListener('pointerup', up)
+      host.addEventListener('pointercancel', up)
+      const stop = () => {
+        host.removeEventListener('pointerdown', down)
+        host.removeEventListener('pointermove', move)
+        host.removeEventListener('pointerup', up)
+        host.removeEventListener('pointercancel', up)
+      }
+      let raf2 = 0
+      const tick2 = () => {
+        shown.pan += (pointer.current.x * 38 - shown.pan) * 0.085
+        shown.tilt += (pointer.current.y * 18 - shown.tilt) * 0.085
+        onAngles?.(shown.pan, -shown.tilt)
+        raf2 = requestAnimationFrame(tick2)
+      }
+      raf2 = requestAnimationFrame(tick2)
+      return () => { stop(); cancelAnimationFrame(raf2) }
+    }
+
     window.addEventListener('pointermove', onMove, { passive: true })
 
     const tick = () => {
@@ -45,7 +110,7 @@ export default function Scene({
       window.removeEventListener('pointermove', onMove)
       cancelAnimationFrame(frame)
     }
-  }, [active, onAngles])
+  }, [active, onAngles, dragTarget])
 
   return (
     <Canvas
@@ -71,7 +136,12 @@ export default function Scene({
           <Lightformer form="rect" intensity={1.1} position={[0, -50, 30]}
                        scale={[80, 40, 1]} target={[0, 0, 0]} />
         </Environment>
-        <Robot pointer={pointer} />
+        <Robot
+          pointer={pointer}
+          panel={panel}
+          onHit={(h) => { onGlass.current = true; onHit?.(h) }}
+          onDrag={onDrag}
+        />
         <ContactShadows position={[0, -26, 0]} opacity={0.35} scale={190}
                         blur={2.4} far={60} resolution={512} />
       </Suspense>

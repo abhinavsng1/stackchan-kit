@@ -170,6 +170,53 @@ or a stat with no source.
 
 ---
 
+## 7a. Interactive demonstration
+
+The product page has one interactive element — the model in *What it does* —
+and it earns its place only by being real.
+
+**Demonstrate, do not illustrate.** The audience is engineers. A control that
+plays an animation *of* a capability is worth less than a sentence, because a
+sentence at least does not pretend. So:
+
+| Claim | What the page actually does |
+|---|---|
+| It can see | opens the visitor's own camera and draws the frame on the panel |
+| It talks and listens | reads the visitor's own microphone through an AnalyserNode |
+| You can touch it | hit-tests the pointer against the screen mesh and reports the panel pixel |
+| You can program it | runs a real game with real physics, played on the panel |
+
+Where a capability cannot be executed in a browser, it animates and says what
+part provides it. It never pretends to be live.
+
+**Controls live on the device, not beside it.** A column of buttons next to the
+canvas means a phone user scrolls down to press one and back up to see what it
+did, which demonstrates nothing. Controls sit on the frame as a sideways-
+scrolling strip, grouped at the top; readouts sit at the bottom, lifted clear
+of the fixed buy bar. Two consequences worth remembering:
+
+- The frame captures the pointer for head-dragging, so a press on an on-frame
+  control must be excluded or the `click` retargets to the frame and the button
+  never fires.
+- Everything read inside the render loop belongs in a ref. A microphone level
+  in React state re-renders the tree sixty times a second.
+
+**Permissions are asked late and explained.** Nothing requests a camera or
+microphone on load — only when the capability needing it is selected. The page
+states, next to the control, that the stream is read in the browser and never
+recorded or sent, and both streams stop on switching away. A refusal is a
+supported state, not an error.
+
+**One texture, redrawn in place.** Live content cannot be cached per frame, and
+allocating a texture per tick leaks GPU memory until the tab dies. The panel is
+one 320 × 240 canvas — the device's real resolution — redrawn each frame. Face
+expressions stay cached, because there are twelve of them and they do not move.
+
+Everything drawn on the panel uses one clock. Mixing `performance.now()` with
+the render clock silently broke every ripple on this page once.
+
+---
+
 ## 8. Checklist before anything ships
 
 - [ ] No accent colour anywhere; keys are black or white
@@ -180,3 +227,7 @@ or a stat with no source.
 - [ ] Every product image or clip is real footage
 - [ ] Mono used only for facts
 - [ ] Headings sentence case; caps only on eyebrows, tracked +32%
+- [ ] Any interactive demo executes the claim rather than animating it
+- [ ] Its controls sit on the device, reachable without scrolling away
+- [ ] No permission is requested before the capability needing it is chosen
+- [ ] A refusal, reduced motion and Save-Data all leave something honest on screen

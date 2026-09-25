@@ -4,6 +4,10 @@ import { faceSvg, type Face } from '@/lib/faces'
 /**
  * The panel texture is the same SVG the site renders, so the face on the model
  * and the face in the atlas are the same drawing, not two interpretations.
+ *
+ * Only the faces are cached this way. The capability screens are live — a
+ * microphone level or a camera frame changes every tick — so they are drawn
+ * into a single canvas in `lib/panel.ts` instead.
  */
 const cache = new Map<string, THREE.Texture>()
 

@@ -1,14 +1,18 @@
 import { test, expect } from '@playwright/test'
 
-/** The demo lives in the product gallery now, behind its own thumbnail. */
-async function openVideo(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: 'Show Video' }).click()
-  return page.getByTestId('gallery-video')
+/**
+ * The film used to live behind a thumbnail in a product gallery. The gallery
+ * is gone — its contents all appeared elsewhere on the page — so the band in
+ * the demo section is now the only copy, and these tests follow it there.
+ */
+async function reachBand(page: import('@playwright/test').Page) {
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+  return page.getByTestId('demo-video')
 }
 
-test('the gallery copy of the film loops', async ({ page }) => {
+test('the film is served and loops', async ({ page }) => {
   await page.goto('/')
-  const video = await openVideo(page)
+  const video = await reachBand(page)
   await expect(video).toHaveJSProperty('loop', true)
   expect((await page.request.get('/media/demo.mp4')).status()).toBe(200)
 })
@@ -32,21 +36,21 @@ test('the band asks for sound, and still plays when refused', async ({ page }) =
   }
 })
 
-test('downloads nothing until the video is actually chosen', async ({ page }) => {
+test('downloads nothing until the band is reached', async ({ page }) => {
   const media: string[] = []
   page.on('request', (r) => { if (/\/media\/demo\.(mp4|webm)/.test(r.url())) media.push(r.url()) })
 
   await page.goto('/')
   await page.waitForTimeout(1500)
-  expect(media, 'a megabyte should not load for someone who never opens it').toEqual([])
+  expect(media, 'a megabyte should not load for someone who never scrolls to it').toEqual([])
 
-  await openVideo(page)
+  await reachBand(page)
   await expect.poll(() => media.length, { timeout: 15000 }).toBeGreaterThan(0)
 })
 
 test('runs for forty seconds, as the caption claims', async ({ page }) => {
   await page.goto('/')
-  const video = await openVideo(page)
+  const video = await reachBand(page)
   const seconds = await video.evaluate((v: HTMLVideoElement) =>
     new Promise<number>((resolve) => {
       if (v.duration) return resolve(v.duration)
@@ -84,15 +88,11 @@ test.describe('section clips', () => {
       vs.map((v) => (v as HTMLVideoElement).querySelector('source')?.getAttribute('src') ?? ''))
     expect(slugs).toHaveLength(6)
     expect(new Set(slugs).size).toBe(6)
-  })
 
-  test('the capability clips run muted, and only the face tile offers sound', async ({ page }) => {
-    await page.goto('/')
-    await page.locator('#does').scrollIntoViewIfNeeded()
-    const vids = page.locator('#does video')
-    await expect.poll(() => vids.count()).toBe(6)
+    // Clips are decoration. Nothing on this page makes noise without being
+    // asked, and only the demo band is ever asked.
+    const vids = page.locator('#build-ideas video')
     expect(await vids.evaluateAll((vs) => vs.every((v) => (v as HTMLVideoElement).muted))).toBe(true)
-    await expect(page.locator('#does').getByRole('button', { name: /Sound/ })).toHaveCount(1)
   })
 })
 

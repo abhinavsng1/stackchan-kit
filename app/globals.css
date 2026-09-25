@@ -20,6 +20,7 @@
 
   /* ---- brand palette, verbatim from pebble-brand-tokens.css ---- */
   --pebble-black:    #111111;
+  --pebble-ink:      #0b0b0c;
   --pebble-graphite: #2b2b2b;
   --pebble-stone:    #6e6a64;
   --pebble-mist:     #bdb9b2;
@@ -171,6 +172,12 @@ body {
 /* ---------- layout ---------- */
 
 .wrap { max-width: 1200px; margin-inline: auto; padding-inline: 20px; }
+/* Sections whose argument is a picture need the full content column;
+   the narrower .wrap is for running text. See design-system.md §6. */
+/* 20px, not less: .rail bleeds its cards to -20px so they read as swipeable,
+   and a narrower gutter here puts that bleed outside the viewport. */
+.wrap-wide { max-width: 1400px; margin-inline: auto; padding-inline: 20px; }
+@media (min-width: 768px) { .wrap-wide { padding-inline: 32px; } }
 
 /* ---------- surfaces ---------- */
 
@@ -373,8 +380,14 @@ body {
   }
   .rail > * { flex: initial; max-width: none; }
 }
+/* A two-up rail, for sections where the footage is the argument and a third
+   column would shrink it back into the thumbnail it was. */
+@media (min-width: 768px) {
+  .rail-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+}
 @media (min-width: 1024px) {
   .rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rail-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Sticky buy bar — the phone equivalent of the desktop nav CTA. */
@@ -550,3 +563,8 @@ body {
 
 /* The one number that matters, when it is the point. */
 .signal { color: var(--signal); }
+
+/* A control strip that scrolls sideways on a phone should not also draw a
+   scrollbar across the thing it sits on. */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

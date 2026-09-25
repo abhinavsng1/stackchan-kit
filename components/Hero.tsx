@@ -40,6 +40,7 @@ export default function Hero() {
           ref={video}
           data-testid="hero-video"
           className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: 'blur(2.5px) saturate(0.92)', transform: 'scale(1.03)' }}
           poster="/media/build-poster.webp"
           muted
           loop
@@ -57,7 +58,7 @@ export default function Hero() {
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(to top, rgba(10,10,11,.93) 0%, rgba(10,10,11,.72) 36%, rgba(10,10,11,.16) 70%, rgba(10,10,11,.30) 100%)',
+              'linear-gradient(to top, rgba(10,10,11,.94) 0%, rgba(10,10,11,.82) 42%, rgba(10,10,11,.52) 74%, rgba(10,10,11,.58) 100%)',
           }}
         />
 
