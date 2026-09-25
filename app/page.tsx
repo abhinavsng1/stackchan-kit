@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Gallery from '@/components/Gallery'
 import DemoVideo from '@/components/DemoVideo'
 import Clip from '@/components/Clip'
+import StructuredData from '@/components/StructuredData'
 import BuyBox from '@/components/BuyBox'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
@@ -64,6 +65,7 @@ function Section({
 export default function Page() {
   return (
     <>
+      <StructuredData />
       <div className="text-center text-[12.5px] sm:text-[13px] py-2.5 px-4 whitespace-nowrap overflow-hidden"
            style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
         <span className="t-pixel text-[10.5px] mr-2.5 opacity-70">Batch 01</span>
