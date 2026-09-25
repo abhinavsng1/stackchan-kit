@@ -17,6 +17,11 @@ import { EV } from '@/lib/events'
 export default function DemoVideo({ dark }: { dark?: boolean } = {}) {
   const ref = useRef<HTMLVideoElement>(null)
   const [started, setStarted] = useState(false)
+  /**
+   * True once the browser has refused sound. Drives the prompt — without it
+   * the film plays silently and nobody knows there was anything to hear.
+   */
+  const [needsGesture, setNeedsGesture] = useState(false)
   const milestones = useRef(new Set<number>())
 
   useEffect(() => {
@@ -24,11 +29,36 @@ export default function DemoVideo({ dark }: { dark?: boolean } = {}) {
     if (!el) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+    /**
+     * Sound first, silence only if refused.
+     *
+     * Every browser blocks autoplay with audio until a page has earned it —
+     * Chrome through its Media Engagement Index, Safari and Firefox outright.
+     * So we ask for sound, and if play() rejects we mute and go again rather
+     * than leaving the film frozen on its poster, which is what asking once
+     * and giving up would do.
+     *
+     * A visitor who has watched video on this site before is likely to get
+     * sound immediately. Everyone else gets motion plus a way to turn it on.
+     */
+    async function start() {
+      if (!el) return
+      el.muted = false
+      try {
+        await el.play()
+        setNeedsGesture(false)
+      } catch {
+        el.muted = true
+        setNeedsGesture(true)
+        await el.play().catch(() => {})
+      }
+    }
+
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           // Reduced motion means it waits for a deliberate press.
-          if (!reduced) void el.play().catch(() => {})
+          if (!reduced) void start()
         } else if (!el.paused) {
           el.pause()
         }
@@ -38,6 +68,15 @@ export default function DemoVideo({ dark }: { dark?: boolean } = {}) {
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
+
+  /** The gesture the browser was holding out for. */
+  function turnSoundOn() {
+    const el = ref.current
+    if (!el) return
+    el.muted = false
+    setNeedsGesture(false)
+    void el.play().catch(() => {})
+  }
 
   const onPlay = () => {
     if (started) return
@@ -84,8 +123,14 @@ export default function DemoVideo({ dark }: { dark?: boolean } = {}) {
           Your browser cannot play this video.
         </video>
       </div>
-      <figcaption className="t-label mt-3" style={dark ? { color: 'rgba(255,255,255,.55)' } : undefined}>
-        40 seconds · starts muted · unmute with the controls
+      <figcaption className="t-label mt-3 flex flex-wrap items-center gap-3"
+                  style={dark ? { color: 'rgba(255,255,255,.55)' } : undefined}>
+        <span>40 seconds{needsGesture ? ' · your browser muted it' : ' · with sound'}</span>
+        {needsGesture && (
+          <button type="button" onClick={turnSoundOn} className="btn btn-ghost !py-1 !px-3 !text-[11px]">
+            Turn sound on
+          </button>
+        )}
       </figcaption>
     </figure>
   )

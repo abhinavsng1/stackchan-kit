@@ -6,15 +6,30 @@ async function openVideo(page: import('@playwright/test').Page) {
   return page.getByTestId('gallery-video')
 }
 
-test('the film starts muted, and can be unmuted', async ({ page }) => {
+test('the gallery copy of the film loops', async ({ page }) => {
   await page.goto('/')
   const video = await openVideo(page)
-  // The file now carries a soundtrack, so silence is a decision rather than a
-  // property of the asset. Autoplaying audio at someone is how a tab gets
-  // closed; `controls` is what makes turning it on possible.
-  await expect(video).toHaveJSProperty('muted', true)
   await expect(video).toHaveJSProperty('loop', true)
   expect((await page.request.get('/media/demo.mp4')).status()).toBe(200)
+})
+
+test('the band asks for sound, and still plays when refused', async ({ page }) => {
+  // Headless Chromium has no media engagement history, so it refuses audio —
+  // which is exactly the case that must not leave the film frozen.
+  await page.goto('/')
+  await page.locator('#demo').scrollIntoViewIfNeeded()
+  const video = page.getByTestId('demo-video')
+
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => !v.paused),
+                    { timeout: 20_000 }).toBe(true)
+
+  // Refused: muted, and the visitor is told so rather than left wondering.
+  if (await video.evaluate((v: HTMLVideoElement) => v.muted)) {
+    const button = page.locator('#demo').getByRole('button', { name: /sound/i })
+    await expect(button).toBeVisible()
+    await button.click()
+    await expect(video).toHaveJSProperty('muted', false)
+  }
 })
 
 test('downloads nothing until the video is actually chosen', async ({ page }) => {
