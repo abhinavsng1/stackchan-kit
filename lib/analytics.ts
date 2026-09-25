@@ -123,9 +123,72 @@ export function track(event: string, props?: Props) {
   }
 }
 
+/**
+ * A stable, non-reversible id for one buyer.
+ *
+ * Mixpanel counts a browser, not a person: the same buyer on a phone and a
+ * laptop is two users, and clearing site data makes a third. That inflates
+ * every unique count and splits one person's funnel across several.
+ *
+ * The email is the only thing we know that is stable across devices, but the
+ * privacy page states plainly that neither analytics tool is sent an email
+ * address, and that promise is worth more than the convenience. So we send a
+ * SHA-256 of it instead: the same buyer resolves to the same id everywhere,
+ * and the id cannot be turned back into an address.
+ */
+async function personId(email: string): Promise<string> {
+  const normalised = email.trim().toLowerCase()
+  const bytes = new TextEncoder().encode(normalised)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Ties this browser to a buyer, once we know who they are.
+ *
+ * Called when an order is placed. Mixpanel merges the anonymous history that
+ * came before — the pages they read, where they hesitated — into the
+ * identified profile, so the journey stays whole rather than starting at
+ * checkout.
+ *
+ * Safe to call more than once with the same address; identifying to an id
+ * that is already current is a no-op.
+ */
+export async function identifyPerson(email: string): Promise<void> {
+  if (analyticsMode() !== 'live' || !email) return
+  let id: string
+  try {
+    id = await personId(email)
+  } catch {
+    // No SubtleCrypto (an insecure origin). Better to stay anonymous than to
+    // fall back to sending the address itself.
+    return
+  }
+  try {
+    mp?.identify(id)
+    // Profile properties, deliberately free of anything identifying: enough to
+    // count returning buyers, not enough to name one.
+    mp?.people.set_once({ 'First Seen': new Date().toISOString() })
+    mp?.people.set({ 'Last Order At': new Date().toISOString() })
+  } catch { /* analytics must never break a purchase */ }
+}
+
+/** Records that the identified person actually paid. */
+export function recordPurchase(props: { qty: number }): void {
+  if (analyticsMode() !== 'live') return
+  try {
+    mp?.people.set({ 'Last Paid At': new Date().toISOString() })
+    mp?.people.increment({ 'Kits Bought': props.qty, 'Orders Paid': 1 })
+  } catch { /* analytics must never break a purchase */ }
+}
+
 /** Stops collection everywhere. Kept for a future opt-out control. */
 export function stopAnalytics() {
   queue.length = 0
   stopPixel()
   try { mp?.opt_out_tracking() } catch { /* already gone */ }
+  // Forget who this browser was, so a shared machine does not attribute the
+  // next person's visit to the last one.
+  try { mp?.reset() } catch { /* already gone */ }
 }

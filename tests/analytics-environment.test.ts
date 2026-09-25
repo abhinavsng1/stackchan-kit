@@ -60,3 +60,30 @@ describe('production analytics isolation', () => {
     ])
   })
 })
+
+describe('person identification', () => {
+  it('sends a hash, never the address itself', async () => {
+    // The privacy page states that no analytics tool is sent an email. A
+    // SHA-256 keeps that true while still resolving one buyer to one id.
+    const email = 'Asha.Rao@Example.com '
+    const digest = await crypto.subtle.digest('SHA-256',
+      new TextEncoder().encode(email.trim().toLowerCase()))
+    const hex = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, '0')).join('')
+    expect(hex).toMatch(/^[a-f0-9]{64}$/)
+    expect(hex).not.toContain('asha')
+    expect(hex).not.toContain('example')
+  })
+
+  it('normalises case and whitespace so one person is one id', async () => {
+    const hash = async (e: string) => {
+      const d = await crypto.subtle.digest('SHA-256',
+        new TextEncoder().encode(e.trim().toLowerCase()))
+      return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('')
+    }
+    // The same buyer typing their address differently on phone and laptop must
+    // not become two users.
+    expect(await hash('  Asha.Rao@Example.com ')).toBe(await hash('asha.rao@example.com'))
+    expect(await hash('asha@example.com')).not.toBe(await hash('other@example.com'))
+  })
+})

@@ -49,7 +49,11 @@ export default function Privacy() {
       <p>
         Mixpanel also records session replays — a reconstruction of mouse movement and
         scrolling. <strong>Text you type into the form is masked and is not recorded.</strong>{' '}
-        Neither tool is sent your name, email, phone, address, or the amount you paid.
+        Neither tool is sent your name, phone, address, or the amount you paid.
+        Your email address is not sent either — but a{' '}
+        <strong>one-way cryptographic hash</strong> of it is, so that the same buyer on a
+        phone and a laptop is counted as one person rather than two. The hash cannot be
+        turned back into your address.
       </p>
       <p>
         Some of this is shared with Meta so that advertising reaches people likely to want a

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
-import { EV, track } from '@/lib/analytics'
+import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
 import { CONTACT, PRICE } from '@/lib/kit'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 
@@ -118,6 +118,10 @@ export default function ReserveForm() {
       const body = await res.json().catch(() => ({}))
 
       if (res.status === 201) {
+        // Now we know who this browser belongs to. Identifying here rather
+        // than after payment means the anonymous history — what they read,
+        // where they paused — merges into this person even if they never pay.
+        void identifyPerson(local.data.email)
         track(EV.reserveSucceeded)
         token.current = body.token ?? null
         return pay()
@@ -147,6 +151,8 @@ export default function ReserveForm() {
    * Opens checkout for the order just created. Separate from onSubmit so the
    * button can retry after a dismissed modal without creating a second order.
    */
+  const local_qty = () => Number(qtyRef.current?.value ?? 1) || 1
+
   async function pay() {
     if (!token.current) {
       return setState({
@@ -163,6 +169,7 @@ export default function ReserveForm() {
         description: 'Pebble-chan kit — batch 01',
       })
       if (outcome.status === 'paid') {
+        recordPurchase({ qty: local_qty() })
         track(EV.paymentSucceeded)
         return setState({ kind: 'paid', paymentId: outcome.paymentId })
       }
