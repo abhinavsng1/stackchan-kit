@@ -69,7 +69,8 @@ function Panel({
   panel, onHit, onDrag,
 }: {
   panel: React.RefObject<PanelState>
-  onHit?: (hit: ScreenHit) => void
+  /** Returns true when the hit was used, so the glass should keep it. */
+  onHit?: (hit: ScreenHit) => boolean
   onDrag?: (hit: ScreenHit) => void
 }) {
   const mat = useRef<THREE.MeshStandardMaterial>(null)
@@ -158,8 +159,10 @@ function Panel({
         onPointerDown={(e) => {
           const hit = toPanel(e)
           if (!hit) return
-          e.stopPropagation()
-          onHit?.(hit)
+          // Only swallow the press if the current demo does something with
+          // it. Otherwise it belongs to the head, and the face would be a
+          // dead zone you cannot drag from.
+          if (onHit?.(hit)) e.stopPropagation()
         }}
         onPointerMove={(e) => {
           const hit = toPanel(e)
@@ -188,7 +191,7 @@ export default function Robot({
 }: {
   pointer: React.RefObject<{ x: number; y: number }>
   panel: React.RefObject<PanelState>
-  onHit?: (hit: ScreenHit) => void
+  onHit?: (hit: ScreenHit) => boolean
   onDrag?: (hit: ScreenHit) => void
 }) {
   const head = useRef<THREE.Group>(null)

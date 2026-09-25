@@ -42,35 +42,47 @@ function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
 }
 
 /**
- * A section heading at the size the design system specifies.
+ * A section: its heading pinned in a left column, its content beside it.
  *
- * The old helper set every H2 at clamp(26px, 4vw, 38px) — about half the
- * Display specification — which is most of the reason the page read as timid
- * whatever else was done to it. Headings that carry the argument are set at
- * Display size; the lede that follows is Body large, not small print.
+ * Two earlier versions of this helper stacked the heading above the content
+ * in a single narrow column. At 1440 that left the right two thirds of every
+ * section header empty and put roughly 300px of nothing between one section
+ * and the next — a phone layout stretched sideways, which is exactly how it
+ * read. The heading now holds the left column and stays there while the
+ * content scrolls past it, so the width is used and the eye always knows what
+ * it is looking at.
+ *
+ * Below lg it collapses back to a stack, where a sticky heading would only
+ * eat the screen.
  */
 function Section({
-  id, eyebrow, title, lede, children, tint, center, wide,
+  id, eyebrow, title, lede, children, tint, aside,
 }: {
   id?: string; eyebrow: string; title: string; lede?: string
-  children: React.ReactNode; tint?: boolean; center?: boolean; wide?: boolean
+  children: React.ReactNode; tint?: boolean
+  /** Extra facts under the lede — mono, because they are facts. */
+  aside?: React.ReactNode
 }) {
   return (
-    <section id={id} className="py-14 md:py-28 scroll-mt-20"
+    <section id={id} className="py-14 md:py-20 scroll-mt-20"
              style={tint ? { background: 'var(--surface)' } : undefined}>
-      <div className={`${wide ? 'wrap-wide' : 'wrap'} ${center ? 'text-center' : ''}`}>
-        <p className="t-label m-0 mb-4">{eyebrow}</p>
-        <h2 className="t-display mt-0 mb-5"
-            style={{ fontSize: 'clamp(32px, 5.2vw, 64px)', lineHeight: 1.02 }}>
-          {title}
-        </h2>
-        {lede && (
-          <p className={`text-[17px] leading-[28px] text-[var(--muted)] mt-0 mb-12 max-w-[56ch] ${center ? 'mx-auto' : ''}`}>
-            {lede}
-          </p>
-        )}
-        {!lede && <div className="mb-12" />}
-        {children}
+      <div className="wrap-wide grid gap-8 lg:gap-14 lg:grid-cols-[minmax(260px,380px)_minmax(0,1fr)]
+                      items-start">
+        <div className="lg:sticky lg:top-24">
+          <p className="t-label m-0 mb-4">{eyebrow}</p>
+          <h2 className="t-display mt-0 mb-4"
+              style={{ fontSize: 'clamp(30px, 2.9vw, 42px)', lineHeight: 1.06 }}>
+            {title}
+          </h2>
+          {lede && (
+            <p className="text-[15.5px] leading-[25px] text-[var(--muted)] mt-0 mb-0 max-w-[42ch]">
+              {lede}
+            </p>
+          )}
+          {aside && <div className="mt-6">{aside}</div>}
+        </div>
+
+        <div className="min-w-0">{children}</div>
       </div>
     </section>
   )
@@ -95,7 +107,7 @@ export default function Page() {
         {/* ================= PRODUCT =================
             One large photograph of a real unit, at the scale the guideline
             asks for, with the order panel beside it. */}
-        <section className="wrap-wide pt-12 pb-16 md:pt-20 md:pb-24">
+        <section className="wrap-wide pt-10 pb-14 md:pt-14 md:pb-20">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-16 items-start">
             <figure className="m-0">
               <div className="relative overflow-hidden"
@@ -103,7 +115,8 @@ export default function Page() {
                 <Image src="/media/unit.webp" alt="An assembled Pebble-chan on a desk, its display showing a face"
                        width={1100} height={1100} priority
                        sizes="(max-width: 1024px) 94vw, 780px"
-                       className="w-full h-auto block" />
+                       className="w-full h-auto block overflow-hidden"
+                   style={{ borderRadius: 'var(--radius-tile)' }} />
               </div>
               <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4">
                 An assembled unit. Photographed, not rendered. · SKU PBL-KIT-01
@@ -133,7 +146,7 @@ export default function Page() {
         {/* ================= DEMO =================
             The dark counterweight the guideline calls for: one per page, and
             this is the right one, because the film is already dark. */}
-        <section id="demo" className="px-3 md:px-4 py-14 md:py-24 scroll-mt-20">
+        <section id="demo" className="px-3 md:px-4 pt-14 md:pt-20 pb-4 scroll-mt-20">
           <div className="overflow-hidden p-6 sm:p-10 lg:p-14"
                style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
             <p className="t-label m-0 mb-4" style={{ color: 'rgba(243,241,237,.55)' }}>Demo</p>
@@ -146,7 +159,7 @@ export default function Page() {
         </section>
 
         {/* The brand's one graphic gesture. Once per layout — see Cut.tsx. */}
-        <Cut className="py-2" />
+        <Cut className="py-0" />
 
         {/* ================= PLAY =================
             This replaced a six-tile grid that claimed these capabilities in
@@ -154,30 +167,30 @@ export default function Page() {
         <Section id="does" eyebrow="What it does"
                  title="Not an ornament. It runs."
                  lede="Seven claims, and you can execute every one of them here. The model is built from the print files that ship in the box, its screen is drawn at the panel's real resolution, and the camera and microphone demos use your own — nothing is recorded, nothing is uploaded."
-                 tint wide>
+                 tint>
           <Playground />
         </Section>
 
         {/* ================= SOFTWARE ================= */}
-        <section className="px-3 md:px-4 py-14 md:py-24">
+        <section className="px-3 md:px-4 py-14 md:py-20">
           <OpenSource />
         </section>
 
         {/* ================= IN THE BOX ================= */}
         <Section id="box" eyebrow="In the box" title={`${PARTS.length} parts. Nothing else to buy.`}
                  lede="Including the printed shell and the fasteners. You supply a USB-C cable and a computer."
-                 wide>
-          <figure className="m-0 overflow-hidden"
-                  style={{ borderRadius: 'var(--radius-tile)', background: 'var(--surface-2)' }}>
+                >
+          <figure className="m-0">
             <Image src="/kit-flatlay.webp" alt="Everything in the kit laid out beside its box"
                    width={1672} height={941} sizes="(max-width: 1200px) 96vw, 1200px"
-                   className="w-full h-auto block" />
+                   className="w-full h-auto block overflow-hidden"
+                   style={{ borderRadius: 'var(--radius-tile)' }} />
+            <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4">
+              Every part of one kit, as packed · {PARTS.length} parts
+            </figcaption>
           </figure>
-          <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4 mb-10">
-            Every part of one kit, as packed · {PARTS.length} parts
-          </figcaption>
 
-          <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 list-none p-0 m-0">
+          <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 list-none p-0 m-0 mt-8">
             {PARTS.map((p) => (
               <li key={p.desig} className="card p-3 flex items-center gap-3">
                 <span className="w-[46px] h-[46px] shrink-0 rounded-lg grid place-items-center overflow-hidden"
@@ -203,7 +216,7 @@ export default function Page() {
         <Section id="build-ideas" eyebrow="What you can build"
                  title="It arrives as parts. What it becomes is up to you."
                  lede="Six things people have actually made with this hardware, with an honest sense of how long each one takes."
-                 tint wide>
+                 tint>
           {/* A swipe rail on a phone. Six of these stacked was two and a half
               screens of scrolling for one section — the reason the capability
               grid was a rail in the first place. */}
@@ -229,8 +242,8 @@ export default function Page() {
 
         {/* ================= BUILD ================= */}
         <Section id="build" eyebrow="How you build it" title="Four steps, one evening"
-                 lede="In order, because the order matters." wide>
-          <ol className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 list-none p-0 m-0">
+                 lede="In order, because the order matters.">
+          <ol className="grid gap-5 sm:gap-7 sm:grid-cols-2 list-none p-0 m-0">
             {BUILD_STEPS.map((s) => (
               <li key={s.n} className="flex sm:block gap-4 pt-5 border-t"
                   style={{ borderColor: 'var(--ink)' }}>
@@ -245,6 +258,32 @@ export default function Page() {
             ))}
           </ol>
 
+          {/* The assembly footage, which used to be the hero. It never worked
+              there — handheld, dim, shot portrait — but here it is evidence
+              rather than advertising, and being an unretouched phone video of
+              someone actually doing this is exactly the claim. */}
+          <figure className="m-0 mt-10">
+            {/* Shot on a phone held upright, so it is 9:16. Left to fill the
+                content column it rendered twelve hundred pixels tall and ate
+                the section. Cropped to a wide frame instead: the hands and the
+                part being driven are centred, which is all of the information
+                in it. */}
+            <div className="relative overflow-hidden aspect-[16/9]"
+                 style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+            <video
+              className="absolute inset-0 w-full h-full object-cover"
+              poster="/media/build-poster.webp"
+              muted loop playsInline preload="none" controls
+            >
+              <source src="/media/build.webm" type="video/webm" />
+              <source src="/media/build.mp4" type="video/mp4" />
+            </video>
+            </div>
+            <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-3">
+              One kit going together, unedited · 14 seconds
+            </figcaption>
+          </figure>
+
           <div className="card p-5 md:p-8 mt-10">
             <div className="t-label mb-5">How a command reaches a servo</div>
             <div className="overflow-x-auto"><div className="min-w-[560px]"><SignalFlow /></div></div>
@@ -254,7 +293,7 @@ export default function Page() {
         {/* ================= SPECIFICATIONS ================= */}
         <Section id="specs" eyebrow="Specifications" title="Read the whole datasheet"
                  lede="Stock M5Stack and Feetech parts, named exactly. Look them up before you buy — we would."
-                 tint wide>
+                 tint>
           <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
             {SPEC_TABLES.map((t) => (
               <div key={t.title} className="card overflow-hidden">
@@ -288,7 +327,7 @@ export default function Page() {
         {/* ================= DOCUMENTS ================= */}
         <Section eyebrow="Learn and documents" title="Everything is someone else's open source"
                  lede="We sell the parts, printed and matched. The software belongs to the Stack-chan project and always will."
-                 wide>
+                >
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               ['Stack-chan', 'The project this kit builds. Apache-2.0.', 'https://github.com/meganetaaan/stack-chan'],
@@ -306,8 +345,8 @@ export default function Page() {
         </Section>
 
         {/* ================= FAQ ================= */}
-        <Section id="faq" eyebrow="Questions" title="The things people ask first" tint center>
-          <div className="card overflow-hidden max-w-[760px] mx-auto text-left">
+        <Section id="faq" eyebrow="Questions" title="The things people ask first" tint>
+          <div className="card overflow-hidden">
             {FAQS.map((f, i) => (
               <TrackedDetails key={f.q} event={EV.faqOpened} props={{ question: f.q }}
                               className="group border-b last:border-b-0"
@@ -323,7 +362,7 @@ export default function Page() {
         </Section>
 
         {/* ================= RESERVE ================= */}
-        <section id="reserve" className="py-14 md:py-28 scroll-mt-20">
+        <section id="reserve" className="py-14 md:py-20 scroll-mt-20">
           <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)] lg:gap-14">
             <div>
               <p className="t-label m-0 mb-4">Order</p>

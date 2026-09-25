@@ -568,3 +568,19 @@ body {
    scrollbar across the thing it sits on. */
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* The hero clip is landscape; a phone crops it to a tall sliver. Centred, that
+   sliver lands on the monitor behind the desk and the product never appears.
+   Biased down and slightly right, the robot sits in the visible band above the
+   headline panel. */
+.hero-video { object-position: 50% 50%; }
+@media (max-width: 640px) {
+  /* Cropping alone is not enough: the unit is small in a wide frame and the
+     room is dim, so a phone-width sliver shows a dark shape. Pushing in on it
+     makes the product legible at the size it is actually viewed. */
+  .hero-video {
+    object-position: 56% 64%;
+    transform: scale(1.45);
+    transform-origin: 56% 60%;
+  }
+}

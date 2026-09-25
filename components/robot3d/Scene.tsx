@@ -27,8 +27,9 @@ export default function Scene({
       pointer's position in the window — which is what makes it a toy rather
       than an ambient effect. */
   dragTarget?: React.RefObject<HTMLElement | null>
-  /** A pointer landing on the robot's own screen, in panel pixels. */
-  onHit?: (hit: ScreenHit) => void
+  /** A pointer landing on the robot's own screen, in panel pixels. Returns
+      true when the current demo consumed it. */
+  onHit?: (hit: ScreenHit) => boolean
   onDrag?: (hit: ScreenHit) => void
 }) {
   const pointer = useRef({ x: 0, y: 0 })
@@ -139,7 +140,12 @@ export default function Scene({
         <Robot
           pointer={pointer}
           panel={panel}
-          onHit={(h) => { onGlass.current = true; onHit?.(h) }}
+          onHit={(h) => {
+            const used = onHit?.(h) ?? false
+            // Only block the head drag when the screen actually took the press.
+            if (used) onGlass.current = true
+            return used
+          }}
           onDrag={onDrag}
         />
         <ContactShadows position={[0, -26, 0]} opacity={0.35} scale={190}

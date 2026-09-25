@@ -88,6 +88,25 @@ test('the camera and microphone demos say what happens to the stream', async ({ 
   await expect(play(page).getByText(/Nothing is recorded or sent/)).toBeVisible()
 })
 
+test('touching the model does not throw you out of the demo you chose', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  const canvas = play(page).locator('canvas')
+  await expect(canvas).toHaveCount(1, { timeout: 40000 })
+
+  await play(page).getByRole('button', { name: /It talks and listens/ }).click()
+  await expect(play(page).getByText('audio.listen()')).toBeVisible()
+
+  // A press on the glass used to switch to the touch demo from wherever you
+  // were, so you could not touch the model while watching anything else.
+  const box = await canvas.boundingBox()
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height * 0.42)
+  await page.waitForTimeout(600)
+  await expect(play(page).getByText('audio.listen()')).toBeVisible()
+  await expect(play(page).getByText('screen.onTouch(fn)')).toHaveCount(0)
+})
+
 test('the servo readout is in the degrees the real servos report', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/')

@@ -228,18 +228,28 @@ export default function Playground() {
     return () => cancelAnimationFrame(raf)
   }, [active.mode])
 
-  /** A pointer landing on the robot's own glass, in panel pixels. */
+  /**
+   * A pointer landing on the robot's own glass, in panel pixels. True means
+   * the demo used it, and the press should not also swing the head.
+   */
   const onHit = useCallback((h: { x: number; y: number }) => {
     const s = panel.current
     if (s.mode === 'game') {
       if (s.game?.over) { s.game = newGame(); setScore(0) }
       else if (s.game) s.game.paddle = Math.max(34, Math.min(W - 34, h.x))
-      return
+      return true
     }
-    // Any other mode: a tap is a tap, so show it and say where it landed.
-    if (s.mode !== 'touch') pick(DEMOS.find((d) => d.id === 'touch')!)
-    s.ripples = [...panel.current.ripples, { ...h, born: performance.now() }].slice(-6)
-  }, [pick])
+    if (s.mode === 'touch') {
+      s.ripples = [...s.ripples, { ...h, born: performance.now() }].slice(-6)
+      return true
+    }
+    // Any other mode: nothing. A tap used to switch to the touch demo from
+    // wherever you were, which meant you could not touch the model while
+    // watching the camera or the audio meter without being thrown out of it.
+    // Choosing a capability is the visitor's decision, not the model's. The
+    // press falls through to the head instead, so the face is still draggable.
+    return false
+  }, [])
 
   const onDrag = useCallback((h: { x: number; y: number }) => {
     const g = panel.current.game
