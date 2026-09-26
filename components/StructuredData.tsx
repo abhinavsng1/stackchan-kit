@@ -1,4 +1,4 @@
-import { CONTACT, FAQS, PRICE, SPEC_TABLES } from '@/lib/kit'
+import { CONTACT, FAQS, PRICE, SPEC_TABLES, CAMPAIGN } from '@/lib/kit'
 
 /**
  * Structured data for search engines and for the models that increasingly
@@ -17,7 +17,7 @@ import { CONTACT, FAQS, PRICE, SPEC_TABLES } from '@/lib/kit'
 
 const SITE = 'https://pebblerobo.com'
 
-/** '₹8,999' → '8999'. Schema.org wants a bare number. */
+/** '₹4,999' → '4999'. Schema.org wants a bare number. */
 const priceNumber = (display: string) => display.replace(/[^\d]/g, '')
 
 export default function StructuredData() {
@@ -65,6 +65,9 @@ export default function StructuredData() {
         url: SITE,
         price: priceNumber(PRICE.now),
         priceCurrency: 'INR',
+        /* A limited offer has to declare when it stops being true, or Google
+           keeps showing the campaign price after it has gone. */
+        priceValidUntil: CAMPAIGN.endsAt.slice(0, 10),
         availability: 'https://schema.org/InStock',
         itemCondition: 'https://schema.org/NewCondition',
         seller: { '@id': `${SITE}/#org` },

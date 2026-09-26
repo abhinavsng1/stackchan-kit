@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PRICE, PARTS } from '@/lib/kit'
+import { PRICE, PARTS, SKU } from '@/lib/kit'
 import { track } from '@/lib/analytics'
 import { EV } from '@/lib/events'
 
@@ -33,7 +33,7 @@ export default function BuyBox() {
         Pebble-chan build kit
       </h1>
       <p className="t-mono text-[12px] text-[var(--muted)] mt-2 mb-0">
-        SKU PBL-KIT-01 · {PARTS.length} parts
+        SKU {SKU} · {PARTS.length} parts
       </p>
 
       <div className="flex items-end gap-3 flex-wrap mt-6">
@@ -67,7 +67,7 @@ export default function BuyBox() {
       <dl className="mt-7 m-0 grid gap-0 border-t" style={{ borderColor: 'var(--line)' }}>
         {[
           ['Dispatch', '1–2 weeks'],
-          ['Due today', '₹0'],
+          ['Due today', PRICE.now],
           ['Assembly', 'You build it'],
           ['Shell', 'Printed, included'],
           ['Licence', 'Apache-2.0'],

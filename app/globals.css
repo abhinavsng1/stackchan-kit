@@ -1,33 +1,79 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Bright, dimensional product launch.
-   Light ground, saturated accents, real depth.
+   Pebble Robotics — brand v1.0, September 2026.
+
+   Monochrome and warm. There is no accent colour: the guidelines are
+   explicit that contrast, space and the cut do the work, so every blue,
+   mint, amber and violet in the previous palette resolves to black, stone
+   or sand. Balance is roughly 60 paper/white, 30 black, 10 greys.
+
+   Two exceptions, both function rather than brand: --danger and --positive.
+   A form that cannot show you which field failed is broken, and no palette
+   discipline is worth that. Both are desaturated to sit inside the system.
    ============================================================ */
 
 :root {
-  /* The site is light only. Declaring it stops the browser rendering native
-     controls, scrollbars and form fields in a dark palette. */
+  /* Dark by default now, so native controls, scrollbars and form fields
+     should render dark too. */
   color-scheme: light;
 
-  --bg:        #f7f8fa;
-  --surface:   #ffffff;
-  --surface-2: #eff2f6;
-  --ink:       #0b0f14;
-  --muted:     #5a6672;
-  --line:      #e2e7ec;
-  --brand:     #2f6bff;
-  --brand-dk:  #1b4fd8;
-  --mint:      #00c08b;
-  --amber:     #ff9f1a;
-  --violet:    #6e56f8;
-  --screen:    #05080b;
-  --glow:      #5bf0d4;
-  --danger:    #d13b2e;
-  --flatlay:   #efedE9;
-  --sh-sm: 0 1px 2px rgba(11,15,20,.06), 0 2px 8px rgba(11,15,20,.05);
-  --sh-md: 0 2px 6px rgba(11,15,20,.07), 0 12px 28px rgba(11,15,20,.09);
-  --sh-lg: 0 8px 20px rgba(11,15,20,.10), 0 30px 60px rgba(11,15,20,.14);
+  /* ---- brand palette, verbatim from pebble-brand-tokens.css ---- */
+  --pebble-black:    #111111;
+  --pebble-ink:      #0b0b0c;
+  --pebble-graphite: #2b2b2b;
+  --pebble-stone:    #6e6a64;
+  --pebble-mist:     #bdb9b2;
+  --pebble-sand:     #e6e3dd;
+  --pebble-paper:    #f3f1ed;
+  --pebble-white:    #ffffff;
+
+  /* ---- roles: see docs/design-system.md ----
+   Paper is the ground. A dark-default site was the wrong instinct: the
+   reference for "aesthetic and futuristic" here is image-led and airy, not
+   technical and unlit. Contrast comes from full-bleed photography and type
+   at full scale, not from turning the lights off. */
+  --bg:        var(--pebble-paper);
+  --surface:   var(--pebble-white);
+  --surface-2: var(--pebble-sand);
+  --ink:       var(--pebble-black);
+  --muted:     var(--pebble-stone);
+  --line:      var(--pebble-sand);
+  --well:      var(--pebble-black);
+
+  /* Dark sections, used sparingly as counterweight. */
+  --dark:       var(--pebble-black);
+  --dark-ink:   var(--pebble-white);
+  --dark-muted: var(--pebble-mist);
+  --dark-line:  #2a2a2d;
+
+  /* One accent, on the primary action only. Sampled from the launch film. */
+  --signal:    #ff8836;
+  --signal-dk: #e5701f;
+
+  --brand:     var(--pebble-black);
+  --brand-dk:  var(--pebble-graphite);
+  --mint:      var(--pebble-stone);
+  --amber:     var(--pebble-graphite);
+  --violet:    var(--pebble-stone);
+  --glow:      var(--pebble-mist);
+  --screen:    var(--pebble-black);
+  --flatlay:   var(--pebble-sand);
+
+  --danger:    #c4483a;
+  --positive:  #5e9e77;
+
+  --radius-input:  8px;
+  --radius-button: 12px;
+  --radius-card:   16px;
+  --radius-tile:   28px;
+
+  /* Warm-biased shadows. A neutral grey shadow reads blue on paper. */
+  /* Shadows barely register on black; separation comes from a hairline and
+     a lighter surface instead. Kept for the light sections. */
+  --sh-sm: 0 1px 2px rgba(17,17,17,.05), 0 2px 8px rgba(17,17,17,.04);
+  --sh-md: 0 2px 6px rgba(17,17,17,.06), 0 12px 28px rgba(17,17,17,.07);
+  --sh-lg: 0 8px 20px rgba(17,17,17,.08), 0 30px 60px rgba(17,17,17,.11);
 }
 
 @theme inline {
@@ -44,11 +90,16 @@
   --color-screen:    var(--screen);
   --color-glow:      var(--glow);
   --color-danger:    var(--danger);
+  --color-positive:  var(--positive);
   --color-flatlay:   var(--flatlay);
-  --font-display:    var(--font-archivo), system-ui, sans-serif;
-  --font-body:       var(--font-plex-sans), system-ui, sans-serif;
-  --font-mono:       var(--font-plex-mono), ui-monospace, monospace;
-  --font-pixel:      var(--font-silkscreen), ui-monospace, monospace;
+  /* Outfit for everything; JetBrains Mono for specs, data and product labels
+     only. --font-pixel is retained as an alias so the remaining .t-pixel call
+     sites keep working while they are migrated — it is no longer a pixel
+     face, and the brand has no equivalent. */
+  --font-display:    var(--font-outfit), system-ui, sans-serif;
+  --font-body:       var(--font-outfit), system-ui, sans-serif;
+  --font-mono:       var(--font-jetbrains), ui-monospace, monospace;
+  --font-pixel:      var(--font-jetbrains), ui-monospace, monospace;
 }
 
 /* ---------- base ---------- */
@@ -76,32 +127,44 @@ body {
 
 :focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
 
-/* ---------- type ---------- */
+/* ---------- type ----------
+   The scale is the brand's, not invented here. Headings are sentence case
+   and Medium; caps appear only on eyebrows and labels, always tracked +32%,
+   which is the rhythm of the horizontal logo. */
 
 .t-display {
   font-family: var(--font-display), sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 0.95;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
   text-wrap: balance;
 }
 
+/**
+ * Was Silkscreen, a pixel face with no place in this brand. Kept as a class
+ * so the call sites migrate one at a time, but it now renders as the eyebrow
+ * the guidelines specify.
+ */
 .t-pixel {
-  font-family: var(--font-pixel), monospace;
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
 }
 
+/** Specs, data, code, product labels. Never body copy. */
 .t-mono {
   font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
 }
 
+/** Eyebrow: 12/16, Medium, caps, +32%. */
 .t-label {
-  font-family: var(--font-pixel), monospace;
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-display), sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -109,13 +172,19 @@ body {
 /* ---------- layout ---------- */
 
 .wrap { max-width: 1200px; margin-inline: auto; padding-inline: 20px; }
+/* Sections whose argument is a picture need the full content column;
+   the narrower .wrap is for running text. See design-system.md §6. */
+/* 20px, not less: .rail bleeds its cards to -20px so they read as swipeable,
+   and a narrower gutter here puts that bleed outside the viewport. */
+.wrap-wide { max-width: 1400px; margin-inline: auto; padding-inline: 20px; }
+@media (min-width: 768px) { .wrap-wide { padding-inline: 32px; } }
 
 /* ---------- surfaces ---------- */
 
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   box-shadow: var(--sh-sm);
 }
 
@@ -128,7 +197,7 @@ body {
 .float {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-button);
   box-shadow: var(--sh-md);
   padding: 11px 14px;
 }
@@ -136,9 +205,10 @@ body {
 /* ---------- badges ---------- */
 
 .badge {
-  font-family: var(--font-pixel), monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  font-family: var(--font-display), sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
   display: inline-flex;
   align-items: center;
@@ -151,17 +221,21 @@ body {
   white-space: nowrap;
 }
 
-.badge-brand { border-color: color-mix(in srgb, var(--brand) 35%, transparent); color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, var(--surface)); }
+.badge-brand { border-color: var(--ink); color: var(--ink); background: var(--surface); }
 
-.dot { width: 7px; height: 7px; border-radius: 999px; background: var(--mint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 22%, transparent); flex: none; }
+/* Was a mint pip with a glow. Now a plain black dot: the only thing it ever
+   needed to say is "this is live", and shape says it without colour. */
+.dot { width: 6px; height: 6px; border-radius: 999px; background: var(--ink); flex: none; }
 
 /* ---------- buttons ---------- */
 
 .btn {
   font-family: var(--font-body), sans-serif;
   font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  /* Secondary: a light key on a dark ground. --ink is white here, so the
+     text has to be the ground colour, not white again. */
   background: var(--ink);
   color: var(--bg);
   border: 1px solid var(--ink);
@@ -179,7 +253,19 @@ body {
 .btn:active:not(:disabled) { transform: translateY(0); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
-.btn-brand { background: var(--brand); border-color: var(--brand); color: #fff; }
+/* The primary action — one per screen, and the largest permitted use of the
+   signal colour. Black text on it, because #FF8836 is too light to carry
+   white legibly. */
+.btn-brand {
+  background: var(--pebble-black);
+  border-color: var(--pebble-black);
+  color: var(--pebble-white);
+  border-radius: 999px;
+}
+.btn-brand:hover:not(:disabled) { background: var(--pebble-graphite); border-color: var(--pebble-graphite); }
+
+/* On a dark section the secondary key inverts. */
+.on-dark .btn { background: var(--dark-ink); color: var(--dark); border-color: var(--dark-ink); }
 
 .btn-ghost {
   background: transparent; color: var(--ink); border-color: var(--line); box-shadow: none;
@@ -194,15 +280,15 @@ body {
   font-size: 15px;
   color: var(--ink);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--pebble-mist);
+  border-radius: var(--radius-input);
   padding: 12px 14px;
   transition: border-color 140ms, box-shadow 140ms;
 }
 .field:focus {
   outline: none;
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 12%, transparent);
 }
 .field::placeholder { color: var(--muted); }
 .field[aria-invalid="true"] { border-color: var(--danger); }
@@ -211,7 +297,7 @@ body {
 
 .spec-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .spec-table th, .spec-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.spec-table th { font-family: var(--font-pixel), monospace; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; white-space: nowrap; width: 36%; }
+.spec-table th { font-family: var(--font-display), sans-serif; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; white-space: nowrap; width: 36%; }
 .spec-table td { font-family: var(--font-mono), monospace; font-size: 13px; }
 .spec-table tr:last-child th, .spec-table tr:last-child td { border-bottom: 0; }
 
@@ -294,8 +380,14 @@ body {
   }
   .rail > * { flex: initial; max-width: none; }
 }
+/* A two-up rail, for sections where the footage is the argument and a third
+   column would shrink it back into the thumbnail it was. */
+@media (min-width: 768px) {
+  .rail-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+}
 @media (min-width: 1024px) {
   .rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rail-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Sticky buy bar — the phone equivalent of the desktop nav CTA. */
@@ -426,3 +518,69 @@ body {
 }
 .legal .keyfact p { margin: 0; color: var(--ink); font-size: 15px; }
 .legal .keyfact p + p { margin-top: 8px; }
+
+
+/* ---------- dark section ----------
+   Paper is the ground; a dark section is the counterweight. Swapping the role
+   tokens means every component inside keeps working without knowing which
+   ground it sits on. See docs/design-system.md §6. */
+.on-dark {
+  --bg:        var(--dark);
+  --surface:   #17171a;
+  --surface-2: var(--pebble-graphite);
+  --ink:       var(--dark-ink);
+  --muted:     var(--dark-muted);
+  --line:      var(--dark-line);
+  --well:      #0b0b0c;
+  background: var(--dark);
+  color: var(--dark-ink);
+}
+
+/* ---------- annotation layer ----------
+   From the launch film: hairlines, corner ticks, and small mono labels that
+   name what they point at. Type and 1px lines, never illustration. */
+.anno {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pebble-stone);
+}
+
+/* Two corners, never four — four reads as a frame, two reads as a registration
+   mark, which is the reference. */
+.ticked { position: relative; }
+.ticked::before,
+.ticked::after {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  border: 1px solid var(--signal);
+  pointer-events: none;
+}
+.ticked::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.ticked::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+/* The one number that matters, when it is the point. */
+.signal { color: var(--signal); }
+
+/* A control strip that scrolls sideways on a phone should not also draw a
+   scrollbar across the thing it sits on. */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* The hero clip is landscape; a phone crops it to a tall sliver. Centred, that
+   sliver lands on the monitor behind the desk and the product never appears.
+   Biased down and slightly right, the robot sits in the visible band above the
+   headline panel. */
+.hero-video { object-position: 50% 50%; }
+@media (max-width: 640px) {
+  /* Cropping alone is not enough: the unit is small in a wide frame and the
+     room is dim, so a phone-width sliver shows a dark shape. Pushing in on it
+     makes the product legible at the size it is actually viewed. */
+  .hero-video {
+    object-position: 56% 64%;
+    transform: scale(1.45);
+    transform-origin: 56% 60%;
+  }
+}

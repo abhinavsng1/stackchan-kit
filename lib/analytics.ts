@@ -12,7 +12,9 @@
 
 import type { OverridedMixpanel } from 'mixpanel-browser'
 
-type Props = Record<string, string | number | boolean | null | undefined>
+/* `string[]` is here for Meta's `content_ids`, which is an array by
+   specification. Mixpanel accepts arrays too. */
+type Props = Record<string, string | number | boolean | string[] | null | undefined>
 
 let mp: OverridedMixpanel | null = null
 let loading: Promise<void> | null = null
@@ -21,6 +23,7 @@ const queue: Array<[string, Props | undefined]> = []
 export { EV } from '@/lib/events'
 
 import { EV as EVENTS } from '@/lib/events'
+import { PRICE, SKU } from '@/lib/kit'
 import { initPixel, pixelStandard, pixelCustom, stopPixel, pixelConfigured } from '@/lib/pixel'
 import { analyticsMode } from '@/lib/analytics-environment'
 
@@ -38,6 +41,30 @@ const META_STANDARD: Record<string, string> = {
   // outcome.
   [EVENTS.paymentSucceeded]: 'Purchase',
   [EVENTS.sectionViewed]: 'ViewContent',
+}
+
+/**
+ * Money, for the events that represent it.
+ *
+ * Meta cannot report return on ad spend, or optimise delivery towards higher
+ * value orders, from an event with no `value` and `currency`. Purchase was
+ * firing without either, so every sale counted as a conversion of unknown
+ * worth — which is the same as telling the campaign that a one-kit order and
+ * a three-kit order are identical.
+ *
+ * The figure comes from the same constant the server charges, so a price
+ * change cannot leave the ad account reporting the old one. `props.qty`
+ * multiplies it where the caller knows the quantity.
+ */
+function metaValue(standard: string, props?: Props): Props {
+  if (standard !== 'Purchase' && standard !== 'InitiateCheckout' && standard !== 'Lead') return {}
+  const qty = typeof props?.qty === 'number' && props.qty > 0 ? props.qty : 1
+  return {
+    value: (PRICE.nowPaise / 100) * qty,
+    currency: 'INR',
+    content_type: 'product',
+    content_ids: [SKU],
+  }
 }
 
 /* -------------------------------- loading ------------------------------- */
@@ -105,7 +132,7 @@ export function track(event: string, props?: Props) {
   if (mode === 'off') return
   // Meta, mapped to a standard event where one fits.
   const standard = META_STANDARD[event]
-  if (standard) pixelStandard(standard, { content_name: event, ...props })
+  if (standard) pixelStandard(standard, { content_name: event, ...metaValue(standard, props), ...props })
   else pixelCustom(event.replace(/\s+/g, ''), props)
 
   // The existing campaign optimizes for CompleteRegistration. Keep Lead for

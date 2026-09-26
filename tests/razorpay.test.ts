@@ -150,7 +150,7 @@ describe('webhook signature', () => {
   it('rejects a tampered body', async () => {
     process.env.RAZORPAY_WEBHOOK_SECRET = 'whsec_test'
     const { verifyWebhookSignature } = await import('@/lib/razorpay')
-    const sig = crypto.createHmac('sha256', 'whsec_test').update('{"amount":899900}').digest('hex')
+    const sig = crypto.createHmac('sha256', 'whsec_test').update('{"amount":499900}').digest('hex')
     expect(verifyWebhookSignature('{"amount":100}', sig)).toBe(false)
   })
 

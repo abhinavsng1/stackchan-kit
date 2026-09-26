@@ -17,14 +17,13 @@ import { useEffect, useRef, useState } from 'react'
  *    so there is no control to offer and nothing lost by holding still.
  */
 export default function Clip({
-  src, poster, alt, className = '', sound = false,
+  src, poster, alt, className = '',
 }: {
   /** Base path with no extension — both .webm and .mp4 are served from it. */
-  src: string; poster: string; alt: string; className?: string; sound?: boolean
+  src: string; poster: string; alt: string; className?: string
 }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [near, setNear] = useState(false)
-  const [muted, setMuted] = useState(true)
 
   useEffect(() => {
     const el = ref.current
@@ -58,7 +57,7 @@ export default function Clip({
         className="w-full h-full object-cover block"
         poster={poster}
         preload="none"
-        muted={muted}
+        muted
         loop
         playsInline
         aria-label={alt}
@@ -70,24 +69,6 @@ export default function Clip({
           </>
         )}
       </video>
-      {sound && (
-        <button
-          type="button"
-          onClick={() => {
-            const el = ref.current
-            if (!el) return
-            const next = !muted
-            setMuted(next)
-            el.muted = next
-            if (!next) void el.play().catch(() => {})
-          }}
-          className="absolute bottom-2.5 right-2.5 t-mono text-[10.5px] px-2 py-1 rounded-md border-0 cursor-pointer"
-          style={{ background: 'rgba(5,8,11,.62)', color: '#fff', backdropFilter: 'blur(6px)' }}
-          aria-pressed={!muted}
-        >
-          {muted ? 'Sound off' : 'Sound on'}
-        </button>
-      )}
     </div>
   )
 }

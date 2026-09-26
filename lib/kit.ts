@@ -249,14 +249,22 @@ export const FAQS: Faq[] = [
   { q: 'What do I need that is not in the box?',
     a: 'A USB-C cable and a computer to flash it. Nothing else.' },
   { q: 'When does it ship and when do I pay?',
-    a: 'Kits dispatch within 1–2 weeks of your order being confirmed. Reserving costs nothing — you pay when we confirm your batch.' },
+    a: 'You pay when you order, on this page — card, UPI, netbanking or EMI. Kits dispatch within 1–2 weeks of the batch closing.' },
 ]
 
 /* ---------------------------------------------------------------- */
 
+/**
+ * The catalogue id. One constant, because it has to match in three places
+ * that are read by different systems: the page, the Meta pixel's
+ * `content_ids`, and a Merchant Center feed. A mismatch there does not error,
+ * it just silently reports nothing.
+ */
+export const SKU = 'PBL-KIT-01'
+
 export const PRICE = {
   mrp: '₹13,999',
-  now: '₹8,999',
+  now: '₹4,999',
   /**
    * The same price as `now`, in paise, for the payment gateway.
    *
@@ -264,10 +272,56 @@ export const PRICE = {
    * derived from the display string, and the client is never allowed to send
    * an amount — see lib/razorpay.ts. A unit test asserts the two stay in step.
    */
-  nowPaise: 899_900,
-  save: 'Save ₹5,000',
+  nowPaise: 499_900,
+  save: 'Save ₹9,000',
   ship: 'Ships in 1–2 weeks',
 } as const
+
+/**
+ * The early bird campaign.
+ *
+ * `endsAt` is an absolute instant, not a duration. A countdown computed as
+ * "seven days from whenever you arrived" restarts for every visitor and for
+ * the same visitor twice, which makes the scarcity claim untrue — and this is
+ * a page whose whole argument is that its claims can be checked. One deadline,
+ * the same for everyone, stated in full.
+ *
+ * When it passes the page must still be correct, so nothing anywhere reads
+ * "7 days" as a constant; everything derives from this.
+ */
+export const CAMPAIGN = {
+  name: 'Early bird',
+  /**
+   * 2026-10-02, 23:59:59 IST — the end of the seventh day, counting the
+   * launch day (26 September) as day one. "7 days only" then means exactly
+   * seven days rather than approximately seven.
+   */
+  endsAt: '2026-10-02T23:59:59+05:30',
+  /** Shown while the campaign is live. */
+  line: 'Early bird pricing — 7 days only',
+  /** Shown once it has closed, so the page never advertises a dead offer. */
+  closedLine: 'Early bird pricing has closed',
+} as const
+
+export type CampaignLeft = { days: number; hours: number; minutes: number; seconds: number }
+
+/** Milliseconds until the campaign closes; 0 once it has. Pure, so it is tested. */
+export function campaignMsLeft(now: Date = new Date()): number {
+  return Math.max(0, new Date(CAMPAIGN.endsAt).getTime() - now.getTime())
+}
+
+export function campaignActive(now: Date = new Date()): boolean {
+  return campaignMsLeft(now) > 0
+}
+
+/** The remaining time, split for display. */
+export function campaignLeft(now: Date = new Date()): CampaignLeft {
+  let ms = campaignMsLeft(now)
+  const days = Math.floor(ms / 86_400_000); ms -= days * 86_400_000
+  const hours = Math.floor(ms / 3_600_000); ms -= hours * 3_600_000
+  const minutes = Math.floor(ms / 60_000); ms -= minutes * 60_000
+  return { days, hours, minutes, seconds: Math.floor(ms / 1000) }
+}
 
 export const CONTACT = {
   email: 'support@pebblerobo.com',

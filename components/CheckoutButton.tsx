@@ -69,7 +69,7 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
   if (state.phase === 'paid') {
     return (
       <div className="card p-5" role="status">
-        <p className="t-label m-0 mb-2" style={{ color: 'var(--mint)' }}>Paid</p>
+        <p className="t-label m-0 mb-2" style={{ color: 'var(--positive)' }}>Paid</p>
         <p className="m-0 text-[15px]">
           Thank you \u2014 your kit is confirmed. A receipt is on its way to your email.
         </p>

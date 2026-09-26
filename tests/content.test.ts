@@ -42,7 +42,7 @@ describe('nothing placeholder ships', () => {
   })
 
   it('states one price, consistently', () => {
-    expect(PRICE.now).toBe('₹8,999')
+    expect(PRICE.now).toBe('₹4,999')
     expect(PRICE.mrp).toBe('₹13,999')
   })
 

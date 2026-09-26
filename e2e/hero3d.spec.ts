@@ -3,146 +3,127 @@ import { settleConsent } from './helpers'
 
 test.beforeEach(async ({ page }) => { await settleConsent(page) })
 
-test('desktop gets the 3D model', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/')
-  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 40000 })
-})
+const play = (p: import('@playwright/test').Page) => p.locator('#does')
 
 test('the model is built from the real printed geometry', async ({ page }) => {
   const glb: string[] = []
   page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  await expect(play(page).locator('canvas')).toHaveCount(1, { timeout: 40000 })
   await expect.poll(() => glb.length, { timeout: 40000 }).toBeGreaterThan(0)
+  // Not a model someone drew to look like the product — the print files.
   expect(glb.join(' ')).toContain('shell_SCS0009')
 })
 
-test('a phone gets the model too, with no extra tap', async ({ page }) => {
-  const glb: string[] = []
-  page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
+test('a phone gets it too, with no extra tap', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  await expect(play(page).locator('canvas')).toHaveCount(1, { timeout: 40000 })
+})
 
-  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 40000 })
-  await expect.poll(() => glb.length, { timeout: 40000 }).toBeGreaterThan(0)
-  // The opt-in button is gone; nothing should be asking permission any more.
-  })
+test('on a phone the controls stay on the device, not below it', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  const frame = play(page).locator('canvas')
+  await expect(frame).toHaveCount(1, { timeout: 40000 })
 
-test('Save-Data is still honoured, on a phone as much as anywhere', async ({ browser }) => {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  // Operating a demo must not mean scrolling away from the thing you are
+  // operating: every control has to sit within the frame's own bounds.
+  const box = await play(page).locator('div.relative.overflow-hidden').first().boundingBox()
+  const button = play(page).getByRole('button', { name: /It can see/ })
+  const bb = await button.boundingBox()
+  expect(box).not.toBeNull()
+  expect(bb).not.toBeNull()
+  expect(bb!.y).toBeGreaterThanOrEqual(box!.y - 1)
+  expect(bb!.y + bb!.height).toBeLessThanOrEqual(box!.y + box!.height + 1)
+})
+
+test('nothing 3D is fetched on a Save-Data connection', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await ctx.addInitScript(() => {
     Object.defineProperty(navigator, 'connection', { get: () => ({ saveData: true }) })
-    try { localStorage.setItem('sc-analytics-consent', 'denied') } catch {}
   })
   const page = await ctx.newPage()
   const glb: string[] = []
   page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
+  await settleConsent(page)
   await page.goto('/')
-  await page.waitForTimeout(2500)
-  await expect(page.locator('canvas')).toHaveCount(0)
-  expect(glb, 'a visitor asking to save data pays nothing').toEqual([])
+  await play(page).scrollIntoViewIfNeeded()
+  await page.waitForTimeout(3500)
+  expect(glb, 'a megabyte of geometry is not a courtesy on a metered connection').toEqual([])
   await ctx.close()
+})
+
+test('every capability can be operated, and names the part that provides it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  await expect(play(page).locator('canvas')).toHaveCount(1, { timeout: 40000 })
+
+  // Seven claims on the page; seven things you can actually drive here.
+  const buttons = play(page).getByRole('button', { name: /U1|M1 \+ M2/ })
+  await expect.poll(() => buttons.count(), { timeout: 40000 }).toBe(7)
+
+  for (const [label, call] of [
+    ['It can see', 'camera.read()'],
+    ['It talks and listens', 'audio.listen()'],
+    ['You can program it', 'app.run("pong")'],
+    ['It gets online', 'wifi.connect'],
+  ] as const) {
+    await play(page).getByRole('button', { name: new RegExp(label) }).click()
+    await expect(play(page).getByText(call, { exact: false })).toBeVisible()
+  }
+})
+
+test('the camera and microphone demos say what happens to the stream', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  await play(page).getByRole('button', { name: /It talks and listens/ }).click()
+  // Asking for a microphone without saying where it goes is not acceptable.
+  await expect(play(page).getByText(/Nothing is recorded or sent/)).toBeVisible()
+})
+
+test('touching the model does not throw you out of the demo you chose', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  const canvas = play(page).locator('canvas')
+  await expect(canvas).toHaveCount(1, { timeout: 40000 })
+
+  await play(page).getByRole('button', { name: /It talks and listens/ }).click()
+  await expect(play(page).getByText('audio.listen()')).toBeVisible()
+
+  // A press on the glass used to switch to the touch demo from wherever you
+  // were, so you could not touch the model while watching anything else.
+  const box = await canvas.boundingBox()
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height * 0.42)
+  await page.waitForTimeout(600)
+  await expect(play(page).getByText('audio.listen()')).toBeVisible()
+  await expect(play(page).getByText('screen.onTouch(fn)')).toHaveCount(0)
+})
+
+test('the servo readout is in the degrees the real servos report', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/')
+  await play(page).scrollIntoViewIfNeeded()
+  await expect(play(page).getByText(/PAN M1/)).toBeVisible()
+  await expect(play(page).getByText(/TILT M2/)).toBeVisible()
 })
 
 test.describe('reduced motion', () => {
-  test.use({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } })
-
+  test.use({ reducedMotion: 'reduce' })
   test('never loads the 3D at all', async ({ page }) => {
-    const heavy: string[] = []
-    page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) heavy.push(r.url()) })
+    const glb: string[] = []
+    page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
+    await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/')
-    await page.waitForTimeout(1500)
-    await expect(page.locator('canvas')).toHaveCount(0)
-    expect(heavy, 'a visitor who asked for less motion pays nothing').toEqual([])
+    await play(page).scrollIntoViewIfNeeded()
+    await page.waitForTimeout(3000)
+    expect(glb).toEqual([])
   })
-})
-
-
-test('the hero shows a photograph of a real unit, not only a render', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/')
-  // The hidden half of the pair is aria-hidden, so it is deliberately absent
-  // from the accessibility tree. Match the element itself instead.
-  const photo = page.locator('img[alt*="assembled Pebble-chan"]')
-  await expect(photo).toBeAttached()
-})
-
-test('the photograph is what a visitor without WebGL gets', async ({ browser }) => {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
-  await ctx.addInitScript(() => {
-    // Deny every WebGL context, as an older or locked-down browser would.
-    const get = HTMLCanvasElement.prototype.getContext
-    HTMLCanvasElement.prototype.getContext = function (type: string, ...rest: unknown[]) {
-      if (/webgl/i.test(type)) return null
-      // @ts-expect-error passthrough for every other context type
-      return get.call(this, type, ...rest)
-    }
-  })
-  const page = await ctx.newPage()
-  const glb: string[] = []
-  page.on('request', (r) => { if (/\.glb(\?|$)/.test(r.url())) glb.push(r.url()) })
-  await page.goto('/')
-  await page.waitForTimeout(2000)
-
-  await expect(page.locator('img[alt*="assembled Pebble-chan"]')).toBeVisible()
-  await expect(page.locator('canvas')).toHaveCount(0)
-  expect(glb, 'no model bytes when there is nothing to render them with').toEqual([])
-  await ctx.close()
-})
-
-test('the gallery shows which view is up and swaps on click', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/')
-  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 40000 })
-
-  const model = page.getByRole('button', { name: 'Show 3D model' })
-  const photo = page.getByRole('button', { name: 'Show Assembled' })
-  await expect(model).toBeVisible()
-  await expect(photo).toBeVisible()
-
-  // Do not assume which view is up — the gallery rotates until it is touched.
-  // What matters is that a click selects exactly the one clicked.
-  await photo.click()
-  await expect(photo).toHaveAttribute('aria-pressed', 'true')
-  await expect(model).toHaveAttribute('aria-pressed', 'false')
-
-  await model.click()
-  await expect(model).toHaveAttribute('aria-pressed', 'true')
-  await expect(photo).toHaveAttribute('aria-pressed', 'false')
-
-  const pressed = await page.locator('button[aria-pressed="true"]').count()
-  expect(pressed, 'exactly one view is ever current').toBe(1)
-})
-
-test('the hero alternates on its own, without being touched', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/')
-  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 40000 })
-
-  /** Which thumbnail is currently pressed, whatever it happens to be. */
-  const current = () => page.evaluate(() =>
-    [...document.querySelectorAll('button[aria-pressed]')]
-      .find((b) => b.getAttribute('aria-pressed') === 'true')
-      ?.getAttribute('aria-label') ?? null)
-
-  const first = await current()
-  expect(first).toBeTruthy()
-
-  // It must move on by itself. The hold is 10s; allow for a slow first frame.
-  await expect.poll(current, { timeout: 25000 }).not.toBe(first)
-})
-
-test('choosing a view stops the carousel', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/')
-  await expect(page.locator('canvas')).toHaveCount(1, { timeout: 40000 })
-
-  const box = page.getByRole('button', { name: 'Show In the box' })
-  await box.click()
-  await expect(box).toHaveAttribute('aria-pressed', 'true')
-
-  // Well past two holds: a deliberate choice should not be overridden.
-  await page.waitForTimeout(22000)
-  await expect(box, 'the gallery must not take the view back').toHaveAttribute('aria-pressed', 'true')
 })

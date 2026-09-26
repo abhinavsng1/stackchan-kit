@@ -1,11 +1,12 @@
 'use client'
 
 import { useRef, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PRINTED, Printed, usePlaMaterial } from './parts'
 import { FACES } from '@/lib/faces'
 import { faceTexture } from './faceTexture'
+import { drawPanel, W, H, type PanelState } from '@/lib/panel'
 
 /**
  * The assembled kit, built from the same STLs that print the shell.
@@ -20,6 +21,9 @@ const PAN_DRIVE = 30
 const TILT_DRIVE = 14
 const EASE = 0.075
 const IDLE_AFTER_MS = 2600
+
+/** Where on the 320 x 240 panel a pointer landed, from the mesh's own UVs. */
+export type ScreenHit = { x: number; y: number }
 
 function CoreS3() {
   const bezel = useMemo(() => new THREE.MeshStandardMaterial({
@@ -52,10 +56,23 @@ function CoreS3() {
 }
 
 /**
- * The real panel. Cycles the firmware's own expressions and blinks the ones
- * the firmware blinks — arc and closed eyes are left alone, as on the device.
+ * The real panel.
+ *
+ * In `face` mode it cycles the firmware's own expressions from the SVG atlas
+ * and blinks the ones the firmware blinks. In every other mode it is a 2D
+ * canvas redrawn in place each frame, because what it is showing — a
+ * microphone level, a camera frame, a ball in play — is live and cannot be
+ * cached. Redrawing in place also means one texture for the session rather
+ * than one per frame, which is the difference between a demo and a leak.
  */
-function Panel() {
+function Panel({
+  panel, onHit, onDrag,
+}: {
+  panel: React.RefObject<PanelState>
+  /** Returns true when the hit was used, so the glass should keep it. */
+  onHit?: (hit: ScreenHit) => boolean
+  onDrag?: (hit: ScreenHit) => void
+}) {
   const mat = useRef<THREE.MeshStandardMaterial>(null)
   const idx = useRef(0)
   const nextSwap = useRef(CYCLE_MS)
@@ -63,10 +80,50 @@ function Panel() {
   const blinkUntil = useRef(0)
   const glow = useRef<THREE.PointLight>(null)
 
+  // One canvas, one texture, for the lifetime of the component.
+  const live = useMemo(() => {
+    if (typeof document === 'undefined') return null
+    const el = document.createElement('canvas')
+    el.width = W; el.height = H
+    const ctx = el.getContext('2d')
+    if (!ctx) return null
+    const tex = new THREE.CanvasTexture(el)
+    tex.colorSpace = THREE.SRGBColorSpace
+    tex.flipY = true
+    return { ctx, tex }
+  }, [])
+
   useFrame((state) => {
     const t = state.clock.elapsedTime * 1000
+    const s = panel.current
+    const m = s?.mode ?? 'face'
 
-    if (t > nextSwap.current) {
+    if (s && live && m !== 'face') {
+      // performance.now(), not the WebGL clock: ripples and the Wi-Fi
+      // animation are stamped outside this loop, where the render clock does
+      // not exist. Mixing the two made every ripple negatively aged, so none
+      // of them ever drew.
+      drawPanel(live.ctx, s, performance.now())
+      live.tex.needsUpdate = true
+      if (mat.current && mat.current.map !== live.tex) {
+        mat.current.map = live.tex
+        mat.current.emissiveMap = live.tex
+        mat.current.needsUpdate = true
+      }
+      if (glow.current) glow.current.color.set('#6ee7d7')
+      return
+    }
+
+    // A visitor's choice wins, and stops the cycle for as long as it stands.
+    const pick = s?.faceId ?? null
+    if (pick) {
+      const i = FACES.findIndex((f) => f.id === pick)
+      if (i >= 0 && i !== idx.current) {
+        idx.current = i
+        nextBlink.current = t + 700
+      }
+      nextSwap.current = t + CYCLE_MS
+    } else if (t > nextSwap.current) {
       idx.current = (idx.current + 1) % FACES.length
       nextSwap.current = t + CYCLE_MS
       nextBlink.current = t + 900
@@ -90,9 +147,28 @@ function Panel() {
     if (glow.current) glow.current.color.set(face.eye)
   })
 
+  /** UV on the plane → the pixel the real touch controller would report. */
+  function toPanel(e: ThreeEvent<PointerEvent>): ScreenHit | null {
+    if (!e.uv) return null
+    return { x: e.uv.x * W, y: (1 - e.uv.y) * H }
+  }
+
   return (
     <group position={[0, 1.2, 8.35]}>
-      <mesh>
+      <mesh
+        onPointerDown={(e) => {
+          const hit = toPanel(e)
+          if (!hit) return
+          // Only swallow the press if the current demo does something with
+          // it. Otherwise it belongs to the head, and the face would be a
+          // dead zone you cannot drag from.
+          if (onHit?.(hit)) e.stopPropagation()
+        }}
+        onPointerMove={(e) => {
+          const hit = toPanel(e)
+          if (hit) onDrag?.(hit)
+        }}
+      >
         <planeGeometry args={[44, 33]} />
         <meshStandardMaterial
           ref={mat}
@@ -110,7 +186,14 @@ function Panel() {
   )
 }
 
-export default function Robot({ pointer }: { pointer: React.RefObject<{ x: number; y: number }> }) {
+export default function Robot({
+  pointer, panel, onHit, onDrag,
+}: {
+  pointer: React.RefObject<{ x: number; y: number }>
+  panel: React.RefObject<PanelState>
+  onHit?: (hit: ScreenHit) => boolean
+  onDrag?: (hit: ScreenHit) => void
+}) {
   const head = useRef<THREE.Group>(null)
   const pla = usePlaMaterial()
   const current = useRef({ pan: 0, tilt: 0 })
@@ -150,7 +233,7 @@ export default function Robot({ pointer }: { pointer: React.RefObject<{ x: numbe
         <Printed url={PRINTED.shell} material={pla} rotation={[Math.PI / 2, 0, 0]} />
         <group position={[0, 0, 3]}>
           <CoreS3 />
-          <Panel />
+          <Panel panel={panel} onHit={onHit} onDrag={onDrag} />
         </group>
       </group>
     </group>
