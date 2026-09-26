@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { PRICE } from '@/lib/kit'
+import { PRICE, CAMPAIGN } from '@/lib/kit'
+import Countdown from '@/components/Countdown'
 import { EV, track } from '@/lib/analytics'
 
 /**
@@ -94,7 +95,7 @@ export default function Hero() {
             }}
           >
             <p className="t-label m-0 mb-3 sm:mb-4" style={{ color: 'rgba(243,241,237,.66)' }}>
-              Pebble-chan · Batch 01
+              Pebble-chan · Batch 01 · {CAMPAIGN.name}
             </p>
 
             <h1
@@ -131,6 +132,17 @@ export default function Hero() {
               <span className="t-mono text-[12.5px]" style={{ color: 'rgba(243,241,237,.62)' }}>
                 {PRICE.ship} · across India
               </span>
+            </div>
+
+            <div className="mt-6 pt-5 flex flex-wrap items-baseline gap-x-5 gap-y-2"
+                 style={{ borderTop: '1px solid rgba(243,241,237,.14)' }}>
+              <span className="t-mono text-[12.5px] line-through" style={{ color: 'rgba(243,241,237,.45)' }}>
+                {PRICE.mrp}
+              </span>
+              <span className="t-mono text-[12.5px]" style={{ color: 'rgba(243,241,237,.78)' }}>
+                {PRICE.save}
+              </span>
+              <Countdown tone="light" />
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+import { PRICE } from '@/lib/kit'
 import type { Metadata } from 'next'
 import { Outfit, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
@@ -26,7 +27,7 @@ const SITE = 'https://pebblerobo.com'
 const TITLE = 'Pebble-chan — the desktop robot you build yourself'
 const DESCRIPTION =
   'A complete build kit: M5Stack CoreS3 Lite, two SCS0009 bus servos, driver board, ' +
-  'power supply, printed shell and fasteners. ₹8,999, ships across India in 1–2 weeks.'
+  `power supply, printed shell and fasteners. ${PRICE.now} early bird, ships across India in 1–2 weeks.`
 
 export const metadata: Metadata = {
   /** Lets every relative URL below resolve, including the share image. */

@@ -34,7 +34,7 @@ function credentials() {
  * What a given quantity costs, decided here and nowhere else.
  *
  * The client sends a quantity; it never sends a price. Trusting a
- * browser-supplied amount is how a ₹8,999 kit gets bought for ₹1, and it is
+ * browser-supplied amount is how a kit gets bought for ₹1, and it is
  * the single most common way a checkout integration is exploited.
  */
 export function orderAmountPaise(qty: number): number {

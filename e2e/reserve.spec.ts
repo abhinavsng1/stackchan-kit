@@ -29,7 +29,7 @@ async function stubCheckout(
     ` }))
   await page.route('**/api/create-order', (route) =>
     route.fulfill({ status: 201, json: {
-      key_id: 'rzp_test_stub', order_id: 'order_TEST', amount: 899900, currency: 'INR',
+      key_id: 'rzp_test_stub', order_id: 'order_TEST', amount: 499900, currency: 'INR',
       prefill: { name: 'Asha Rao', email: 'asha@example.com', contact: '+919876543210' },
     } }))
   await page.route('**/api/verify-payment', (route) =>

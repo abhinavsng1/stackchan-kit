@@ -10,13 +10,14 @@ import BuyBox from '@/components/BuyBox'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
 import BuyBar from '@/components/BuyBar'
+import Countdown from '@/components/Countdown'
 import PartArt from '@/components/PartArt'
 import OpenSource from '@/components/OpenSource'
 import { SignalFlow } from '@/components/Diagrams'
 import { TrackedLink, TrackedDetails } from '@/components/Tracked'
 import { EV } from '@/lib/events'
 import {
-  PARTS, BUILD_STEPS, SPEC_TABLES, BUILDS, FAQS, PRICE, CONTACT,
+  PARTS, BUILD_STEPS, SPEC_TABLES, BUILDS, FAQS, PRICE, CONTACT, CAMPAIGN, SKU,
 } from '@/lib/kit'
 
 function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
@@ -95,8 +96,11 @@ export default function Page() {
       <div className="text-center text-[12.5px] sm:text-[13px] py-2.5 px-4 whitespace-nowrap overflow-hidden"
            style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
         <span className="t-pixel text-[10.5px] mr-2.5 opacity-70">Batch 01</span>
-        <span className="hidden sm:inline">Now taking reservations · </span>
-        {PRICE.ship} · {PRICE.save}
+        {/* The full line does not fit a phone, but dropping it entirely is
+            worse: most ad traffic lands here and the campaign is the offer. */}
+        <span className="sm:hidden">{CAMPAIGN.name} · </span>
+        <span className="hidden sm:inline">{CAMPAIGN.line} · </span>
+        {PRICE.now} · {PRICE.save}
       </div>
 
       <main id="top">
@@ -119,7 +123,7 @@ export default function Page() {
                    style={{ borderRadius: 'var(--radius-tile)' }} />
               </div>
               <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4">
-                An assembled unit. Photographed, not rendered. · SKU PBL-KIT-01
+                An assembled unit. Photographed, not rendered. · SKU {SKU}
               </figcaption>
             </figure>
             <div className="lg:sticky lg:top-24"><BuyBox /></div>
@@ -382,7 +386,8 @@ export default function Page() {
                 <span className="t-mono text-[14px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
               </div>
 
-              <p className="t-label mt-2 mb-0">{PRICE.ship}</p>
+              <p className="t-label mt-2 mb-3">{PRICE.ship}</p>
+              <Countdown />
 
               <ol className="mt-6 mb-0 p-0 list-none grid gap-4">
                 {[
