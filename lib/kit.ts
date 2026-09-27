@@ -323,6 +323,23 @@ export function campaignLeft(now: Date = new Date()): CampaignLeft {
   return { days, hours, minutes, seconds: Math.floor(ms / 1000) }
 }
 
+/**
+ * The two people who make this.
+ *
+ * A first batch from an unknown company is a stranger asking for money, and
+ * the ordinary fix — an "About us" page — is just more copy from the same
+ * stranger. Two real profiles someone else hosts are checkable in a way
+ * nothing on this domain can be, which is the same reason every part on the
+ * page cites a shop.
+ *
+ * No titles. Two people who both do everything do not have titles, and
+ * inventing them would be the one unverifiable thing in this block.
+ */
+export const BUILDERS = [
+  { name: 'Abhinav Singh', href: 'https://www.linkedin.com/in/abhinav-singh-10164014b/' },
+  { name: 'Surya Shekhawat', href: 'https://www.linkedin.com/in/suryashekhawat/' },
+] as const
+
 export const CONTACT = {
   email: 'support@pebblerobo.com',
   entity: 'Pebble Robo',

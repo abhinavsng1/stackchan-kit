@@ -32,6 +32,7 @@ const SAVE = pick(/save: '([^']+)'/, 'saving')
 const SKU = pick(/export const SKU = '([^']+)'/, 'sku')
 const ENDS = pick(/endsAt: '([^']+)'/, 'deadline')
 
+
 const endsOn = new Date(ENDS).toLocaleDateString('en-IN', {
   day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata',
 })

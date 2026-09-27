@@ -56,3 +56,18 @@ describe('nothing placeholder ships', () => {
     expect(rupees(PRICE.now)).toBeLessThan(rupees(PRICE.mrp))
   })
 })
+
+describe('the people who make it', () => {
+  it('links two real profiles, on a site someone else hosts', async () => {
+    const { BUILDERS } = await import('@/lib/kit')
+    expect(BUILDERS).toHaveLength(2)
+    for (const b of BUILDERS) {
+      expect(b.name.trim().split(/\s+/).length,
+             `${b.name} does not look like a full name`).toBeGreaterThanOrEqual(2)
+      // A profile on our own domain proves nothing; the point is that it is
+      // checkable somewhere we do not control.
+      expect(b.href).toMatch(/^https:\/\/www\.linkedin\.com\/in\/[^/]+\/$/)
+    }
+    expect(new Set(BUILDERS.map((b) => b.href)).size).toBe(2)
+  })
+})

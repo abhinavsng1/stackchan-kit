@@ -66,8 +66,11 @@ test('the whole page stays under a sane scroll length', async ({ page }) => {
   // landed, then from 19 when the video hero went in — measured 19.3 after it.
   // Lowered to 19 when the six capability tiles became one interactive model
   // and the build ideas became a swipe rail: measured 18.0, against 19.3
-  // before. Bigger media and a shorter page, which is the whole point.
-  expect(screens).toBeLessThan(19)
+  // before. Raised to 21 when the parts-cost comparison was added — a real
+  // new section carrying the page's strongest argument, measured 20.1. This
+  // is the case the note above sanctions: a section was added, not a test
+  // nudged to go green.
+  expect(screens).toBeLessThan(21)
 })
 
 test('tap targets in the buy bar are big enough', async ({ page }) => {

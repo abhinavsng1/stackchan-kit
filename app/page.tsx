@@ -18,6 +18,7 @@ import { TrackedLink, TrackedDetails } from '@/components/Tracked'
 import { EV } from '@/lib/events'
 import {
   PARTS, BUILD_STEPS, SPEC_TABLES, BUILDS, FAQS, PRICE, CONTACT, CAMPAIGN, SKU,
+  BUILDERS,
 } from '@/lib/kit'
 
 function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
@@ -410,6 +411,18 @@ export default function Page() {
 
               <p className="text-[12.5px] text-[var(--muted)] mt-6 mb-0 pt-4 border-t"
                  style={{ borderColor: 'var(--line)' }}>
+                {/* Named, not linked. The credit belongs here — a stranger
+                    is about to be asked for money — but a link out of the
+                    page one line above the pay button is the last thing this
+                    panel should offer. The profiles are in the footer. */}
+                Made by{' '}
+                <span className="text-[var(--ink)] font-medium">
+                  {BUILDERS.map((b) => b.name).join(' and ')}
+                </span>
+                , in Bengaluru. Two people, one batch.
+              </p>
+
+              <p className="text-[12.5px] text-[var(--muted)] mt-3 mb-0">
                 Questions before you buy? Write to{' '}
                 <a href={`mailto:${CONTACT.email}`}
                    className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>.
@@ -428,6 +441,19 @@ export default function Page() {
                className="t-mono text-[13px] mt-1 mb-0 inline-block text-[var(--ink)] underline underline-offset-4">
               {CONTACT.email}
             </a>
+
+            <div className="t-label mt-8 mb-3">Built by</div>
+            <ul className="list-none p-0 m-0 grid gap-1.5">
+              {BUILDERS.map((b) => (
+                <li key={b.href}>
+                  <TrackedLink href={b.href} target="_blank" rel="noreferrer noopener"
+                               event={EV.outboundClicked} props={{ to: `linkedin:${b.name}` }}
+                               className="text-[13.5px] text-[var(--ink)] no-underline hover:underline underline-offset-4">
+                    {b.name} ↗
+                  </TrackedLink>
+                </li>
+              ))}
+            </ul>
           </div>
           <div>
             <div className="t-label mb-3">Attribution</div>
