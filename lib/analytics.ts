@@ -60,10 +60,22 @@ function metaValue(standard: string, props?: Props): Props {
   if (standard !== 'Purchase' && standard !== 'InitiateCheckout' && standard !== 'Lead') return {}
   const qty = typeof props?.qty === 'number' && props.qty > 0 ? props.qty : 1
   return {
+    /**
+     * The whole order, not the deposit.
+     *
+     * Only ₹499 moves through the gateway, but the conversion Meta is being
+     * asked to find is worth ₹4,999 — optimising on the deposit would train
+     * delivery towards whoever is cheapest to take ₹499 from. The caveat is
+     * that the balance is cash on delivery and some of it will never be
+     * collected, so reported revenue runs ahead of banked revenue by the
+     * return-to-origin rate. Worth watching once there are enough orders to
+     * measure it.
+     */
     value: (PRICE.nowPaise / 100) * qty,
     currency: 'INR',
     content_type: 'product',
     content_ids: [SKU],
+    num_items: qty,
   }
 }
 
@@ -182,30 +194,79 @@ async function personId(email: string): Promise<string> {
  * Safe to call more than once with the same address; identifying to an id
  * that is already current is a no-op.
  */
-export async function identifyPerson(email: string): Promise<void> {
-  if (analyticsMode() !== 'live' || !email) return
+export type BuyerProfile = {
+  email: string
+  name?: string
+  phone?: string
+  city?: string
+  pincode?: string
+  profession?: string
+  qty?: number
+}
+
+/**
+ * Ties this browser to a buyer, and records who they are.
+ *
+ * Called the moment the order row is written — before payment, deliberately.
+ * Somebody who fills the form and then abandons at checkout is the most
+ * valuable person to be able to contact, and they are invisible if the
+ * profile is only written on success.
+ *
+ * The profile carries the buyer's actual details. That is a change: these
+ * properties used to be deliberately anonymous, on the grounds that a
+ * pseudonymous id was enough to count returning buyers. It is not enough to
+ * chase an abandoned order, which is what this is now for. The distributed
+ * id stays a hash so that event streams and session replays cannot be joined
+ * back to a person by anyone who only has those; the name and address live on
+ * the profile, which is access-controlled.
+ *
+ * Because this sends personal data to a processor, the privacy page and the
+ * footer say so. If that disclosure is ever removed, this function has to go
+ * with it.
+ */
+export async function identifyPerson(buyer: string | BuyerProfile): Promise<void> {
+  const b: BuyerProfile = typeof buyer === 'string' ? { email: buyer } : buyer
+  if (analyticsMode() !== 'live' || !b.email) return
   let id: string
   try {
-    id = await personId(email)
+    id = await personId(b.email)
   } catch {
     // No SubtleCrypto (an insecure origin). Better to stay anonymous than to
-    // fall back to sending the address itself.
+    // fall back to sending the address itself as the id.
     return
   }
   try {
     mp?.identify(id)
-    // Profile properties, deliberately free of anything identifying: enough to
-    // count returning buyers, not enough to name one.
     mp?.people.set_once({ 'First Seen': new Date().toISOString() })
-    mp?.people.set({ 'Last Order At': new Date().toISOString() })
+    // Mixpanel's reserved names, so these land in the columns its people view
+    // already knows how to show.
+    const profile: Record<string, string | number> = {
+      $email: b.email,
+      'Last Order At': new Date().toISOString(),
+    }
+    if (b.name) profile.$name = b.name
+    if (b.phone) profile.$phone = b.phone
+    if (b.city) profile.$city = b.city
+    if (b.pincode) profile.Pincode = b.pincode
+    if (b.profession) profile.Profession = b.profession
+    if (b.qty) profile['Kits Ordered'] = b.qty
+    mp?.people.set(profile)
+    // Set on the order, cleared on payment: what is left is the list of people
+    // who filled the form and did not pay.
+    mp?.people.set_once({ 'Booking Started At': new Date().toISOString() })
   } catch { /* analytics must never break a purchase */ }
 }
 
-/** Records that the identified person actually paid. */
+/** Records that the identified person actually paid the booking deposit. */
 export function recordPurchase(props: { qty: number }): void {
   if (analyticsMode() !== 'live') return
   try {
-    mp?.people.set({ 'Last Paid At': new Date().toISOString() })
+    mp?.people.set({
+      'Last Paid At': new Date().toISOString(),
+      // The deposit is paid; this much is still owed to a courier. Kept on the
+      // profile so an unpaid balance is visible next to the person who owes it.
+      'Balance Due': (PRICE.balancePaise / 100) * props.qty,
+    })
     mp?.people.increment({ 'Kits Bought': props.qty, 'Orders Paid': 1 })
   } catch { /* analytics must never break a purchase */ }
 }

@@ -127,10 +127,10 @@ export default function Hero() {
                   borderRadius: 999,
                 }}
               >
-                Order a kit — {PRICE.now}
+                Book for {PRICE.deposit}
               </a>
               <span className="t-mono text-[12.5px]" style={{ color: 'rgba(243,241,237,.62)' }}>
-                {PRICE.ship} · across India
+                {PRICE.balance} on delivery · {PRICE.now} total
               </span>
             </div>
 

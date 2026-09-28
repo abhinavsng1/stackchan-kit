@@ -121,7 +121,17 @@ export default function ReserveForm() {
         // Now we know who this browser belongs to. Identifying here rather
         // than after payment means the anonymous history — what they read,
         // where they paused — merges into this person even if they never pay.
-        void identifyPerson(local.data.email)
+        // The whole record, not just the address: this profile exists so an
+        // order that stops at checkout is still a person somebody can call.
+        void identifyPerson({
+          email: local.data.email,
+          name: local.data.name,
+          phone: local.data.phone,
+          city: local.data.city,
+          pincode: local.data.pincode,
+          profession: local.data.profession,
+          qty: local.data.qty,
+        })
         track(EV.reserveSucceeded)
         token.current = body.token ?? null
         return pay()
@@ -263,15 +273,17 @@ export default function ReserveForm() {
         <button type="submit" className="btn btn-brand" disabled={busy}>
           {state.kind === 'submitting' ? 'Saving…'
             : state.kind === 'paying' ? 'Opening payment…'
-            : `Pay ${PRICE.now}`}
+            : `Book for ${PRICE.deposit}`}
         </button>
         <p className="t-label m-0">Card · UPI · netbanking · EMI</p>
       </div>
 
       <p className="text-[12.5px] text-[var(--muted)] mt-4 mb-0 max-w-[52ch]">
-        Your address and phone are used to ship the kit and to tell you when it is on
-        its way. Nothing else, and we do not pass them on. Payment is handled by
-        Razorpay — your card details never reach us.
+        {PRICE.deposit} now; the courier collects {PRICE.balance} in cash when the
+        box reaches you. Your address and phone go to the courier, because that is
+        how a parcel arrives, and to Mixpanel so we can follow up if an order does
+        not complete. Payment is handled by Razorpay — your card details never
+        reach us.
       </p>
 
       {state.kind === 'error' && (

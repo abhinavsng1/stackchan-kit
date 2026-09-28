@@ -1,7 +1,9 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import crypto from 'node:crypto'
 import { PRICE } from '@/lib/kit'
-import { orderAmountPaise, verifyPaymentSignature, MAX_QTY } from '@/lib/razorpay'
+import {
+  orderAmountPaise, balanceDuePaise, totalPaise, verifyPaymentSignature, MAX_QTY,
+} from '@/lib/razorpay'
 
 const SECRET = 'test_secret_value'
 
@@ -15,20 +17,37 @@ afterEach(() => {
 })
 
 describe('the amount is decided on the server', () => {
-  it('charges the published price for one kit', () => {
-    expect(orderAmountPaise(1)).toBe(PRICE.nowPaise)
+  it('charges the booking deposit, not the price of the kit', () => {
+    // Charging PRICE.nowPaise here would take ₹4,999 for something the buyer
+    // was told costs ₹499 today, with the rest due to a courier.
+    expect(orderAmountPaise(1)).toBe(PRICE.depositPaise)
+    expect(orderAmountPaise(1)).not.toBe(PRICE.nowPaise)
   })
 
-  it('multiplies by quantity', () => {
-    expect(orderAmountPaise(3)).toBe(PRICE.nowPaise * 3)
+  it('multiplies both halves by quantity', () => {
+    expect(orderAmountPaise(3)).toBe(PRICE.depositPaise * 3)
+    expect(balanceDuePaise(3)).toBe(PRICE.balancePaise * 3)
   })
 
-  it('stays in step with the price shown on the page', () => {
-    // Guards against the display string and the charged amount drifting apart,
-    // which would let the site advertise one price and bill another.
-    const shown = Number(PRICE.now.replace(/[^\d]/g, ''))
-    expect(orderAmountPaise(1)).toBe(shown * 100)
+  it('splits the price exactly — no rupee appears or vanishes', () => {
+    for (const qty of [1, 2, 3, 4, 5]) {
+      expect(totalPaise(qty)).toBe(PRICE.nowPaise * qty)
+    }
   })
+
+  it('stays in step with the figures shown on the page', () => {
+    // Guards against a display string and a charged amount drifting apart,
+    // which would let the site advertise one figure and bill another.
+    const shown = (s: string) => Number(s.replace(/[^\d]/g, '')) * 100
+    expect(orderAmountPaise(1)).toBe(shown(PRICE.deposit))
+    expect(balanceDuePaise(1)).toBe(shown(PRICE.balance))
+    expect(PRICE.nowPaise).toBe(shown(PRICE.now))
+  })
+
+  it.each([0, -1, 1.5, MAX_QTY + 1, NaN, Infinity])(
+    'refuses to quote a balance for a quantity of %s', (qty) => {
+      expect(() => balanceDuePaise(qty)).toThrow(RangeError)
+    })
 
   it.each([0, -1, 1.5, MAX_QTY + 1, NaN, Infinity])(
     'refuses a quantity of %s rather than pricing it', (qty) => {
@@ -92,7 +111,7 @@ describe('payment signature verification', () => {
 describe('order creation', () => {
   it('sends the server-computed amount, never a client one', async () => {
     const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
-      new Response(JSON.stringify({ id: 'order_1', amount: PRICE.nowPaise * 2 }), { status: 200 }))
+      new Response(JSON.stringify({ id: 'order_1', amount: PRICE.depositPaise * 2 }), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
     const { createOrder } = await import('@/lib/razorpay')
@@ -101,8 +120,13 @@ describe('order creation', () => {
     expect(result).toMatchObject({ status: 'created', orderId: 'order_1' })
     const init = fetchMock.mock.calls[0]?.[1]
     const body = JSON.parse(String(init?.body))
-    expect(body.amount).toBe(PRICE.nowPaise * 2)
+    // The deposit, never the price of the kits.
+    expect(body.amount).toBe(PRICE.depositPaise * 2)
     expect(body.currency).toBe('INR')
+    // What the courier will be asked for, recorded where a human reconciling
+    // a payment in the Razorpay dashboard can see it.
+    expect(body.notes.payment_type).toBe('booking_deposit')
+    expect(body.notes.balance_due_on_delivery_paise).toBe(String(PRICE.balancePaise * 2))
     expect(String(body.receipt).length).toBeLessThanOrEqual(40)
   })
 
@@ -173,15 +197,28 @@ describe('payment tokens', () => {
 describe('payment receipt', () => {
   const receipt = {
     name: 'Asha Rao', email: 'asha@example.com',
-    qty: 2, amountPaise: 1_799_800, paymentId: 'pay_ABC123',
+    qty: 2, amountPaise: 99_800, balanceDuePaise: 900_000, paymentId: 'pay_ABC123',
   }
 
-  it('states the amount in rupees, not paise', async () => {
+  it('states the amounts in rupees, not paise', async () => {
     const { receiptText, receiptHtml } = await import('@/lib/email')
-    expect(receiptText(receipt)).toContain('₹17,998')
-    expect(receiptHtml(receipt)).toContain('₹17,998')
-    // The raw paise figure must never be shown as a price.
-    expect(receiptText(receipt)).not.toContain('1799800')
+    for (const body of [receiptText(receipt), receiptHtml(receipt)]) {
+      expect(body).toContain('₹998')      // deposit taken
+      expect(body).toContain('₹9,000')    // cash due at the door
+      expect(body).toContain('₹9,998')    // and what the two come to
+      // The raw paise figures must never be shown as a price.
+      expect(body).not.toContain('99800')
+      expect(body).not.toContain('900000')
+    }
+  })
+
+  it('tells the buyer to have the balance ready, in cash', async () => {
+    // Someone who does not read this is someone the courier turns away.
+    const { receiptText, receiptHtml } = await import('@/lib/email')
+    for (const body of [receiptText(receipt), receiptHtml(receipt)]) {
+      expect(body).toMatch(/cash/i)
+      expect(body).toMatch(/courier/i)
+    }
   })
 
   it('carries the payment id so the buyer has a reference', async () => {
@@ -216,7 +253,7 @@ describe('order confirmation shows where it is going', () => {
     name: 'Asha Rao', email: 'asha@example.com', qty: 1,
     amountPaise: 899_900, paymentId: 'pay_ABC',
     phone: '+919876543210', address: '12 Silicon Gardenia, JP Nagar',
-    city: 'Bengaluru', pincode: '560078',
+    city: 'Bengaluru', pincode: '560078', balanceDuePaise: 900_000,
   }
 
   it('prints the address back so a mistake is caught before the label', async () => {
@@ -237,9 +274,12 @@ describe('order confirmation shows where it is going', () => {
     expect(receiptHtml(bare)).not.toContain('Shipping to')
   })
 
-  it('says the order is confirmed, not merely reserved', async () => {
+  it('says the booking is confirmed, and does not claim the kit is paid for', async () => {
     const { receiptSubject, receiptText } = await import('@/lib/email')
     expect(receiptSubject()).toContain('confirmed')
+    // "Nothing more is needed from you" was true when the whole price was
+    // taken at checkout. It is now the opposite of true.
+    expect(receiptText(full)).not.toMatch(/nothing more is needed/i)
     expect(receiptText(full)).not.toMatch(/nothing has been charged/i)
   })
 })

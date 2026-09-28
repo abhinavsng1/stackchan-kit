@@ -27,6 +27,8 @@ const pick = (re, what) => {
   return m[1]
 }
 const NOW = pick(/now: '([^']+)'/, 'price')
+const DEPOSIT = pick(/deposit: '([^']+)'/, 'deposit')
+const BALANCE = pick(/balance: '([^']+)'/, 'balance')
 const MRP = pick(/mrp: '([^']+)'/, 'mrp')
 const SAVE = pick(/save: '([^']+)'/, 'saving')
 const SKU = pick(/export const SKU = '([^']+)'/, 'sku')
@@ -100,13 +102,15 @@ const html = ({ w, h, wide }) => `<!doctype html>
     <img class="logo" src="${LOGO}" alt="Pebble Robotics">
     <span class="flag"><span class="dot"></span>Early bird · ${days} days left</span>
     <h1>Build the robot.<br>Then teach it.</h1>
+    <!-- The deposit leads, because it is the number that decides whether
+         somebody taps. The full price sits beside it rather than under it,
+         so the ad cannot be read as "a robot for ₹499". -->
     <div class="price">
-      <span class="now">${NOW}</span>
-      <span class="mrp">${MRP}</span>
-      <span class="save">${SAVE}</span>
+      <span class="now">${DEPOSIT}</span>
+      <span class="save">to book &nbsp;·&nbsp; ${NOW} total</span>
     </div>
-    <p class="sub">Eight parts, one evening, no soldering. After that it runs
-      whatever you write.</p>
+    <p class="sub">Eight parts, one evening, no soldering. Pay ${BALANCE} cash
+      on delivery. Was ${MRP} — ${SAVE.toLowerCase()}.</p>
     <div class="foot">
       <span class="site">pebblerobo.com</span>
       <span>Ends ${endsOn}</span>
@@ -137,4 +141,5 @@ await b.close()
 // a jpg at the path the metadata already points at.
 execFileSync('/bin/sh', ['-c',
   `cd '${ROOT}' && npx --yes sharp-cli -i public/campaign/early-bird-og.png -o public/og.jpg -f jpeg -q 86 2>/dev/null || true`])
-console.log('done — price', NOW, '· ends', endsOn, `· ${days} days`)
+console.log('done —', DEPOSIT, 'to book,', BALANCE, 'on delivery,', NOW, 'total',
+            '· ends', endsOn, `· ${days} days`)

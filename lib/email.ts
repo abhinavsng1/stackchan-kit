@@ -197,7 +197,10 @@ export type Receipt = {
   name: string
   email: string
   qty: number
+  /** The deposit that just settled. */
   amountPaise: number
+  /** Cash still owed when the courier arrives. */
+  balanceDuePaise: number
   paymentId: string
   /** Shown back so a wrong address is caught now, not at the courier. */
   phone?: string | null
@@ -210,7 +213,7 @@ const rupees = (paise: number) =>
   '₹' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })
 
 export function receiptSubject() {
-  return 'Order confirmed — your Pebble-chan is on its way'
+  return 'Booking confirmed — your Pebble-chan is reserved'
 }
 
 /** The address as it will be printed on the label, or nothing if absent. */
@@ -227,13 +230,19 @@ export function receiptText(r: Receipt) {
   const to = shipsTo(r)
   return `Hi ${firstName(r.name)},
 
-Your payment has gone through and your Pebble-chan kit is confirmed. Nothing
-more is needed from you.
+Your booking has gone through and your Pebble-chan kit is reserved.
 
 WHAT YOU ORDERED
   Pebble-chan kit   x${r.qty}
-  Paid              ${rupees(r.amountPaise)}
+  Paid now          ${rupees(r.amountPaise)}  (booking deposit)
+  Due on delivery   ${rupees(r.balanceDuePaise)}  in cash
+  Order total       ${rupees(r.amountPaise + r.balanceDuePaise)}
   Payment id        ${r.paymentId}
+
+PLEASE KEEP THIS IN CASH
+  ${rupees(r.balanceDuePaise)} is collected by the courier when the box is handed
+  over. Have it ready — the delivery cannot be completed without it, and the
+  courier cannot take a card.
 ${to.length ? `
 SHIPPING TO
 ${to.map((l) => '  ' + l).join('\n')}
@@ -265,19 +274,31 @@ export function receiptHtml(r: Receipt) {
   return `<!doctype html>
 <html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
-  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Order confirmed</p>
-  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your kit is confirmed, ${esc(firstName(r.name))}.</h1>
+  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Booking confirmed</p>
+  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your kit is reserved, ${esc(firstName(r.name))}.</h1>
 
   <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
-    Your payment has gone through. Nothing more is needed from you.
+    Your booking deposit has gone through. The rest is paid in cash when the
+    kit is delivered.
   </p>
 
   <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">
     <table style="width:100%;border-collapse:collapse">
       ${row('Pebble-chan kit', '\u00d7 ' + r.qty)}
-      ${row('Paid', rupees(r.amountPaise))}
+      ${row('Paid now (deposit)', rupees(r.amountPaise))}
+      ${row('Due on delivery, in cash', rupees(r.balanceDuePaise))}
+      ${row('Order total', rupees(r.amountPaise + r.balanceDuePaise))}
       ${row('Payment id', r.paymentId)}
     </table>
+  </div>
+
+  <div style="border:1px solid #f0d8a8;background:#fdf7ea;border-radius:10px;padding:16px 18px;margin-bottom:18px">
+    <p style="margin:0 0 6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a6a1f">Have this ready</p>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:#3d4752">
+      <strong>${esc(rupees(r.balanceDuePaise))} in cash</strong> is collected by the
+      courier when the box is handed over. The delivery cannot be completed
+      without it, and the courier cannot take a card.
+    </p>
   </div>
 ${shipsTo(r).length ? `
   <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">

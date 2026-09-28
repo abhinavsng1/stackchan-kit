@@ -140,6 +140,8 @@ export type MarkPaidResult =
   | {
       status: 'paid'
       name: string; email: string; qty: number; amountPaise: number
+      /** Still owed, in cash, when the box arrives. */
+      balanceDuePaise: number
       phone: string | null; address: string | null; city: string | null; pincode: string | null
     }
   /** Already settled — a webhook retry or a refreshed success page. */
@@ -170,6 +172,12 @@ export async function markPaid(input: {
    */
   paidPaise?: number
   expectedPaiseFor: (qty: number) => number
+  /**
+   * What the buyer still owes on delivery. Recorded at settlement so the
+   * amount a courier collects is the amount agreed at booking, not whatever
+   * the price happens to be by the time the box ships.
+   */
+  balanceDuePaiseFor: (qty: number) => number
 }): Promise<MarkPaidResult> {
   const sql = client()
   if (!sql) return { status: 'unknown_order' }
@@ -187,6 +195,7 @@ export async function markPaid(input: {
     return { status: 'amount_mismatch', expectedPaise: expected, paidPaise: input.paidPaise }
   }
   const settledPaise = input.paidPaise ?? expected
+  const balanceDue = input.balanceDuePaiseFor(Number(row.qty))
 
   // `paid_at is null` in the predicate makes this safe against two deliveries
   // racing: the second updates zero rows and reports what the first did.
@@ -194,6 +203,7 @@ export async function markPaid(input: {
     update preorders
        set razorpay_payment_id = ${input.paymentId},
            amount_paid_paise   = ${settledPaise},
+           balance_due_paise   = ${balanceDue},
            paid_at             = now()
      where razorpay_order_id = ${input.orderId} and paid_at is null
     returning id`
@@ -207,6 +217,7 @@ export async function markPaid(input: {
     email: String(row.email),
     qty: Number(row.qty),
     amountPaise: settledPaise,
+    balanceDuePaise: balanceDue,
     phone: text(row.phone),
     address: text(row.address),
     city: text(row.city),

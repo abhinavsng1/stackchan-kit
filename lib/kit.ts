@@ -249,7 +249,7 @@ export const FAQS: Faq[] = [
   { q: 'What do I need that is not in the box?',
     a: 'A USB-C cable and a computer to flash it. Nothing else.' },
   { q: 'When does it ship and when do I pay?',
-    a: 'You pay when you order, on this page — card, UPI, netbanking or EMI. Kits dispatch within 1–2 weeks of the batch closing.' },
+    a: 'You pay ₹499 now to book your kit — card, UPI, netbanking or EMI. The remaining ₹4,500 is collected in cash when the kit is delivered. Kits dispatch within 1–2 weeks of the batch closing.' },
 ]
 
 /* ---------------------------------------------------------------- */
@@ -264,18 +264,37 @@ export const SKU = 'PBL-KIT-01'
 
 export const PRICE = {
   mrp: '₹13,999',
+  /** What a kit costs in total. Not what is charged at checkout — see below. */
   now: '₹4,999',
   /**
-   * The same price as `now`, in paise, for the payment gateway.
-   *
-   * This is the only figure the server will charge. It is deliberately not
-   * derived from the display string, and the client is never allowed to send
-   * an amount — see lib/razorpay.ts. A unit test asserts the two stay in step.
+   * The full price in paise. Kept because it is what the kit is worth and
+   * what the balance is derived from, but it is NOT what the gateway is asked
+   * for. A unit test asserts it matches the display string.
    */
   nowPaise: 499_900,
+
+  /**
+   * Booking is a deposit; the rest is collected on delivery.
+   *
+   * This is the only figure Razorpay is ever asked for, and it is decided
+   * here rather than anywhere a browser can reach — see lib/razorpay.ts. The
+   * balance is deliberately stored as its own constant rather than computed
+   * at the point of use, so a rounding slip cannot put a different number on
+   * the packing slip than the one the buyer was shown.
+   */
+  deposit: '₹499',
+  depositPaise: 49_900,
+  balance: '₹4,500',
+  balancePaise: 450_000,
+
   save: 'Save ₹9,000',
   ship: 'Ships in 1–2 weeks',
 } as const
+
+/** The deposit and the balance must reconstruct the price, always. */
+export function balancePaiseFor(qty: number): number {
+  return PRICE.balancePaise * qty
+}
 
 /**
  * The early bird campaign.

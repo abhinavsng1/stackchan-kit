@@ -57,7 +57,7 @@ export default function Nav() {
             <span className="t-display text-[18px]">{PRICE.now}</span>
           </span>
           <a href="#reserve" onClick={() => track(EV.reserveCtaClicked, { location: 'nav' })}
-             className="btn btn-brand !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex">Order</a>
+             className="btn btn-brand !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex">Book</a>
         </div>
       </div>
 

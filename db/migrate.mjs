@@ -17,9 +17,22 @@ if (!url) {
 }
 
 const sql = neon(url)
+
+/**
+ * Comments come out BEFORE the split, not after.
+ *
+ * Splitting on ';' first means any semicolon inside an explanatory comment
+ * cuts the next statement in half, and Postgres then reports a syntax error
+ * pointing at a fragment of English prose. That happened, and what it cost
+ * was a column silently not created while every other line printed "ok" — the
+ * worst shape a migration failure can take.
+ */
 const statements = readFileSync(new URL('./schema.sql', import.meta.url), 'utf8')
+  .split('\n')
+  .filter((l) => !l.trim().startsWith('--'))
+  .join('\n')
   .split(';')
-  .map((s) => s.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n').trim())
+  .map((s) => s.trim())
   .filter(Boolean)
 
 let failed = 0

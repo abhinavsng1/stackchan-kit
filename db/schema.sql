@@ -55,3 +55,19 @@ create unique index if not exists preorders_order_id_key      on preorders (razo
 -- Tokens are generated in application code with Node's CSPRNG rather than in
 -- SQL, so this schema needs no pgcrypto extension. Backfill older rows with:
 --   npm run backfill-tokens
+
+-- ---------------------------------------------------------------------------
+-- Cash on delivery. Additive and safe to re-run.
+--
+-- Booking takes a deposit through Razorpay, and the rest is collected in cash
+-- when the kit is handed over. That second figure ends up on a packing slip and in
+-- a courier's hands, so it is written here at the moment the deposit settles
+-- rather than recomputed later from a price that may since have moved. What a
+-- buyer is asked for at the door is what they agreed to, not what the site
+-- happens to charge that week.
+alter table preorders add column if not exists balance_due_paise integer;
+alter table preorders add column if not exists balance_collected_at timestamptz;
+
+-- Which orders still owe money, for whoever is packing the batch.
+create index if not exists preorders_balance_outstanding
+  on preorders (paid_at) where paid_at is not null and balance_collected_at is null;

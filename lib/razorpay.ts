@@ -30,18 +30,43 @@ function credentials() {
   return { id, secret, basic: Buffer.from(`${id}:${secret}`).toString('base64') }
 }
 
+function assertQty(qty: number): void {
+  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) {
+    throw new RangeError(`Quantity must be a whole number between 1 and ${MAX_QTY}`)
+  }
+}
+
 /**
- * What a given quantity costs, decided here and nowhere else.
+ * What the gateway is asked for, decided here and nowhere else.
+ *
+ * This is the booking deposit, not the price of the kit. The balance is
+ * collected in cash on delivery and never passes through Razorpay, so an
+ * order created for the full price would overcharge by ₹4,500 a kit.
  *
  * The client sends a quantity; it never sends a price. Trusting a
  * browser-supplied amount is how a kit gets bought for ₹1, and it is
  * the single most common way a checkout integration is exploited.
  */
 export function orderAmountPaise(qty: number): number {
-  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) {
-    throw new RangeError(`Quantity must be a whole number between 1 and ${MAX_QTY}`)
-  }
-  return PRICE.nowPaise * qty
+  assertQty(qty)
+  return PRICE.depositPaise * qty
+}
+
+/**
+ * What is still owed when the box arrives.
+ *
+ * Computed server-side for the same reason the deposit is: this figure ends
+ * up on a packing slip and in a courier's hands, and it is the only number
+ * standing between a buyer and being asked for the wrong amount at the door.
+ */
+export function balanceDuePaise(qty: number): number {
+  assertQty(qty)
+  return PRICE.balancePaise * qty
+}
+
+/** Deposit plus balance must always reconstruct the price of the kits. */
+export function totalPaise(qty: number): number {
+  return orderAmountPaise(qty) + balanceDuePaise(qty)
 }
 
 /**
@@ -70,7 +95,12 @@ export async function createOrder(qty: number): Promise<OrderResult> {
         amount: amountPaise,
         currency: 'INR',
         receipt: receiptId(),
-        notes: { kits: String(qty), batch: '01' },
+        /* Visible in the Razorpay dashboard, where somebody reconciling a
+           payment needs to know this was a deposit, not a full order. */
+        notes: {
+          kits: String(qty), batch: '01', payment_type: 'booking_deposit',
+          balance_due_on_delivery_paise: String(balanceDuePaise(qty)),
+        },
       }),
     })
   } catch {

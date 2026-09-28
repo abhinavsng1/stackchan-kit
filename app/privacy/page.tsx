@@ -77,10 +77,22 @@ export default function Privacy() {
         <li><strong>Neon</strong> — the database your order is stored in.</li>
         <li><strong>Vercel</strong> — hosting; sees standard request logs.</li>
         <li><strong>Resend</strong> — sends the order emails.</li>
-        <li><strong>The courier</strong> — gets your name, address and phone, because that is how a parcel arrives.</li>
-        <li><strong>Mixpanel and Meta</strong> — site usage, never your order details.</li>
+        <li><strong>The courier</strong> — gets your name, address and phone, because that is how a parcel arrives, and collects the balance due in cash.</li>
+        <li><strong>Mixpanel</strong> — site usage, and, once you place an order, your name,
+          email, phone, city, pincode and profession. We use it to see where orders stall and
+          to follow up on one that did not complete. It is not used for advertising.</li>
+        <li><strong>Meta</strong> — site usage and the value of an order. Never your name,
+          email, phone or address.</li>
       </ul>
       <p>Nobody else. We do not sell data and we do not share it for anyone else&apos;s advertising.</p>
+
+      <h2>Paying in two parts</h2>
+      <p>
+        Booking takes a deposit through Razorpay. The rest is collected in cash by the courier
+        when the kit is handed to you, so the delivery company is told what you still owe. That
+        figure is fixed when you book and does not change afterwards, whatever the site happens
+        to be charging by the time your box ships.
+      </p>
 
       <h2>Your data, on request</h2>
       <p>

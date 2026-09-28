@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { verifyPaymentSignature, orderAmountPaise } from '@/lib/razorpay'
+import { verifyPaymentSignature, orderAmountPaise, balanceDuePaise } from '@/lib/razorpay'
 import { markPaid } from '@/lib/preorders'
 import { sendPaymentReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
@@ -80,6 +80,7 @@ export async function POST(request: Request) {
     orderId: result.data.razorpay_order_id,
     paymentId: result.data.razorpay_payment_id,
     expectedPaiseFor: orderAmountPaise,
+    balanceDuePaiseFor: balanceDuePaise,
   })
 
   if (settled.status === 'unknown_order') {
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
       email: settled.email,
       qty: settled.qty,
       amountPaise: settled.amountPaise,
+      balanceDuePaise: settled.balanceDuePaise,
       phone: settled.phone,
       address: settled.address,
       city: settled.city,

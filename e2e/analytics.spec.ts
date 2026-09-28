@@ -16,5 +16,7 @@ test('the footer still discloses production collection', async ({ page }) => {
   const footer = page.getByRole('contentinfo')
   await expect(footer.getByText(/session replays/i)).toBeVisible()
   await expect(footer.getByText(/Meta/)).toBeVisible()
-  await expect(footer.getByText(/never recorded/i)).toBeVisible()
+  await expect(footer.getByText(/never captured by the session replay/i)).toBeVisible()
+  // Order details now reach Mixpanel, so the footer has to say so.
+  await expect(footer.getByText(/Mixpanel/)).toBeVisible()
 })

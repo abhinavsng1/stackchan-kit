@@ -72,6 +72,14 @@ describe('collection now starts on load', () => {
   it('still discloses collection in the footer, gate or no gate', () => {
     expect(page).toMatch(/session\s+replays/)
     expect(page).toMatch(/Meta/)
-    expect(page).toMatch(/never recorded/)
+    expect(page).toMatch(/never captured by the\s+session replay/)
+  })
+
+  it('says order details reach Mixpanel, because they now do', () => {
+    // The profile written at booking carries a name, phone and address. If
+    // that disclosure disappears, the code writing it has to go too.
+    expect(page).toMatch(/Mixpanel/)
+    expect(page, 'the footer must not claim Meta gets order details')
+      .toMatch(/Meta is never given your name, email, phone or\s+address/)
   })
 })

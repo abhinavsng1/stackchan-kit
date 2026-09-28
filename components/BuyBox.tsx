@@ -58,7 +58,7 @@ export default function BuyBox() {
           <StepButton label="More kits" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
         </div>
         <button type="button" onClick={reserve} className="btn btn-brand flex-1 justify-center">
-          Order {qty > 1 ? `${qty} kits` : 'a kit'}
+          Book {qty > 1 ? `${qty} kits` : 'a kit'} — {PRICE.deposit}
         </button>
       </div>
 
@@ -67,7 +67,8 @@ export default function BuyBox() {
       <dl className="mt-7 m-0 grid gap-0 border-t" style={{ borderColor: 'var(--line)' }}>
         {[
           ['Dispatch', '1–2 weeks'],
-          ['Due today', PRICE.now],
+          ['Due today', PRICE.deposit],
+          ['On delivery, cash', PRICE.balance],
           ['Assembly', 'You build it'],
           ['Shell', 'Printed, included'],
           ['Licence', 'Apache-2.0'],

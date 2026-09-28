@@ -1,4 +1,4 @@
-import { verifyWebhookSignature, orderAmountPaise } from '@/lib/razorpay'
+import { verifyWebhookSignature, orderAmountPaise, balanceDuePaise } from '@/lib/razorpay'
 import { markPaid } from '@/lib/preorders'
 import { sendPaymentReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
@@ -75,6 +75,7 @@ export async function POST(request: Request) {
     paymentId: payment.id,
     paidPaise: payment.amount,
     expectedPaiseFor: orderAmountPaise,
+    balanceDuePaiseFor: balanceDuePaise,
   })
 
   // An amount mismatch is the one worth shouting about. A correctly signed
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
       email: result.email,
       qty: result.qty,
       amountPaise: result.amountPaise,
+      balanceDuePaise: result.balanceDuePaise,
       phone: result.phone,
       address: result.address,
       city: result.city,

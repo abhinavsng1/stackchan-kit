@@ -101,7 +101,7 @@ export default function Page() {
             worse: most ad traffic lands here and the campaign is the offer. */}
         <span className="sm:hidden">{CAMPAIGN.name} · </span>
         <span className="hidden sm:inline">{CAMPAIGN.line} · </span>
-        {PRICE.now} · {PRICE.save}
+{PRICE.deposit} to book · {PRICE.now} total
       </div>
 
       <main id="top">
@@ -376,25 +376,30 @@ export default function Page() {
                 Order from batch 01
               </h2>
               <p className="text-[17px] leading-[28px] text-[var(--muted)] mt-0 mb-10 max-w-[46ch]">
-                {PRICE.now} per kit, paid now. {PRICE.ship} to the address you give us.
+{PRICE.deposit} to book your kit now. The remaining {PRICE.balance} is paid in cash when it is delivered.
               </p>
               <ReserveForm />
             </div>
 
             <aside className="card p-6 h-fit lg:sticky lg:top-24">
               <div className="flex items-baseline gap-3">
-                <span className="t-display text-[34px] leading-none">{PRICE.now}</span>
-                <span className="t-mono text-[14px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
+                <span className="t-display text-[34px] leading-none">{PRICE.deposit}</span>
+                <span className="text-[14px] text-[var(--muted)]">to book</span>
               </div>
+
+              <p className="text-[13px] text-[var(--muted)] mt-2 mb-3">
+                {PRICE.balance} in cash on delivery · {PRICE.now} total
+              </p>
 
               <p className="t-label mt-2 mb-3">{PRICE.ship}</p>
               <Countdown />
 
               <ol className="mt-6 mb-0 p-0 list-none grid gap-4">
                 {[
-                  ['You order', 'Your details and payment, on this page. Card, UPI, netbanking or EMI.'],
+                  ['You book', `Your details and ${PRICE.deposit}, on this page. Card, UPI, netbanking or EMI.`],
                   ['We box your kit', 'Parts matched, shell printed, servos addressed and centred.'],
                   ['We ship it', 'Dispatch within 1–2 weeks of the batch closing.'],
+                  ['You pay the rest', `${PRICE.balance} in cash to the courier, when the box reaches you.`],
                   ['You build it', 'Four steps, one evening. Everything you need is in the box.'],
                 ].map(([title, body], i) => (
                   <li key={title} className="flex gap-3">
@@ -488,9 +493,10 @@ export default function Page() {
             <div className="t-label mb-3">Your data</div>
             <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
               Ordering stores your name, email, phone, shipping address and
-              profession. We use them to ship the kit and to tell you when it is
-              on its way. Nothing else, and we do not pass them on. Card details
-              go to Razorpay and never reach us.
+              profession. We use them to ship the kit, to tell you when it is on
+              its way, and — in Mixpanel — to follow up if an order does not
+              complete. Card details go to Razorpay and never reach us. The
+              courier is told your address and the balance to collect.
             </p>
             <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
               The camera and microphone demos on this page run entirely in your
@@ -500,7 +506,9 @@ export default function Page() {
             <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
               We record how this page is used — clicks, scrolling and session
               replays — and share some of it with Meta so our ads reach the
-              right people. What you type into the form is never recorded.
+              right people. Meta is never given your name, email, phone or
+              address. What you type into the form is never captured by the
+              session replay.
             </p>
           </div>
         </div>

@@ -29,7 +29,7 @@ async function stubCheckout(
     ` }))
   await page.route('**/api/create-order', (route) =>
     route.fulfill({ status: 201, json: {
-      key_id: 'rzp_test_stub', order_id: 'order_TEST', amount: 499900, currency: 'INR',
+      key_id: 'rzp_test_stub', order_id: 'order_TEST', amount: 49900, currency: 'INR',
       prefill: { name: 'Asha Rao', email: 'asha@example.com', contact: '+919876543210' },
     } }))
   await page.route('**/api/verify-payment', (route) =>
@@ -53,9 +53,9 @@ test('takes an order, collects payment, and confirms', async ({ page }) => {
   await stubCheckout(page, 'paid')
 
   await page.goto('/')
-  await page.getByRole('button', { name: /^Order/ }).first().click()
+  await page.getByRole('button', { name: /^Book/ }).first().click()
   await fill(page)
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.getByText('Your kit is on its way.')).toBeVisible()
 })
@@ -70,11 +70,11 @@ test('a closed payment window leaves the order payable, not lost', async ({ page
 
   await page.goto('/#reserve')
   await fill(page)
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   // Back to the form, no error shouted, and pressing again must not create a
   // second order — that would collide with the unique email and dead-end them.
-  const button = page.getByRole('button', { name: /^Pay / })
+  const button = page.getByRole('button', { name: /^Book for / })
   await expect(button).toBeEnabled()
   await button.click()
   await expect.poll(() => creates).toBe(1)
@@ -86,7 +86,7 @@ test('tells the visitor when their email is already reserved', async ({ page }) 
 
   await page.goto('/#reserve')
   await fill(page)
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.getByText('That email has already ordered.')).toBeVisible()
 })
@@ -100,7 +100,7 @@ test('explains a reused phone instead of claiming the email is on the list', asy
 
   await page.goto('/#reserve')
   await fill(page, 'a-different-address@example.com')
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.getByText('That number has already ordered.')).toBeVisible()
   await expect(page.getByText(/one kit per person per batch/i)).toBeVisible()
@@ -116,7 +116,7 @@ test('shows a field error and never calls the server', async ({ page }) => {
   await page.goto('/#reserve')
   await page.getByLabel('Name', { exact: true }).fill('Asha Rao')
   await page.getByLabel('Email', { exact: true }).fill('not-an-email')
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.getByText('Enter a valid email address')).toBeVisible()
   expect(called).toBe(false)
@@ -128,7 +128,7 @@ test('asks for every field it needs before calling the server', async ({ page })
 
   await page.goto('/#reserve')
   await expect(async () => {
-    await page.getByRole('button', { name: /^Pay / }).click()
+    await page.getByRole('button', { name: /^Book for / }).click()
     await expect(page.getByText('Enter your full name')).toBeVisible({ timeout: 1000 })
   }).toPass({ timeout: 15_000 })
 
@@ -156,7 +156,7 @@ test('an order goes through without a profession', async ({ page }) => {
   await page.goto('/#reserve')
   await fill(page)
   await page.getByLabel(/^Profession/).selectOption('')
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.getByText('Your kit is on its way.')).toBeVisible()
   expect(sent!.profession, 'an unanswered profession must not block the sale').toBe('')
@@ -166,7 +166,7 @@ test('rejects a phone number that is not a mobile', async ({ page }) => {
   await page.goto('/#reserve')
   await fill(page)
   await page.getByLabel(/^Phone/).fill('1234567890')
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
   await expect(page.getByText('Enter a 10-digit Indian mobile number')).toBeVisible()
 })
 
@@ -175,10 +175,10 @@ test('recovers from a network failure with a retryable message', async ({ page }
 
   await page.goto('/#reserve')
   await fill(page)
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.locator('form [role="alert"]')).toContainText('No connection')
-  await expect(page.getByRole('button', { name: /^Pay / })).toBeEnabled()
+  await expect(page.getByRole('button', { name: /^Book for / })).toBeEnabled()
 })
 
 test('surfaces the unconfigured-database state honestly', async ({ page }) => {
@@ -187,7 +187,7 @@ test('surfaces the unconfigured-database state honestly', async ({ page }) => {
 
   await page.goto('/#reserve')
   await fill(page)
-  await page.getByRole('button', { name: /^Pay / }).click()
+  await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.locator('form [role="alert"]')).toContainText('not open yet')
 })
