@@ -20,9 +20,45 @@ export type PreorderRecord = {
 export type CreateResult =
   /** The token is returned so the caller can send the buyer straight to pay. */
   | { status: 'created'; token: string }
-  /** Which field collided, so the visitor can be told something useful. */
-  | { status: 'duplicate'; field: 'email' | 'phone' }
+  /**
+   * Which field collided, so the visitor can be told something useful, and
+   * whether that existing order was ever paid for. An unpaid duplicate is
+   * somebody coming back to finish, not somebody ordering twice, and telling
+   * them they are "already on the list" strands them with no way to pay.
+   */
+  | { status: 'duplicate'; field: 'email' | 'phone'; paid: boolean; token: string | null }
   | { status: 'unconfigured' }
+
+/**
+ * The token for an unpaid order, but only to someone who can already name
+ * both the email and the phone on it.
+ *
+ * Handing a payment token to anyone who types an email address would turn
+ * this form into an oracle for which addresses have ordered. Requiring both
+ * details is not authentication, and it is not meant to be — it is the bar
+ * that separates a buyer resuming their own order from someone probing the
+ * table, and it costs the buyer nothing because they just typed both.
+ *
+ * A paid order returns nothing. There is no payment left to resume, and the
+ * only thing a token could do is confuse.
+ */
+async function resumeToken(
+  sql: NonNullable<ReturnType<typeof client>>,
+  email: string,
+  phone: string | null,
+): Promise<{ paid: boolean; token: string | null }> {
+  const rows = await sql`
+    select payment_token, paid_at, phone
+      from preorders where email = ${email.toLowerCase()} limit 1`
+  const row = rows[0]
+  if (!row) return { paid: false, token: null }
+  if (row.paid_at) return { paid: true, token: null }
+
+  const stored = row.phone === null ? null : String(row.phone)
+  const given = phone?.trim() || null
+  const matches = stored !== null && given !== null && stored === given
+  return { paid: false, token: matches ? String(row.payment_token) : null }
+}
 
 /**
  * Lazy client. neon() throws when DATABASE_URL is unset, and Next evaluates
@@ -60,9 +96,23 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
 
   // ON CONFLICT (email) swallows an email collision, so zero rows means email.
   // A phone collision throws 23505 instead and is classified by the caller.
-  return rows.length > 0
-    ? { status: 'created', token }
-    : { status: 'duplicate', field: 'email' }
+  if (rows.length > 0) return { status: 'created', token }
+
+  const resume = await resumeToken(sql, input.email, input.phone ?? null)
+  return { status: 'duplicate', field: 'email', ...resume }
+}
+
+/**
+ * The same lookup for a collision Postgres raised rather than absorbed — a
+ * repeat phone number under a new address. Exported so the route can answer
+ * it the same way it answers a repeat email.
+ */
+export async function resumeForEmail(
+  email: string, phone: string | null,
+): Promise<{ paid: boolean; token: string | null }> {
+  const sql = client()
+  if (!sql) return { paid: false, token: null }
+  return resumeToken(sql, email, phone)
 }
 
 /**

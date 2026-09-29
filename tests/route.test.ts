@@ -7,7 +7,10 @@ const duplicateField = (e: unknown): 'email' | 'phone' | null => {
   if (err.code !== '23505') return null
   return `${err.constraint ?? ''} ${err.message ?? ''}`.includes('email') ? 'email' : 'phone'
 }
-vi.mock('@/lib/preorders', () => ({ createPreorder, duplicateField }))
+/* Unpaid with no resumable token is the default here; the tests that care
+   about resuming set their own return. */
+const resumeForEmail = vi.hoisted(() => vi.fn(async () => ({ paid: false, token: null })))
+vi.mock('@/lib/preorders', () => ({ createPreorder, duplicateField, resumeForEmail }))
 
 const sendReservationEmail = vi.fn()
 vi.mock('@/lib/email', () => ({ sendReservationEmail }))
@@ -58,10 +61,32 @@ describe('POST /api/preorder', () => {
   })
 
   it('returns 409 naming the email when that address is already on the list', async () => {
-    createPreorder.mockResolvedValue({ status: 'duplicate', field: 'email' })
+    createPreorder.mockResolvedValue({
+      status: 'duplicate', field: 'email', paid: true, token: null,
+    })
     const res = await POST(post(body))
     expect(res.status).toBe(409)
-    await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'email' })
+    await expect(res.json()).resolves.toEqual({
+      status: 'duplicate', field: 'email', paid: true, token: null,
+    })
+  })
+
+  it('lets a returning buyer resume an unpaid order instead of calling it a duplicate', async () => {
+    createPreorder.mockResolvedValue({
+      status: 'duplicate', field: 'email', paid: false, token: 'b'.repeat(32),
+    })
+    const res = await POST(post(body))
+    expect(res.status).toBe(409)
+    // The token is what lets the form offer "pay" rather than a dead end.
+    await expect(res.json()).resolves.toMatchObject({ paid: false, token: 'b'.repeat(32) })
+  })
+
+  it('never returns a token for an order that is already paid for', async () => {
+    createPreorder.mockResolvedValue({
+      status: 'duplicate', field: 'email', paid: true, token: null,
+    })
+    const res = await POST(post(body))
+    await expect(res.json()).resolves.toMatchObject({ paid: true, token: null })
   })
 
   it('returns 409 naming the phone when a new email reuses a taken number', async () => {
@@ -72,12 +97,16 @@ describe('POST /api/preorder', () => {
     expect(res.status).toBe(409)
     // The visitor deliberately used a different email; saying "you are already
     // on the list" without naming the phone is what confused a real person.
-    await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'phone' })
+    await expect(res.json()).resolves.toEqual({
+      status: 'duplicate', field: 'phone', paid: false, token: null,
+    })
   })
 
   it('is idempotent — a replayed request creates nothing extra', async () => {
     createPreorder.mockResolvedValueOnce({ status: 'created' })
-    createPreorder.mockResolvedValueOnce({ status: 'duplicate', field: 'email' })
+    createPreorder.mockResolvedValueOnce({
+      status: 'duplicate', field: 'email', paid: false, token: null,
+    })
     expect((await POST(post(body))).status).toBe(201)
     expect((await POST(post(body))).status).toBe(409)
   })
@@ -133,7 +162,9 @@ describe('POST /api/preorder', () => {
     createPreorder.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }))
     const res = await POST(post(body))
     expect(res.status).toBe(409)
-    await expect(res.json()).resolves.toEqual({ status: 'duplicate', field: 'phone' })
+    await expect(res.json()).resolves.toEqual({
+      status: 'duplicate', field: 'phone', paid: false, token: null,
+    })
   })
 
   it('refuses an order that could not be shipped', async () => {

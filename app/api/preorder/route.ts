@@ -1,5 +1,5 @@
 import { preorderSchema, fieldErrors } from '@/lib/schema'
-import { createPreorder, duplicateField } from '@/lib/preorders'
+import { createPreorder, duplicateField, resumeForEmail } from '@/lib/preorders'
 import { waitUntil } from '@vercel/functions'
 
 /** Generous for four short fields, small enough to refuse junk outright. */
@@ -75,14 +75,22 @@ export async function POST(request: Request) {
       return json({ status: 'created', token: outcome.token }, 201)
     }
 
-    // Tell them which detail was already taken. "You're already on the list"
-    // is confusing when they deliberately used a different email.
-    return json({ status: 'duplicate', field: outcome.field }, 409)
+    // Tell them which detail was already taken, and whether that order was
+    // ever paid for. An unpaid one comes back with its token so the buyer can
+    // finish instead of being told they are already on a list they cannot pay
+    // into.
+    return json({
+      status: 'duplicate', field: outcome.field,
+      paid: outcome.paid, token: outcome.token,
+    }, 409)
   } catch (error) {
     // Phone is unique as well as email, so a second reservation under a new
     // address trips a unique violation rather than the ON CONFLICT clause.
     const field = duplicateField(error)
-    if (field) return json({ status: 'duplicate', field }, 409)
+    if (field) {
+      const resume = await resumeForEmail(record.email, record.phone ?? null)
+      return json({ status: 'duplicate', field, paid: resume.paid, token: resume.token }, 409)
+    }
     console.error('[preorder] insert failed', error)
     return json({ error: 'Something went wrong on our end. Try again.' }, 500)
   }

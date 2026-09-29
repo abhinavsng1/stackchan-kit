@@ -12,6 +12,13 @@ type State =
   | { kind: 'paying' }
   | { kind: 'paid'; paymentId: string }
   | { kind: 'already'; field: 'email' | 'phone' }
+  /**
+   * Details saved, money not taken. Deliberately its own state rather than a
+   * variant of 'already' or a silent return to 'idle': this person has an
+   * order sitting unpaid and the only useful thing the page can do is offer
+   * to take the payment again.
+   */
+  | { kind: 'unpaid'; why: 'dismissed' | 'failed' | 'returning'; detail?: string }
   | { kind: 'error'; message: string }
 
 const EMPTY: Record<string, string> = {}
@@ -38,17 +45,72 @@ export default function ReserveForm() {
     return () => window.removeEventListener('sc:qty', onQty)
   }, [])
 
+  /**
+   * Details saved, payment not taken.
+   *
+   * This screen exists because the three ways a payment can fail to happen —
+   * closing the modal, a declined card, and coming back a day later — all used
+   * to end somewhere that told the buyer nothing useful. Two of them showed an
+   * empty form, and the third said "already ordered", which reads as "you are
+   * on the list" to somebody who has paid nothing and is on no list.
+   *
+   * So it says plainly that nothing has been charged, offers the payment
+   * again, and gives a human to write to. No badge that could be mistaken for
+   * a confirmation.
+   */
+  if (state.kind === 'unpaid') {
+    return (
+      <div className="card p-8" role="status">
+        <span className="badge"
+              style={{ background: 'var(--surface-2)', color: 'var(--ink)' }}>
+          Not paid yet
+        </span>
+
+        <p className="t-display text-[30px] mt-4 mb-3">
+          {state.why === 'returning'
+            ? 'You started this booking. It is not paid for.'
+            : 'Your details are saved. Nothing has been charged.'}
+        </p>
+
+        <p className="max-w-[50ch] text-[var(--muted)] m-0">
+          {state.why === 'failed' && state.detail
+            ? `${state.detail} Your details are saved, so you can try the payment again without filling anything in.`
+            : state.why === 'returning'
+              ? `We have your details from earlier. The ${PRICE.deposit} booking payment did not go through, so no kit is held for you yet.`
+              : `The payment window closed before anything went through. Your kit is not booked until the ${PRICE.deposit} is paid.`}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-4 mt-7">
+          <button type="button" onClick={pay} className="btn btn-brand">
+            Pay {PRICE.deposit} and book
+          </button>
+          <span className="t-mono text-[12px] text-[var(--muted)]">
+            {PRICE.balance} on delivery · {PRICE.now} total
+          </span>
+        </div>
+
+        <p className="text-[13px] leading-[21px] text-[var(--muted)] mt-6 mb-0 pt-5 border-t"
+           style={{ borderColor: 'var(--line)' }}>
+          Trouble paying, or want to change something on the order? Write to{' '}
+          <a href={`mailto:${CONTACT.email}`}
+             className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>{' '}
+          and we will sort it out by hand.
+        </p>
+      </div>
+    )
+  }
+
   if (state.kind === 'paid' || state.kind === 'already') {
     const byPhone = state.kind === 'already' && state.field === 'phone'
     return (
       <div className="card p-8" role="status">
         <span className="badge badge-brand"><span className="dot" />
-          {state.kind === 'paid' ? 'Paid' : 'Already ordered'}
+          {state.kind === 'paid' ? 'Booked' : 'Already ordered'}
         </span>
 
         <p className="t-display text-[30px] mt-4 mb-3">
           {state.kind === 'paid'
-            ? 'Your kit is on its way.'
+            ? 'Your kit is booked.'
             : byPhone
               ? 'That number has already ordered.'
               : 'That email has already ordered.'}
@@ -56,8 +118,11 @@ export default function ReserveForm() {
 
         <p className="max-w-[48ch] text-[var(--muted)] m-0">
           {state.kind === 'paid' ? (
-            <>A receipt is on its way to your inbox. {PRICE.ship}, and we&apos;ll email
-            tracking the moment it leaves.</>
+            <>Your {PRICE.deposit} is paid and a confirmation is on its way to your
+            inbox. {PRICE.ship}, and we&apos;ll email tracking the moment it leaves.
+            Keep <strong className="text-[var(--ink)]">{PRICE.balance} in cash</strong> ready
+            for the courier — that is the rest of the {PRICE.now}, and they cannot
+            take a card.</>
           ) : (
             <>We build one kit per person per batch. To change the address on an existing
             order, or to order another, write to <a href={`mailto:${CONTACT.email}`}
@@ -138,7 +203,12 @@ export default function ReserveForm() {
       }
       if (res.status === 409) {
         const field = body.field === 'phone' ? 'phone' : 'email'
-        track(EV.reserveDuplicate, { field })
+        track(EV.reserveDuplicate, { field, paid: Boolean(body.paid) })
+        // An order that was never paid for is somebody coming back to finish.
+        if (!body.paid && typeof body.token === 'string' && body.token) {
+          token.current = body.token
+          return setState({ kind: 'unpaid', why: 'returning' })
+        }
         return setState({ kind: 'already', field })
       }
       if (res.status === 400 && body.fields) {
@@ -184,19 +254,26 @@ export default function ReserveForm() {
         return setState({ kind: 'paid', paymentId: outcome.paymentId })
       }
       if (outcome.status === 'dismissed') {
-        // Nothing charged and the order is saved: let them press again.
+        // Nothing charged and the order is saved. Returning to 'idle' put the
+        // empty form back and left no sign the order existed, so the only way
+        // back to payment was to fill it in again — which collides with the
+        // row they just created.
         track(EV.paymentDismissed)
-        return setState({ kind: 'idle' })
+        return setState({ kind: 'unpaid', why: 'dismissed' })
       }
       // Everything the gateway told us, so a dashboard can tell a declined
       // card apart from a key that stopped working for everybody.
       track(EV.paymentFailed, { outcome: outcome.status, ...outcome.detail })
-      setState({
-        kind: 'error',
-        message: outcome.status === 'unconfirmed'
-          ? `${outcome.message} Write to ${CONTACT.email} and we will sort it out.`
-          : outcome.message,
-      })
+      // 'unconfirmed' means the money may well have moved and we could not
+      // verify it. Offering "pay again" there invites a double charge, so it
+      // stays an error pointing at a human.
+      if (outcome.status === 'unconfirmed') {
+        return setState({
+          kind: 'error',
+          message: `${outcome.message} Write to ${CONTACT.email} and we will sort it out.`,
+        })
+      }
+      setState({ kind: 'unpaid', why: 'failed', detail: outcome.message })
     } catch (e) {
       track(EV.paymentFailed, {
         outcome: 'not_started',

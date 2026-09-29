@@ -57,7 +57,10 @@ test('takes an order, collects payment, and confirms', async ({ page }) => {
   await fill(page)
   await page.getByRole('button', { name: /^Book for / }).click()
 
-  await expect(page.getByText('Your kit is on its way.')).toBeVisible()
+  const panel = page.locator('#reserve')
+  await expect(panel.getByText('Your kit is booked.')).toBeVisible()
+  // COD: the one thing they must know before the courier turns up.
+  await expect(panel.getByText(/in cash/).first()).toBeVisible()
 })
 
 test('a closed payment window leaves the order payable, not lost', async ({ page }) => {
@@ -72,12 +75,59 @@ test('a closed payment window leaves the order payable, not lost', async ({ page
   await fill(page)
   await page.getByRole('button', { name: /^Book for / }).click()
 
-  // Back to the form, no error shouted, and pressing again must not create a
-  // second order — that would collide with the unique email and dead-end them.
-  const button = page.getByRole('button', { name: /^Book for / })
-  await expect(button).toBeEnabled()
-  await button.click()
+  // Nothing was charged, so nothing in this panel may imply a kit is held.
+  const panel = page.locator('#reserve')
+  await expect(panel.getByText('Not paid yet')).toBeVisible()
+  await expect(panel.getByText(/Nothing has been charged/)).toBeVisible()
+  await expect(panel.getByText(/your kit is booked|already ordered/i)).toHaveCount(0)
+
+  // A way back to paying, and a human to ask.
+  await expect(panel.getByRole('link', { name: 'support@pebblerobo.com' }).first())
+    .toBeVisible()
+
+  // Pressing again must not create a second order — that would collide with
+  // the unique email and dead-end them.
+  const again = page.getByRole('button', { name: /^Pay .* and book/ })
+  await expect(again).toBeEnabled()
+  await again.click()
   await expect.poll(() => creates).toBe(1)
+})
+
+test('a buyer returning to an unpaid order is offered payment, not a dead end', async ({ page }) => {
+  // The row exists from an earlier visit and was never paid for.
+  await page.route('**/api/preorder', (route) => route.fulfill({
+    status: 409,
+    json: { status: 'duplicate', field: 'email', paid: false, token: 'c'.repeat(32) },
+  }))
+  await stubCheckout(page, 'dismissed')
+
+  await page.goto('/#reserve')
+  await fill(page)
+  await page.getByRole('button', { name: /^Book for / }).click()
+
+  const panel = page.locator('#reserve')
+  await expect(panel.getByText('You started this booking. It is not paid for.')).toBeVisible()
+  await expect(panel.getByRole('button', { name: /^Pay .* and book/ })).toBeEnabled()
+  await expect(panel.getByRole('link', { name: 'support@pebblerobo.com' }).first())
+    .toBeVisible()
+  // "Already ordered" is what this used to say, and it stranded them.
+  await expect(panel.getByText(/already ordered/i)).toHaveCount(0)
+})
+
+test('a paid duplicate is still told they already ordered', async ({ page }) => {
+  await page.route('**/api/preorder', (route) => route.fulfill({
+    status: 409,
+    json: { status: 'duplicate', field: 'email', paid: true, token: null },
+  }))
+
+  await page.goto('/#reserve')
+  await fill(page)
+  await page.getByRole('button', { name: /^Book for / }).click()
+
+  const panel = page.locator('#reserve')
+  await expect(panel.getByText(/already ordered/i).first()).toBeVisible()
+  // No second payment offered for something already paid for.
+  await expect(panel.getByRole('button', { name: /^Pay .* and book/ })).toHaveCount(0)
 })
 
 test('tells the visitor when their email is already reserved', async ({ page }) => {
@@ -158,7 +208,7 @@ test('an order goes through without a profession', async ({ page }) => {
   await page.getByLabel(/^Profession/).selectOption('')
   await page.getByRole('button', { name: /^Book for / }).click()
 
-  await expect(page.getByText('Your kit is on its way.')).toBeVisible()
+  await expect(page.getByText('Your kit is booked.')).toBeVisible()
   expect(sent!.profession, 'an unanswered profession must not block the sale').toBe('')
 })
 

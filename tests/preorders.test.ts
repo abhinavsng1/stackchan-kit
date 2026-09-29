@@ -50,7 +50,41 @@ describe('reservation persistence', () => {
 
   it('still identifies an email duplicate when no phone was supplied', async () => {
     sql.mockResolvedValue([])
-    await expect(createPreorder(minimal)).resolves.toEqual({ status: 'duplicate', field: 'email' })
+    await expect(createPreorder(minimal)).resolves.toEqual({
+      status: 'duplicate', field: 'email', paid: false, token: null,
+    })
+  })
+
+  it('hands back the token when an unpaid order is resumed with the same phone', async () => {
+    // The insert conflicts, then the lookup finds the unpaid row.
+    sql.mockResolvedValueOnce([])
+    sql.mockResolvedValueOnce([
+      { payment_token: 'a'.repeat(32), paid_at: null, phone: '+919876543210' },
+    ])
+    await expect(createPreorder({ ...minimal, phone: '+919876543210' })).resolves.toEqual({
+      status: 'duplicate', field: 'email', paid: false, token: 'a'.repeat(32),
+    })
+  })
+
+  it('withholds the token when the phone does not match the order', async () => {
+    // Otherwise the form is an oracle for which addresses have ordered.
+    sql.mockResolvedValueOnce([])
+    sql.mockResolvedValueOnce([
+      { payment_token: 'a'.repeat(32), paid_at: null, phone: '+919876543210' },
+    ])
+    await expect(createPreorder({ ...minimal, phone: '+919000000000' })).resolves.toEqual({
+      status: 'duplicate', field: 'email', paid: false, token: null,
+    })
+  })
+
+  it('withholds the token from a paid order — there is nothing left to pay', async () => {
+    sql.mockResolvedValueOnce([])
+    sql.mockResolvedValueOnce([
+      { payment_token: 'a'.repeat(32), paid_at: '2026-09-29T10:00:00Z', phone: '+919876543210' },
+    ])
+    await expect(createPreorder({ ...minimal, phone: '+919876543210' })).resolves.toEqual({
+      status: 'duplicate', field: 'email', paid: true, token: null,
+    })
   })
 
   it('retains classification of a collision on an optional supplied phone', async () => {
