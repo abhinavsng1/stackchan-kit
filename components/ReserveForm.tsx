@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
 import { CONTACT, PRICE } from '@/lib/kit'
-import type { Variant } from '@/lib/variants'
+import { pricing, type Variant } from '@/lib/variants'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 
 type State =
@@ -25,6 +25,15 @@ type State =
 const EMPTY: Record<string, string> = {}
 
 export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
+  /**
+   * What this buyer actually owes on delivery.
+   *
+   * Hardcoding the kit's balance here put "₹4,500" under a form on a page
+   * quoting ₹3,500 — the small print contradicting the price above it, which
+   * is exactly where a buyer decides whether to trust the rest.
+   */
+  const owed = variant ? pricing(variant).balance : PRICE.balance
+  const paysNow = variant ? pricing(variant).deposit : PRICE.deposit
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
   const qtyRef = useRef<HTMLSelectElement>(null)
@@ -336,7 +345,7 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
         <Field name="pincode" label="PIN code" inputMode="numeric" autoComplete="postal-code"
                placeholder="560078" error={errors.pincode} disabled={busy} />
         <div>
-          <label htmlFor="qty" className="t-label block mb-2">Kits</label>
+          <label htmlFor="qty" className="t-label block mb-2">{variant ? 'Robots' : 'Kits'}</label>
           <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
@@ -353,13 +362,13 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
         <button type="submit" className="btn btn-brand" disabled={busy}>
           {state.kind === 'submitting' ? 'Saving…'
             : state.kind === 'paying' ? 'Opening payment…'
-            : `Book for ${PRICE.deposit}`}
+            : `Book for ${paysNow}`}
         </button>
         <p className="t-label m-0">Card · UPI · netbanking · EMI</p>
       </div>
 
       <p className="text-[12.5px] text-[var(--muted)] mt-4 mb-0 max-w-[52ch]">
-        {PRICE.deposit} now; the courier collects {PRICE.balance} in cash when the
+        {paysNow} now; the courier collects {owed} in cash when the
         box reaches you. Your address and phone go to the courier, because that is
         how a parcel arrives, and to Mixpanel so we can follow up if an order does
         not complete. Payment is handled by Razorpay — your card details never

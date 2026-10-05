@@ -91,3 +91,24 @@ describe('what the courier is told to collect', () => {
     expect(balanceDuePaise(1, 'free')).toBe(PRICE.balancePaise)
   })
 })
+
+describe('the form small print', () => {
+  it('quotes the balance for the arm the buyer is looking at', async () => {
+    // "₹4,500" under a form on a ₹3,500 page is the small print contradicting
+    // the price above it.
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync(new URL('../components/ReserveForm.tsx', import.meta.url), 'utf8'))
+    expect(src).toContain('const owed = variant ? pricing(variant).balance : PRICE.balance')
+    expect(src).not.toMatch(/courier collects \{PRICE\.balance\}/)
+  })
+})
+
+describe('the quantity label', () => {
+  it('counts robots on the product page and kits on the kit page', async () => {
+    // The same form serves both. "Kits: 2" on a page selling an assembled
+    // robot is the form describing a different product from the one above it.
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync(new URL('../components/ReserveForm.tsx', import.meta.url), 'utf8'))
+    expect(src).toContain("{variant ? 'Robots' : 'Kits'}")
+  })
+})
