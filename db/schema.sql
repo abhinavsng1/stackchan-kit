@@ -71,3 +71,19 @@ alter table preorders add column if not exists balance_collected_at timestamptz;
 -- Which orders still owe money, for whoever is packing the batch.
 create index if not exists preorders_balance_outstanding
   on preorders (paid_at) where paid_at is not null and balance_collected_at is null;
+
+-- ---------------------------------------------------------------------------
+-- Pricing experiment on /pebble-chan. Additive and safe to re-run.
+--
+-- Two columns, because a conversion rate needs two numbers. `variant` on the
+-- order is the numerator: which price this buyer was actually shown.
+-- variant_views is the denominator: how many people saw each price. With only
+-- the first, the arms cannot be compared at all.
+alter table preorders add column if not exists variant text;
+
+create table if not exists variant_views (
+  day     date    not null,
+  variant text    not null,
+  count   integer not null default 0,
+  primary key (day, variant)
+);

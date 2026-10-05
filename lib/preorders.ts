@@ -15,6 +15,8 @@ export type PreorderRecord = {
   city?: string
   pincode?: string
   qty: number
+  /** Which price arm this buyer saw, on the pages that run the experiment. */
+  variant?: string
 }
 
 export type CreateResult =
@@ -83,12 +85,12 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
   const token = newPaymentToken()
 
   const rows = await sql`
-    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token)
+    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token, variant)
     values (
       ${input.name}, ${input.email.toLowerCase()}, ${input.phone?.trim() || null},
       ${input.profession?.trim() || null}, ${input.address?.trim() || null},
       ${input.city?.trim() || null}, ${input.pincode?.trim() || null}, ${input.qty},
-      ${token}
+      ${token}, ${input.variant ?? null}
     )
     on conflict (email) do nothing
     returning id
@@ -227,13 +229,18 @@ export async function markPaid(input: {
    * amount a courier collects is the amount agreed at booking, not whatever
    * the price happens to be by the time the box ships.
    */
-  balanceDuePaiseFor: (qty: number) => number
+  /**
+   * What is still owed. Takes the variant as well as the quantity because the
+   * assembled robot's two price arms owe different amounts on delivery, and
+   * the figure a courier collects must be the one that buyer was shown.
+   */
+  balanceDuePaiseFor: (qty: number, variant: string | null) => number
 }): Promise<MarkPaidResult> {
   const sql = client()
   if (!sql) return { status: 'unknown_order' }
 
   const rows = await sql`
-    select id, name, email, qty, phone, address, city, pincode, paid_at
+    select id, name, email, qty, phone, address, city, pincode, paid_at, variant
       from preorders where razorpay_order_id = ${input.orderId} limit 1`
 
   const row = rows[0]
@@ -245,7 +252,7 @@ export async function markPaid(input: {
     return { status: 'amount_mismatch', expectedPaise: expected, paidPaise: input.paidPaise }
   }
   const settledPaise = input.paidPaise ?? expected
-  const balanceDue = input.balanceDuePaiseFor(Number(row.qty))
+  const balanceDue = input.balanceDuePaiseFor(Number(row.qty), row.variant === null ? null : String(row.variant))
 
   // `paid_at is null` in the predicate makes this safe against two deliveries
   // racing: the second updates zero rows and reports what the first did.

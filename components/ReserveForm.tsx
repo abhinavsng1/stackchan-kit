@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
 import { CONTACT, PRICE } from '@/lib/kit'
+import type { Variant } from '@/lib/variants'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 
 type State =
@@ -23,7 +24,7 @@ type State =
 
 const EMPTY: Record<string, string> = {}
 
-export default function ReserveForm() {
+export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
   const qtyRef = useRef<HTMLSelectElement>(null)
@@ -155,6 +156,8 @@ export default function ReserveForm() {
       pincode: get('pincode'),
       qty: get('qty') || '1',
       company: get('company'),
+      // Which price this buyer was shown. Absent on the kit page.
+      ...(variant ? { variant } : {}),
     }
 
     // Fast local feedback. The server re-runs this and its answer is the one
