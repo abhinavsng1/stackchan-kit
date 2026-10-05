@@ -35,6 +35,30 @@ const DOES = [
    'No charging, no pairing, no account. One cable to the wall and it gets on with it.'],
 ]
 
+/**
+ * A day, in order, because that is the honest shape of the question "what do I
+ * actually do with it". Every scene is behaviour the robot has: it tracks a
+ * face, it picks its own expressions, it answers out loud, it dozes when the
+ * room empties. Nothing here is a feature we intend to ship.
+ */
+const DAY = [
+  ['Morning',
+   'You sit down',
+   'It has been dozing. The head comes up, finds your face and stays with it while you get settled. You did not press anything and there was nothing to unlock.'],
+  ['Through the day',
+   'It reacts while you work',
+   'You are not watching it, which is the point. It is curious at a noise, pleased when you come back, unimpressed by the afternoon. You catch it out of the corner of your eye and it has changed its mind again.'],
+  ['When you are stuck',
+   'You ask it out loud',
+   'No app, no wake word to remember, no reaching for a phone. You say the thing, it answers in the room. Hands stay on the keyboard.'],
+  ['When someone visits',
+   'It is the thing people pick up',
+   'Children go straight for the screen — it is a touchscreen and it reacts to being prodded. It is the first object on the desk anyone asks about, and the answer is never boring.'],
+  ['Late',
+   'The room empties and it settles',
+   'A few minutes with nobody about and it goes sleepy on its own. Leave it on. It draws about as much as a phone charger and it is awake again when you are.'],
+]
+
 const FAQS_PRODUCT = [
   ['How big is it?',
    'Small. The body is about the width of a credit card and it stands roughly as tall as a coffee mug, base included. It weighs less than a paperback and takes up about as much desk as a mug would.'],
@@ -114,6 +138,37 @@ export default async function PebbleChan() {
             </p>
           )}
         </div>
+      </section>
+
+      {/* ---- a day with it: the use cases, in the order they happen ---- */}
+      <section className="wrap-wide py-16 md:py-24">
+        <div className="max-w-[48ch] mb-12 md:mb-16">
+          <h2 className="t-display mt-0 mb-4" style={{ fontSize: 'clamp(30px,3.4vw,48px)', lineHeight: 1.03 }}>
+            A day with one on the desk.
+          </h2>
+          <p className="text-[16px] leading-[26px] text-[var(--muted)] m-0">
+            It is not something you use. It is something that is there, doing its own
+            thing, while you do yours.
+          </p>
+        </div>
+
+        <ol className="list-none p-0 m-0">
+          {DAY.map(([when, title, body], i) => (
+            <li
+              key={title}
+              className="grid gap-x-10 gap-y-2 md:grid-cols-[13ch_minmax(0,1fr)] py-7 md:py-8"
+              style={{ borderTop: i === 0 ? 'none' : '1px solid var(--line)' }}
+            >
+              <p className="t-mono text-[12px] uppercase tracking-[.08em] text-[var(--muted)] m-0 md:pt-1.5">
+                {when}
+              </p>
+              <div className="max-w-[62ch]">
+                <h3 className="t-display text-[22px] md:text-[27px] mt-0 mb-2">{title}</h3>
+                <p className="text-[15.5px] leading-[26px] text-[var(--muted)] m-0">{body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
 
       {/* ---- the price, and the honest half of it ---- */}

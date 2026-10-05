@@ -1,4 +1,5 @@
 import { FACES, faceSvg } from '@/lib/faces'
+import { WHEN } from './when'
 
 /**
  * The twelve faces, drawn from the atlas the firmware itself uses.
@@ -24,22 +25,27 @@ export default function FaceWall() {
             Twelve ways of looking at you.
           </h2>
           <p className="text-[16px] leading-[26px] m-0" style={{ color: 'rgba(243,241,237,.7)' }}>
-            It changes its mind through the day without being asked. Pleased when you
-            sit down, sleepy late on, doubtful when you say something odd.
+            Nobody chooses these. It picks one for itself, from what is going on in
+            front of it, and changes its mind all day. Here is when you see each one.
           </p>
         </div>
 
-        <ul className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 list-none p-0 m-0">
+        <ul className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 list-none p-0 m-0">
           {FACES.map((f) => (
             <li key={f.id}>
               <div
-                className="overflow-hidden"
+                /* The atlas emits a fixed 320x240 <svg>; in a column narrower
+                   than that it overflows and the face loses an eye. */
+                className="overflow-hidden [&>svg]:block [&>svg]:w-full [&>svg]:h-auto"
                 style={{ borderRadius: 14, border: '1px solid rgba(243,241,237,.14)', aspectRatio: '4 / 3' }}
                 /* The atlas emits a complete, self-contained <svg>. */
                 dangerouslySetInnerHTML={{ __html: faceSvg(f) }}
               />
-              <p className="text-[13px] mt-2.5 mb-0" style={{ color: 'rgba(243,241,237,.6)' }}>
+              <p className="text-[13.5px] mt-2.5 mb-1 font-medium" style={{ color: 'var(--pebble-white)' }}>
                 {f.name}
+              </p>
+              <p className="text-[12.5px] leading-[18px] m-0" style={{ color: 'rgba(243,241,237,.52)' }}>
+                {WHEN[f.id]}
               </p>
             </li>
           ))}
