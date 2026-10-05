@@ -85,7 +85,7 @@ export default async function PebbleChan() {
   if (!looksLikeBot(h.get('user-agent'))) await recordVariantView(variant).catch(() => {})
 
   return (
-    <main id="top">
+    <main id="top" className="pebble-dark">
       <PebbleHero variant={variant} />
 
       {/* The one loud moment: the product's own screen, twelve times. */}
@@ -215,10 +215,10 @@ export default async function PebbleChan() {
           </div>
 
           <aside className="p-6 md:p-7 lg:sticky lg:top-24"
-                 style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)', color: 'var(--pebble-white)' }}>
+                 style={{ borderRadius: 'var(--radius-tile)', background: 'var(--ink)', color: 'var(--bg)' }}>
             <div className="flex items-baseline gap-3">
               <span className="t-display text-[46px] leading-none">{p.deposit}</span>
-              <span className="text-[14px]" style={{ color: 'rgba(243,241,237,.6)' }}>to prebook</span>
+              <span className="text-[14px]" style={{ opacity: .6 }}>to prebook</span>
             </div>
             <dl className="grid gap-0 mt-6 mb-7 m-0">
               {([
@@ -228,14 +228,14 @@ export default async function PebbleChan() {
                 ['Dispatch', '2–3 weeks'],
               ] as const).map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4 py-2.5"
-                     style={{ borderBottom: '1px solid rgba(243,241,237,.14)' }}>
-                  <dt className="text-[13.5px]" style={{ color: 'rgba(243,241,237,.6)' }}>{k}</dt>
+                     style={{ borderBottom: '1px solid color-mix(in srgb, var(--bg) 16%, transparent)' }}>
+                  <dt className="text-[13.5px]" style={{ opacity: .6 }}>{k}</dt>
                   <dd className="t-mono text-[13px] m-0">{v}</dd>
                 </div>
               ))}
             </dl>
             <a href="#prebook" className="btn w-full justify-center"
-               style={{ background: 'var(--pebble-white)', borderColor: 'var(--pebble-white)', color: 'var(--pebble-black)', borderRadius: 999 }}>
+               style={{ background: 'var(--bg)', borderColor: 'var(--bg)', color: 'var(--ink)', borderRadius: 999 }}>
               Prebook for {p.deposit}
             </a>
           </aside>
