@@ -6,6 +6,7 @@ import { CONTACT } from '@/lib/kit'
 import ReserveForm from '@/components/ReserveForm'
 import PebbleHero from './PebbleHero'
 import FaceWall from './FaceWall'
+import MoodSequence from './MoodSequence'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,7 +90,7 @@ export default async function PebbleChan() {
       <PebbleHero variant={variant} />
 
       {/* The one loud moment: the product's own screen, twelve times. */}
-      <FaceWall />
+      <MoodSequence fallback={<FaceWall />} />
 
       {/* ---- arrives awake: a strip of real stills, not a column of air ---- */}
       <section className="wrap-wide py-16 md:py-24">
