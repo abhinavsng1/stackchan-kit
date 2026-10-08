@@ -14,6 +14,7 @@ import PartArt from '@/components/PartArt'
 import OpenSource from '@/components/OpenSource'
 import Roles from '@/components/Roles'
 import LiveRobot from '@/components/LiveRobot'
+import AnnotatedShot from '@/components/AnnotatedShot'
 import Marquee from '@/components/Marquee'
 import { OrderSteps, ChooseEdition } from '@/components/OrderSteps'
 import { KitOnly, ForEdition, SwitchEdition } from '@/components/EditionGate'
@@ -280,17 +281,20 @@ export default function Page() {
                  title="Everything is named."
                  lede="A stock M5Stack CoreS3 Lite on two Feetech bus servos, named exactly, so you can look up every part before you buy — we would."
                  tint>
-          <div className="grid gap-8 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-start">
-            <figure className="m-0">
-              <div className="relative overflow-hidden aspect-[4/3] md:aspect-[4/5]"
-                   style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
-                <Image src="/media/robot/robot-ports.webp" alt="An assembled Pebble-chan up close, its side ports and two-servo neck in view"
-                       fill quality={90} sizes="(max-width: 768px) 94vw, 420px" className="object-cover" />
-              </div>
-              <figcaption className="t-mono text-[11px] text-[var(--muted)] mt-3">
-                The CoreS3 head on its two-servo neck
-              </figcaption>
-            </figure>
+          <AnnotatedShot
+            src="/media/robot/graded/robot-ports.webp"
+            alt="An assembled Pebble-chan up close, its side ports and two-servo neck in view"
+            caption="A batch 01 unit. Graded, not retouched — nothing has been added or removed."
+            imageWidth={44}
+            chips={[
+              { x: 51, y: 30, label: 'Display', value: '2.0" touch · 320 × 240', from: 'left' },
+              { x: 51, y: 47, label: 'Audio', value: '1 W speaker · 2 mics', from: 'left' },
+              { x: 51, y: 64, label: 'Neck', value: 'Pan and tilt · 2 bus servos', from: 'left' },
+              { x: 51, y: 81, label: 'Power', value: 'USB-C · 5 V 3 A', from: 'left' },
+            ]}
+          />
+
+          <div className="mt-10">
 
             <div>
               <dl className="m-0 grid border-t" style={{ borderColor: 'var(--ink)' }}>
