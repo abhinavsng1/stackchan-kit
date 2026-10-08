@@ -67,15 +67,24 @@ export default function Nav() {
             <span className="t-mono text-[13px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
             <span className="t-display text-[18px]">{PRICE.now}</span>
           </span>
-          {/* The page's one primary action, and the only filled accent on it. */}
-          <a href="#reserve" onClick={() => track(EV.reserveCtaClicked, { location: 'nav', edition })}
-             className="btn !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex"
-             style={{
-               background: 'var(--signal)', borderColor: 'var(--signal)',
-               color: '#04282a', boxShadow: '0 0 0 1px var(--signal-line), 0 8px 26px -8px var(--signal)',
-             }}>
-            Book — {PRICE.deposit}
-          </a>
+          {/* Wrapped, and the wrapper does the hiding.
+              `hidden lg:inline-flex` on the anchor itself does nothing: .btn
+              also sets display, both are single-class selectors, and .btn
+              comes later in the stylesheet — so the button rendered at every
+              width and pushed the nav past a 320px screen. A plain div is not
+              a .btn, so `hidden` on it actually applies. */}
+          <div className="hidden lg:block">
+            <a href="#reserve"
+               onClick={() => track(EV.reserveCtaClicked, { location: 'nav', edition })}
+               className="btn !px-5 !py-2.5 !text-[14px]"
+               style={{
+                 background: 'var(--signal)', borderColor: 'var(--signal)',
+                 color: '#0d2410',
+                 boxShadow: '0 0 0 1px var(--signal-line), 0 8px 26px -10px var(--signal)',
+               }}>
+              Book — {PRICE.deposit}
+            </a>
+          </div>
         </div>
       </div>
 

@@ -152,9 +152,13 @@ export default function Page() {
             Stills of a real unit beside the order panel. The edition is
             chosen here, and the choice follows the visitor down the page. */}
         <section id="buy" className="wrap-wide pt-4 pb-14 md:pt-6 md:pb-20 scroll-mt-20">
+          {/* min-w-0 on both children. Only the lg template pins its tracks
+              to minmax(0,...); below that the grid falls back to
+              minmax(auto,1fr), so the gallery's swipe rail sets the track's
+              width and pushes the page wider than a 360px screen. */}
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 items-start">
-            <Gallery />
-            <div className="lg:sticky lg:top-24"><BuyBox /></div>
+            <div className="min-w-0"><Gallery /></div>
+            <div className="min-w-0 lg:sticky lg:top-24"><BuyBox /></div>
           </div>
         </section>
 

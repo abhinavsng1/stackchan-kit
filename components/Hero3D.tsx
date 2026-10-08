@@ -135,8 +135,17 @@ export default function Hero3D() {
           key={c.label}
           className="hidden sm:flex absolute items-center gap-2.5"
           style={{
-            left: `${c.x}%`, top: `${c.y}%`,
+            // A right-hand chip is anchored from the right edge, not from a
+            // left percentage. Anchored on the left it grows rightwards, and
+            // at 1280 and 1024 a 191px chip at 72% hung past the viewport and
+            // put a horizontal scrollbar on the page — invisible at 1440,
+            // which is the only width it had been checked at.
+            ...(c.from === 'right'
+              ? { right: `${Math.max(0, 100 - c.x)}%` }
+              : { left: `${c.x}%` }),
+            top: `${c.y}%`,
             transform: `translate(${c.from === 'right' ? '0' : '-30%'}, -50%)`,
+            maxWidth: '46%',
           }}
         >
           <span className="px-3 py-2 backdrop-blur-md whitespace-nowrap"
