@@ -39,7 +39,7 @@ export default function Meet() {
         <div ref={pics} className="grid grid-cols-12 gap-3 sm:gap-6 mt-20 md:mt-32 items-start">
           <motion.div className="col-span-7 md:col-span-5 md:col-start-2" style={{ y: slow }}>
             <div className="relative">
-              <Film id="meet" src="/media/robot/film-meet" title="An afternoon with PebbleRobo" length="0:20" />
+              <Film id="meet" src="/media/robot/film-meet" title="An afternoon with PebbleRobo" length="0:22" />
               <span className="tag absolute left-4 top-4 pointer-events-none">Real footage · batch 01</span>
             </div>
           </motion.div>
