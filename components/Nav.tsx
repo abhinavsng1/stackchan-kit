@@ -44,7 +44,7 @@ export default function Nav() {
         <a href="#top" className="shrink-0 no-underline" aria-label="Pebble Robotics — home">
           {/* Supplied artwork, never retyped. 140px is the stated minimum
               width for the horizontal lockup on screen. */}
-          <Image src="/brand/logo-horizontal.svg" alt="Pebble Robotics"
+          <Image src="/brand/logo-horizontal-white.svg" alt="Pebble Robotics"
                  width={160} height={17} priority className="w-[150px] h-auto block" />
         </a>
 

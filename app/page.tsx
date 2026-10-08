@@ -522,7 +522,7 @@ export default function Page() {
       <footer className="border-t pb-24 lg:pb-0" style={{ borderColor: 'var(--line)' }}>
         <div className="wrap py-12 grid gap-9 md:grid-cols-3">
           <div>
-            <Image src="/brand/logo-horizontal.svg" alt="Pebble Robotics"
+            <Image src="/brand/logo-horizontal-white.svg" alt="Pebble Robotics"
                    width={160} height={17} className="w-[150px] h-auto block mb-4" />
             <p className="text-[13.5px] text-[var(--muted)] mt-0 mb-3 max-w-[30ch]">
               The robot that lives on your desk.

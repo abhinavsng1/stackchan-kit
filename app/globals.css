@@ -16,57 +16,80 @@
 :root {
   /* Dark by default now, so native controls, scrollbars and form fields
      should render dark too. */
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* ---- brand palette, verbatim from pebble-brand-tokens.css ---- */
-  --pebble-black:    #111111;
-  --pebble-ink:      #0b0b0c;
-  --pebble-graphite: #2b2b2b;
-  --pebble-stone:    #6e6a64;
-  --pebble-mist:     #bdb9b2;
-  --pebble-sand:     #e6e3dd;
-  --pebble-paper:    #f3f1ed;
+  /* ---- palette ----
+   Near-black ground, two greys of text, one accent. The accent appears
+   only as a tinted pill — an 8% fill under a 35% border — and never as a
+   solid block, which is what stops one bright green taking over the page. */
+  --pebble-ink:      #050505;
+  --pebble-black:    #0d0d0f;
+  --pebble-graphite: #1a1a1d;
+  --pebble-stone:    #8e939b;
+  --pebble-mist:     #c9ccd1;
+  --pebble-sand:     #2a2a2e;
+  --pebble-paper:    #f6f6f4;
   --pebble-white:    #ffffff;
 
-  /* ---- roles: see docs/design-system.md ----
-   Paper is the ground. A dark-default site was the wrong instinct: the
-   reference for "aesthetic and futuristic" here is image-led and airy, not
-   technical and unlit. Contrast comes from full-bleed photography and type
-   at full scale, not from turning the lights off. */
-  --bg:        var(--pebble-paper);
-  --surface:   var(--pebble-white);
-  --surface-2: var(--pebble-sand);
-  --ink:       var(--pebble-black);
-  --muted:     var(--pebble-stone);
-  --line:      var(--pebble-sand);
-  --well:      var(--pebble-black);
+  /* ---- roles ----
+   The ground is the dark. This page sells one object with a lit screen on
+   it, and paper flattens the only thing worth looking at. */
+  --bg:        var(--pebble-ink);
+  --surface:   rgba(13, 13, 15, .78);
+  --surface-2: var(--pebble-graphite);
+  --ink:       var(--pebble-paper);
+  --muted:     var(--pebble-mist);
+  --muted-2:   var(--pebble-stone);
+  --line:      rgba(255, 255, 255, .16);
+  --line-soft: rgba(255, 255, 255, .09);
+  --well:      #000000;
 
-  /* Dark sections, used sparingly as counterweight. */
-  --dark:       var(--pebble-black);
-  --dark-ink:   var(--pebble-white);
-  --dark-muted: var(--pebble-mist);
-  --dark-line:  #2a2a2d;
+  /* Light sections, used sparingly as counterweight. */
+  --dark:       var(--pebble-paper);
+  --dark-ink:   var(--pebble-ink);
+  --dark-muted: var(--pebble-stone);
+  --dark-line:  rgba(0, 0, 0, .12);
 
-  /* One accent, on the primary action only. Sampled from the launch film. */
-  --signal:    #ff8836;
-  --signal-dk: #e5701f;
+  /* One accent. Never a fill on its own. */
+  --signal:    #a9cf51;
+  --signal-dk: #8fb53c;
+  --signal-wash: rgba(169, 207, 81, .08);
+  --signal-line: rgba(169, 207, 81, .35);
 
-  --brand:     var(--pebble-black);
-  --brand-dk:  var(--pebble-graphite);
+  --brand:     var(--pebble-paper);
+  --brand-dk:  var(--pebble-mist);
   --mint:      var(--pebble-stone);
-  --amber:     var(--pebble-graphite);
+  --amber:     var(--pebble-stone);
   --violet:    var(--pebble-stone);
-  --glow:      var(--pebble-mist);
-  --screen:    var(--pebble-black);
-  --flatlay:   var(--pebble-sand);
+  --glow:      var(--pebble-stone);
+  --screen:    var(--pebble-ink);
+  --flatlay:   var(--pebble-graphite);
 
-  --danger:    #c4483a;
-  --positive:  #5e9e77;
+  --danger:    #e0614f;
+  --positive:  #a9cf51;
 
-  --radius-input:  8px;
-  --radius-button: 12px;
-  --radius-card:   16px;
-  --radius-tile:   28px;
+  /* ---- type scale, measured ---- */
+  --t-h1:      clamp(44px, 6.4vw, 92px);
+  --t-h2:      clamp(34px, 4.6vw, 66px);
+  --t-h3:      21px;
+  --t-body:    18px;
+  --t-lead:    19px;
+  --t-small:   15px;
+  --t-label:   12px;
+  --ls-h1:     -0.035em;
+  --ls-h2:     -0.03em;
+  --ls-h3:     -0.01em;
+  --ls-label:  0.16em;
+  --lh-tight:  0.92;
+  --lh-body:   1.6;
+
+  /* ---- spacing ---- */
+  --section-y: 96px;
+
+  --radius-input:  10px;
+  --radius-button: 999px;
+  --radius-card:   12px;
+  --radius-tile:   22px;
 
   /* Warm-biased shadows. A neutral grey shadow reads blue on paper. */
   /* Shadows barely register on black; separation comes from a hairline and
@@ -96,8 +119,8 @@
      only. --font-pixel is retained as an alias so the remaining .t-pixel call
      sites keep working while they are migrated — it is no longer a pixel
      face, and the brand has no equivalent. */
-  --font-display:    var(--font-outfit), system-ui, sans-serif;
-  --font-body:       var(--font-outfit), system-ui, sans-serif;
+  --font-display:    var(--font-grotesk), system-ui, sans-serif;
+  --font-body:       var(--font-grotesk), system-ui, sans-serif;
   --font-mono:       var(--font-jetbrains), ui-monospace, monospace;
   --font-pixel:      var(--font-jetbrains), ui-monospace, monospace;
 }
@@ -132,12 +155,26 @@ body {
    and Medium; caps appear only on eyebrows and labels, always tracked +32%,
    which is the rhythm of the horizontal logo. */
 
+/**
+ * Display type: Bold, set tight, tracked in.
+ *
+ * The negative tracking is the whole character of this scale. At 92px,
+ * default spacing reads as a word processor; pulling 3.5% out of it makes
+ * the headline a single shape. It is paired with a line height below 1.0,
+ * which only works because nothing at this size runs past three lines.
+ */
 .t-display {
   font-family: var(--font-display), sans-serif;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: var(--ls-h1);
+  line-height: var(--lh-tight);
   text-wrap: balance;
+}
+
+/* Below the display sizes the tracking relaxes: -3.5% on a 21px subhead
+   would close the counters up. */
+h3, .t-sub {
+  letter-spacing: var(--ls-h3);
 }
 
 /**

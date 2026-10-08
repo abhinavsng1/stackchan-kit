@@ -1,18 +1,21 @@
 import { PRICE } from '@/lib/kit'
 import type { Metadata } from 'next'
-import { Outfit, JetBrains_Mono } from 'next/font/google'
+import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import Analytics from '@/components/Analytics'
 import XPixel from '@/components/XPixel'
 
 /**
- * Outfit carries the whole page: display through caption. The brand asks for
- * 300 to 600, and nothing heavier — the wordmark itself is Medium.
+ * Space Grotesk carries the whole page: display through caption.
+ *
+ * 700 is needed because the display sizes are set at Bold with negative
+ * tracking — that pairing is what gives the headings their weight without
+ * shouting. 400 and 500 do the body and the links; 600 is the eyebrow.
  */
-const outfit = Outfit({
+const grotesk = Space_Grotesk({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-outfit',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-grotesk',
   display: 'swap',
 })
 
@@ -93,7 +96,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${outfit.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${grotesk.variable} ${jetbrains.variable}`}>
       <body>
         {children}
         <Analytics />
