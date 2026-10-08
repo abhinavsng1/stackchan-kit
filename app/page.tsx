@@ -176,7 +176,7 @@ export default function Page() {
                 <p className="t-label m-0 mb-4" style={{ color: 'rgba(243,241,237,.55)' }}>Watch</p>
                 <h2 className="t-display m-0 max-w-[16ch]"
                     style={{ fontSize: 'clamp(32px,5.2vw,64px)', lineHeight: 1.02, color: 'var(--pebble-white)' }}>
-                  Three ways to meet Pebble-chan.
+                  Watch it for a minute.
                 </h2>
               </div>
               <p className="m-0 text-[16px] leading-[26px] max-w-[44ch] lg:justify-self-end"
@@ -259,7 +259,7 @@ export default function Page() {
 
         {/* ================= WHAT PEOPLE BUILD ================= */}
         <Section id="builds" eyebrow="What people build"
-                 title="It sits on your desk. Then it gets a job."
+                 title="It earns the desk space."
                  lede="Six things this hardware is good at, with an honest sense of how long each one takes. None of them is needed to enjoy it.">
           <div className="rail">
             {BUILDS.map((b, i) => (
@@ -277,7 +277,7 @@ export default function Page() {
 
         {/* ================= HARDWARE ================= */}
         <Section id="hardware" eyebrow="Hardware"
-                 title="Small head. Serious hardware."
+                 title="Everything is named."
                  lede="A stock M5Stack CoreS3 Lite on two Feetech bus servos, named exactly, so you can look up every part before you buy — we would."
                  tint>
           <div className="grid gap-8 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-start">
@@ -416,7 +416,7 @@ export default function Page() {
         </KitOnly>
 
         {/* ================= SPECIFICATIONS ================= */}
-        <Section id="specs" eyebrow="Specifications" title="Read the whole datasheet"
+        <Section id="specs" eyebrow="Specifications" title="Every figure, in full"
                  lede="Stock M5Stack and Feetech parts, named exactly. The robot and the kit are built from the same ones."
                  tint>
           <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
@@ -450,7 +450,7 @@ export default function Page() {
         </Section>
 
         {/* ================= DOCUMENTS ================= */}
-        <Section eyebrow="Learn and documents" title="Everything is someone else's open source"
+        <Section eyebrow="Learn and documents" title="Standing on other people's work"
                  lede="We build the robot and print the parts. The software belongs to the Stack-chan project and always will.">
           <div className="grid gap-3 sm:grid-cols-3">
             {[

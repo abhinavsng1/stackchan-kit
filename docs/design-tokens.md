@@ -99,3 +99,16 @@ sentence-for-sentence:
 The brief for this re-skin forbids copying their copywriting. That rule is
 already broken on the live site, before this work starts. These need rewriting
 in Phase 4 rather than being carried forward.
+
+## Copy changes (Phase 4)
+
+| Before | After | Why |
+|---|---|---|
+| Three ways to meet Pebble-chan. | Watch it for a minute. | Tracked "Three ways to meet cgotchi." word for word |
+| Small head. Serious hardware. | Everything is named. | Tracked "Small cube. Serious dev board." |
+| It sits on your desk. Then it gets a job. | It earns the desk space. | Over six words |
+| Everything is someone else's open source | Standing on other people's work | Over six words |
+| Read the whole datasheet | Every figure, in full | Over six words |
+
+No fact, spec or price changed. `tests/copy-independence.test.ts` guards the
+two borrowed headings and four other cgotchi lines against returning.
