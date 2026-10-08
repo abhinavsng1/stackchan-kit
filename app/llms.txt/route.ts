@@ -1,4 +1,4 @@
-import { PARTS, SPEC_TABLES, FAQS, PRICE, CONTACT, BUILDS } from '@/lib/kit'
+import { PARTS, SPEC_TABLES, FAQS, PRICE, CONTACT, BUILDS, EDITION, EDITIONS } from '@/lib/kit'
 
 /**
  * A plain-text summary for the models that answer questions instead of
@@ -14,34 +14,40 @@ const val = (v: string | string[]) => (Array.isArray(v) ? v.join('; ') : v)
 export const dynamic = 'force-static'
 
 export function GET() {
-  const body = `# Pebble-chan build kit
+  const body = `# Pebble-chan desktop robot
 
-> A desktop robot you assemble yourself, built around the open-source Stack-chan
-> project. Sold by ${CONTACT.entity} and shipped within India.
+> A small desktop robot with a face and a head that pans and tilts, built around
+> the open-source Stack-chan project. Sold fully assembled and tested, or as a
+> build kit, by ${CONTACT.entity}, and shipped within India.
 
-Price: ${PRICE.now} (was ${PRICE.mrp}). ${PRICE.ship}. Ships to India only.
+Price: ${PRICE.now} (was ${PRICE.mrp}), the same for either edition. ${PRICE.ship}. Ships to India only.
 Contact: ${CONTACT.email}
 Site: https://pebblerobo.com
 
 ## What it is
 
-Pebble-chan is a build kit, not an assembled product. It contains every part
-needed to build a small desktop robot with a face on a 2-inch screen, a head
+Pebble-chan is a small desktop robot with a face on a 2-inch screen, a head
 that pans and tilts on two serial bus servos, a camera, microphones and a
-speaker. It runs the open-source Stack-chan firmware on the Moddable SDK in
-JavaScript; the controller is a stock M5Stack CoreS3 Lite, so the Arduino core
+speaker. It is sold two ways, at the same price:
+
+${EDITIONS.map((e) => `- ${EDITION[e].name} (SKU ${EDITION[e].sku}): ${EDITION[e].pitch}`).join('\n')}
+
+The assembled robot is the default. Both editions contain the same parts.
+
+It runs the open-source Stack-chan firmware on the Moddable SDK in JavaScript; the controller is a stock M5Stack CoreS3 Lite, so the Arduino core
 and M5Unified work as well.
 
-It is NOT the official M5Stack Stack-chan product, which is a different,
-pre-assembled device. The software is Stack-chan by Shinya Ishikawa and
+It is NOT the official M5Stack Stack-chan product, which is a different
+device with its own hardware. The software is Stack-chan by Shinya Ishikawa and
 contributors, used under the Apache License 2.0.
 
-## What is in the box (${PARTS.length} items)
+## What is in the kit (${PARTS.length} items)
 
 ${PARTS.map((p) => `- ${p.name} (${p.qty})`).join('\n')}
 
-You supply a USB-C cable and a computer. No 3D printer is needed: the shell and
-the servo brackets are printed here and ship in the box.
+The assembled robot ships with its power supply and needs nothing else. For the
+kit, you supply a USB-C cable and a computer. No 3D printer is needed: the shell
+and the servo brackets are printed here and ship in the box.
 
 ## Specifications
 

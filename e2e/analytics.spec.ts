@@ -3,10 +3,14 @@ import { test, expect } from '@playwright/test'
 test('browser tests never load production analytics SDKs', async ({ page }) => {
   const remote: string[] = []
   page.on('request', (r) => {
-    if (/facebook\.(net|com)|mixpanel\.com/i.test(r.url())) remote.push(r.url())
+    if (/facebook\.(net|com)|mixpanel\.com|ads-twitter\.com|ads-api\.x\.com/i.test(r.url())) remote.push(r.url())
   })
   await page.goto('/')
   await expect.poll(() => page.evaluate(() => window.fbq?.queue?.length ?? 0)).toBeGreaterThan(0)
+  // X gets the same treatment: its queue, configured for the real pixel, and no script.
+  await expect.poll(() => page.evaluate(() => JSON.stringify(window.twq?.queue?.[0] ?? null)))
+    .toBe(JSON.stringify(['config', 'rfx4u']))
+  expect(await page.locator('script#x-pixel').count()).toBe(0)
   expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => /^mp_/.test(k)))).toEqual([])
   expect(remote).toEqual([])
 })
@@ -16,6 +20,8 @@ test('the footer still discloses production collection', async ({ page }) => {
   const footer = page.getByRole('contentinfo')
   await expect(footer.getByText(/session replays/i)).toBeVisible()
   await expect(footer.getByText(/Meta/)).toBeVisible()
+  // X is sent hashed contact details from the server, so the footer must say so.
+  await expect(footer.getByText(/one-way hash of your email and phone/)).toBeVisible()
   await expect(footer.getByText(/never captured by the session replay/i)).toBeVisible()
   // Order details now reach Mixpanel, so the footer has to say so.
   await expect(footer.getByText(/Mixpanel/)).toBeVisible()

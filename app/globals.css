@@ -569,18 +569,59 @@ body {
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
-/* The hero clip is landscape; a phone crops it to a tall sliver. Centred, that
-   sliver lands on the monitor behind the desk and the product never appears.
-   Biased down and slightly right, the robot sits in the visible band above the
-   headline panel. */
-.hero-video { object-position: 50% 50%; }
-@media (max-width: 640px) {
-  /* Cropping alone is not enough: the unit is small in a wide frame and the
-     room is dim, so a phone-width sliver shows a dark shape. Pushing in on it
-     makes the product legible at the size it is actually viewed. */
-  .hero-video {
-    object-position: 56% 64%;
-    transform: scale(1.45);
-    transform-origin: 56% 60%;
-  }
+/* The hero clip is portrait and the frame is a little squatter, so a sliver
+   of the top and bottom is cropped. The robot sits below centre in every
+   shot, so the crop is taken mostly from the monitor above it. */
+.hero-video { object-position: 50% 72%; }
+
+/* ---------- edition choice ----------
+   Robot or kit. A card per option rather than a bare radio, because the two
+   lines under each label are what make the choice: the price is the same, so
+   the only difference is who builds it. Monochrome like every other control —
+   the chosen card is outlined in ink, not coloured. */
+.edition-option {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.edition-option:hover { border-color: var(--pebble-mist); }
+.edition-option[data-active="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.edition-option:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 3px; }
+.edition-radio {
+  width: 18px; height: 18px; margin-top: 2px; flex: none;
+  border-radius: 999px; border: 1.5px solid var(--pebble-mist);
+  display: grid; place-items: center;
+}
+.edition-option[data-active="true"] .edition-radio { border-color: var(--ink); }
+.edition-option[data-active="true"] .edition-radio::after {
+  content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--ink);
+}
+
+/* ---------- films ----------
+   Shot upright on a phone, so they are shown upright: a 9:16 frame is the
+   only crop that keeps the whole robot and the whole hand in shot. */
+.film-play {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: linear-gradient(to top, rgba(11,11,12,.55), rgba(11,11,12,0) 45%);
+  border: 0; cursor: pointer; color: var(--pebble-white);
+}
+.film-play-key {
+  width: 64px; height: 64px; border-radius: 999px;
+  display: grid; place-items: center;
+  background: rgba(243,241,237,.94); color: var(--pebble-black);
+  transition: transform .2s ease;
+}
+.film-play:hover .film-play-key { transform: scale(1.06); }
+.film-play:focus-visible { outline: 2px solid var(--pebble-white); outline-offset: -6px; }
+
+/* A three-up rail: three across from the first breakpoint, because these are
+   portrait frames and three of them fit a tablet width comfortably. On a
+   phone it is still a swipe rail, so three tall frames do not stack into
+   three screens of scrolling. */
+@media (min-width: 640px) {
+  .rail-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

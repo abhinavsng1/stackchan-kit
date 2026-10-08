@@ -1,5 +1,8 @@
 import type { PreorderRecord } from '@/lib/preorders'
-import { CONTACT, PRICE } from '@/lib/kit'
+import { CONTACT, PRICE, EDITION, type Edition } from '@/lib/kit'
+
+/** What is on its way, by name. Absent means an order from before the robot, which was a kit. */
+const editionOf = (e?: Edition) => EDITION[e ?? 'kit']
 
 /**
  * Confirmation mail for a new reservation.
@@ -57,11 +60,11 @@ export function reservationText(r: PreorderRecord) {
   const delivery = deliveryDetails(r)
   return `Hi ${firstName(r.name)},
 
-Your Pebble-chan kit is reserved. Nothing has been charged, and nothing will be
+Your Pebble-chan is reserved. Nothing has been charged, and nothing will be
 until we write to you again.
 
 WHAT YOU RESERVED
-  Pebble-chan build kit x ${r.qty}
+  ${editionOf(r.edition).name} x ${r.qty}
   ${PRICE.now} each (was ${PRICE.mrp})
   Dispatch: 1-2 weeks
 
@@ -100,14 +103,14 @@ export function reservationHtml(r: PreorderRecord) {
   <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">You're on the list, ${esc(firstName(r.name))}.</h1>
 
   <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
-    Your Pebble-chan kit is reserved. Nothing has been charged, and nothing will be
+    Your Pebble-chan is reserved. Nothing has been charged, and nothing will be
     until we write to you again.
   </p>
 
   <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">
     <p style="margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">What you reserved</p>
     <table style="border-collapse:collapse;width:100%">
-      ${row('Kit', `Pebble-chan build kit x ${r.qty}`)}
+      ${row('Order', `${editionOf(r.edition).name} x ${r.qty}`)}
       ${row('Price', `${PRICE.now} each (was ${PRICE.mrp})`)}
       ${row('Dispatch', '1-2 weeks')}
     </table>
@@ -197,6 +200,8 @@ export type Receipt = {
   name: string
   email: string
   qty: number
+  /** Robot or kit. Optional only for orders placed before the robot existed. */
+  edition?: Edition
   /** The deposit that just settled. */
   amountPaise: number
   /** Cash still owed when the courier arrives. */
@@ -230,10 +235,10 @@ export function receiptText(r: Receipt) {
   const to = shipsTo(r)
   return `Hi ${firstName(r.name)},
 
-Your booking has gone through and your Pebble-chan kit is reserved.
+Your booking has gone through and your Pebble-chan is reserved.
 
 WHAT YOU ORDERED
-  Pebble-chan kit   x${r.qty}
+  ${editionOf(r.edition).name}  x${r.qty}
   Paid now          ${rupees(r.amountPaise)}  (booking deposit)
   Due on delivery   ${rupees(r.balanceDuePaise)}  in cash
   Order total       ${rupees(r.amountPaise + r.balanceDuePaise)}
@@ -251,7 +256,7 @@ If any of that is wrong, reply to this email today and we will correct it
 before the box is sealed.
 ` : ''}
 WHAT HAPPENS NEXT
-  We match the parts, print the shell, and address and centre the servos.
+  ${editionOf(r.edition).prep}
   ${PRICE.ship}, and we email tracking the moment it leaves.
 
 Keep this email. The payment id above is your reference for any question
@@ -275,16 +280,16 @@ export function receiptHtml(r: Receipt) {
 <html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
   <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Booking confirmed</p>
-  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your kit is reserved, ${esc(firstName(r.name))}.</h1>
+  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your Pebble-chan is reserved, ${esc(firstName(r.name))}.</h1>
 
   <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
-    Your booking deposit has gone through. The rest is paid in cash when the
-    kit is delivered.
+    Your booking deposit has gone through. The rest is paid in cash when it
+    is delivered.
   </p>
 
   <div style="border:1px solid #e2e7ec;border-radius:10px;padding:16px 18px;margin-bottom:18px">
     <table style="width:100%;border-collapse:collapse">
-      ${row('Pebble-chan kit', '\u00d7 ' + r.qty)}
+      ${row(esc(editionOf(r.edition).name), '\u00d7 ' + r.qty)}
       ${row('Paid now (deposit)', rupees(r.amountPaise))}
       ${row('Due on delivery, in cash', rupees(r.balanceDuePaise))}
       ${row('Order total', rupees(r.amountPaise + r.balanceDuePaise))}
@@ -309,7 +314,7 @@ ${shipsTo(r).length ? `
     </p>
   </div>` : ''}
   <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3d4752">
-    We match the parts, print the shell, and address and centre the servos.
+    ${esc(editionOf(r.edition).prep)}
     ${esc(PRICE.ship)}, and we email tracking the moment it leaves.
   </p>
 

@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { PRICE } from '@/lib/kit'
+import { PRICE, EDITION, type Edition } from '@/lib/kit'
 
 /**
  * Razorpay, server side only.
@@ -77,7 +77,7 @@ function receiptId(): string {
   return `pbl_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`
 }
 
-export async function createOrder(qty: number): Promise<OrderResult> {
+export async function createOrder(qty: number, edition: Edition = 'kit'): Promise<OrderResult> {
   const creds = credentials()
   if (!creds) return { status: 'unconfigured' }
 
@@ -98,7 +98,8 @@ export async function createOrder(qty: number): Promise<OrderResult> {
         /* Visible in the Razorpay dashboard, where somebody reconciling a
            payment needs to know this was a deposit, not a full order. */
         notes: {
-          kits: String(qty), batch: '01', payment_type: 'booking_deposit',
+          kits: String(qty), edition, sku: EDITION[edition].sku,
+          batch: '01', payment_type: 'booking_deposit',
           balance_due_on_delivery_paise: String(balanceDuePaise(qty)),
         },
       }),

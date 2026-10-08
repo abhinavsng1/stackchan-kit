@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Outfit, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import Analytics from '@/components/Analytics'
+import XPixel from '@/components/XPixel'
 
 /**
  * Outfit carries the whole page: display through caption. The brand asks for
@@ -24,10 +25,11 @@ const jetbrains = JetBrains_Mono({
 })
 
 const SITE = 'https://pebblerobo.com'
-const TITLE = 'Pebble-chan — the desktop robot you build yourself'
+const TITLE = 'Pebble-chan — the robot that lives on your desk'
 const DESCRIPTION =
-  'A complete build kit: M5Stack CoreS3 Lite, two SCS0009 bus servos, driver board, ' +
-  `power supply, printed shell and fasteners. ${PRICE.now} early bird, ships across India in 1–2 weeks.`
+  'A desktop robot with a face and a neck that turns, delivered fully assembled and tested. ' +
+  'M5Stack CoreS3 Lite on two SCS0009 bus servos, open-source Stack-chan firmware. ' +
+  `${PRICE.now}, or the same as a build kit. Ships across India in 1–2 weeks.`
 
 export const metadata: Metadata = {
   /** Lets every relative URL below resolve, including the share image. */
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
   },
   authors: [{ name: 'Pebble Robo' }],
   keywords: [
-    'Stack-chan kit', 'desktop robot kit India', 'M5Stack CoreS3 Lite',
+    'desktop robot India', 'Stack-chan', 'Stack-chan kit', 'desktop robot kit India', 'M5Stack CoreS3 Lite',
     'SCS0009 bus servo', 'ESP32-S3 robot', 'DIY robot kit', 'robotics kit India',
   ],
   category: 'Robotics',
@@ -60,7 +62,7 @@ export const metadata: Metadata = {
     locale: 'en_IN',
     images: [{
       url: '/og.jpg', width: 1200, height: 630,
-      alt: 'An assembled Pebble-chan on a desk, its display showing a face',
+      alt: 'Pebble-chan on a desk, its display showing a smiling face',
     }],
   },
   twitter: {
@@ -95,6 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Analytics />
+        <XPixel />
       </body>
     </html>
   )

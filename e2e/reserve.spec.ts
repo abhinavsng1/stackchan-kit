@@ -44,7 +44,7 @@ const fill = async (page: import('@playwright/test').Page, email = 'asha@example
   await page.getByLabel('Shipping address').fill('12 Silicon Gardenia, 12th Main, JP Nagar 5th Phase')
   await page.getByLabel('City', { exact: true }).fill('Bengaluru')
   await page.getByLabel('PIN code').fill('560078')
-  await page.getByLabel('Kits', { exact: true }).selectOption('2')
+  await page.getByLabel('Quantity', { exact: true }).selectOption('2')
 }
 
 test('takes an order, collects payment, and confirms', async ({ page }) => {
@@ -58,7 +58,7 @@ test('takes an order, collects payment, and confirms', async ({ page }) => {
   await page.getByRole('button', { name: /^Book for / }).click()
 
   const panel = page.locator('#reserve')
-  await expect(panel.getByText('Your kit is booked.')).toBeVisible()
+  await expect(panel.getByText('Your Pebble-chan is booked.')).toBeVisible()
   // COD: the one thing they must know before the courier turns up.
   await expect(panel.getByText(/in cash/).first()).toBeVisible()
 })
@@ -75,11 +75,11 @@ test('a closed payment window leaves the order payable, not lost', async ({ page
   await fill(page)
   await page.getByRole('button', { name: /^Book for / }).click()
 
-  // Nothing was charged, so nothing in this panel may imply a kit is held.
+  // Nothing was charged, so nothing in this panel may imply anything is held.
   const panel = page.locator('#reserve')
   await expect(panel.getByText('Not paid yet')).toBeVisible()
   await expect(panel.getByText(/Nothing has been charged/)).toBeVisible()
-  await expect(panel.getByText(/your kit is booked|already ordered/i)).toHaveCount(0)
+  await expect(panel.getByText(/is booked|already ordered/i)).toHaveCount(0)
 
   // A way back to paying, and a human to ask.
   await expect(panel.getByRole('link', { name: 'support@pebblerobo.com' }).first())
@@ -153,7 +153,7 @@ test('explains a reused phone instead of claiming the email is on the list', asy
   await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.getByText('That number has already ordered.')).toBeVisible()
-  await expect(page.getByText(/one kit per person per batch/i)).toBeVisible()
+  await expect(page.getByText(/one order per person per batch/i)).toBeVisible()
   await expect(page.getByRole('status').getByRole('link', { name: 'support@pebblerobo.com' })).toBeVisible()
   // It must not claim the email is the problem — the visitor knows it is new.
   await expect(page.getByText('That email has already ordered.')).toHaveCount(0)
@@ -208,7 +208,7 @@ test('an order goes through without a profession', async ({ page }) => {
   await page.getByLabel(/^Profession/).selectOption('')
   await page.getByRole('button', { name: /^Book for / }).click()
 
-  await expect(page.getByText('Your kit is booked.')).toBeVisible()
+  await expect(page.getByText('Your Pebble-chan is booked.')).toBeVisible()
   expect(sent!.profession, 'an unanswered profession must not block the sale').toBe('')
 })
 
@@ -248,4 +248,61 @@ test('does not scroll horizontally on a phone', async ({ page }) => {
   const overflow = await page.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth)
   expect(overflow).toBe(0)
+})
+
+test.describe('robot or kit', () => {
+  /** Captures what the form sends, and answers as if the order were saved. */
+  async function capture(page: import('@playwright/test').Page) {
+    const sent: Array<Record<string, unknown>> = []
+    await page.route('**/api/preorder', (route) => {
+      sent.push(route.request().postDataJSON())
+      return route.fulfill({ status: 201, json: { status: 'created', token: 'a'.repeat(32) } })
+    })
+    await stubCheckout(page, 'paid')
+    return sent
+  }
+
+  test('an order is for the assembled robot unless the kit is chosen', async ({ page }) => {
+    const sent = await capture(page)
+    await page.goto('/')
+    await fill(page)
+    await page.getByRole('button', { name: /^Book for / }).click()
+    await expect(page.getByText('Your Pebble-chan is booked.')).toBeVisible()
+    expect(sent[0].edition).toBe('assembled')
+  })
+
+  test('choosing the kit in the buy box orders the kit from the form', async ({ page }) => {
+    // The choice is made in one place and paid for in another; the two must agree.
+    const sent = await capture(page)
+    await page.goto('/')
+    await page.getByTestId('edition-buybox-kit').click()
+    await expect(page.locator('form input[name="edition"]:checked')).toHaveValue('kit')
+    await fill(page)
+    await page.getByRole('button', { name: /^Book for / }).click()
+    await expect(page.getByText('Your Pebble-chan is booked.')).toBeVisible()
+    expect(sent[0].edition).toBe('kit')
+  })
+
+  test('kit content appears only once the kit is chosen, and one press takes it away', async ({ page }) => {
+    await page.goto('/')
+    // The default is the robot: no build instructions, no banner, no kit link.
+    await expect(page.locator('#kit')).toHaveCount(0)
+    await expect(page.getByTestId('kit-banner')).toHaveCount(0)
+    await expect(page.locator('header a[href="#kit"]')).toHaveCount(0)
+
+    await page.getByTestId('edition-buybox-kit').click()
+    await expect(page.locator('#kit')).toBeVisible()
+    await expect(page.getByTestId('kit-banner')).toContainText('kit selected')
+
+    await page.getByTestId('kit-banner').getByRole('button').click()
+    await expect(page.locator('#kit')).toHaveCount(0)
+    await expect(page.getByTestId('kit-banner')).toHaveCount(0)
+    await expect(page.locator('form input[name="edition"]:checked')).toHaveValue('assembled')
+  })
+
+  test('a link to ?edition=kit lands on the kit', async ({ page }) => {
+    await page.goto('/?edition=kit')
+    await expect(page.locator('#buybox input:checked')).toHaveValue('kit')
+    await expect(page.locator('#buybox')).toContainText('PBL-KIT-01')
+  })
 })

@@ -8,8 +8,8 @@ test.beforeEach(async ({ page }) => { await settleConsent(page) })
 test('navigation is reachable on a phone', async ({ page }) => {
   await page.goto('/')
   const links = page.locator('.navstrip a')
-  // the desktop nav is hidden below lg, so the strip is what must carry them
-  await expect(links.filter({ hasText: 'In the box' }).first()).toBeVisible()
+  // the desktop nav is hidden below xl, so the strip is what must carry them
+  await expect(links.filter({ hasText: 'Hardware' }).first()).toBeVisible()
   await expect(page.locator('#buybox').getByRole('button', { name: /^Book/ })).toBeVisible()
 })
 
@@ -19,7 +19,7 @@ test('buy bar appears after the hero and retreats over the form', async ({ page 
 
   await expect(bar).toHaveAttribute('data-show', 'false')
 
-  await page.locator('#box').scrollIntoViewIfNeeded()
+  await page.locator('#does').scrollIntoViewIfNeeded()
   await expect(bar).toHaveAttribute('data-show', 'true')
 
   // it must not cover the form it points at
@@ -41,11 +41,10 @@ test('buy bar appears after a nav-link jump, not just a smooth scroll', async ({
 })
 
 test('build ideas are a swipe rail, not a vertical pile', async ({ page }) => {
-  // This guarded the capability tiles until an interactive model replaced
-  // them. The rail moved to the build ideas, where six full-width clips would
-  // otherwise be two and a half screens of scrolling on a phone.
+  // Six cards stacked on a phone would be two screens of scrolling for one
+  // section. The films and the capability clips are rails for the same reason.
   await page.goto('/')
-  const rail = page.locator('#build-ideas .rail')
+  const rail = page.locator('#builds .rail')
   const box = await rail.evaluate((el) => ({
     scrollW: el.scrollWidth, clientW: el.clientWidth,
   }))
@@ -69,13 +68,16 @@ test('the whole page stays under a sane scroll length', async ({ page }) => {
   // before. Raised to 21 when the parts-cost comparison was added — a real
   // new section carrying the page's strongest argument, measured 20.1. This
   // is the case the note above sanctions: a section was added, not a test
-  // nudged to go green.
-  expect(screens).toBeLessThan(21)
+  // nudged to go green. Raised to 23.5 when the page was rebuilt around the
+  // assembled robot: three films and a hardware section were added, and the
+  // kit kept its parts and build steps as a section of its own. Measured 22.5,
+  // after the films, the clips and the capability cards became swipe rails.
+  expect(screens).toBeLessThan(23.5)
 })
 
 test('tap targets in the buy bar are big enough', async ({ page }) => {
   await page.goto('/')
-  await page.locator('#box').scrollIntoViewIfNeeded()
+  await page.locator('#does').scrollIntoViewIfNeeded()
   const cta = page.locator('.buybar a')
   const b = await cta.boundingBox()
   expect(b!.height).toBeGreaterThanOrEqual(44)
@@ -85,7 +87,7 @@ test('every nav link actually moves the page', async ({ page }) => {
   // Regression: `scroll-behavior: smooth` plus this page's settling layout made
   // WebKit change the hash and scroll nowhere, so on iOS the nav was inert.
   await page.goto('/')
-  for (const label of ['In the box', 'Specs', 'Build', 'FAQ']) {
+  for (const label of ['Hardware', 'Specs', 'Builds', 'FAQ']) {
     await page.evaluate(() => window.scrollTo(0, 0))
     await page.locator('.navstrip a', { hasText: label }).click()
     await expect.poll(() => page.evaluate(() => Math.round(window.scrollY)),

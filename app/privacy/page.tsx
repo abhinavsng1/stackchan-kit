@@ -5,13 +5,13 @@ import { CONTACT } from '@/lib/kit'
 export const metadata: Metadata = {
   title: 'Privacy · Pebble Robo',
   description:
-    'What Pebble Robo stores when you order a Pebble-chan kit, what is measured on the site, and how to have it deleted.',
+    'What Pebble Robo stores when you order a Pebble-chan, what is measured on the site, and how to have it deleted.',
   alternates: { canonical: '/privacy' },
 }
 
 export default function Privacy() {
   return (
-    <LegalPage title="Privacy" updated="25 September 2026">
+    <LegalPage title="Privacy" updated="8 October 2026">
       <div className="keyfact">
         <p>
           We store what is needed to ship you a box, and nothing else. We do not sell your
@@ -23,7 +23,7 @@ export default function Privacy() {
       <ul>
         <li><strong>Name, email, phone</strong> — to identify the order and tell you when it ships.</li>
         <li><strong>Shipping address, city, PIN code</strong> — to put on the parcel.</li>
-        <li><strong>Profession</strong> — optional, and only so we know who the kit is reaching. Leave it blank.</li>
+        <li><strong>Profession</strong> — optional, and only so we know who Pebble-chan is reaching. Leave it blank.</li>
         <li><strong>Quantity, amount paid, and the payment id</strong> — the record of the sale.</li>
       </ul>
       <p>
@@ -41,26 +41,39 @@ export default function Privacy() {
       <p>
         We record how the page is used — which sections are viewed, what is clicked, how far
         people scroll, and where a payment fails — using{' '}
-        <a href="https://mixpanel.com/legal/privacy-policy/" target="_blank" rel="noreferrer noopener">Mixpanel</a>{' '}
+        <a href="https://mixpanel.com/legal/privacy-policy/" target="_blank" rel="noreferrer noopener">Mixpanel</a>,
+        the{' '}
+        <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noreferrer noopener">Meta Pixel</a>{' '}
         and the{' '}
-        <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noreferrer noopener">Meta Pixel</a>.
+        <a href="https://x.com/en/privacy" target="_blank" rel="noreferrer noopener">X pixel</a>.
         This is how we find out that a page is confusing, or that nobody can pay.
       </p>
       <p>
         Mixpanel also records session replays — a reconstruction of mouse movement and
         scrolling. <strong>Text you type into the form is masked and is not recorded.</strong>{' '}
-        Neither tool is sent your name, phone, address, or the amount you paid.
-        Your email address is not sent either — but a{' '}
+        The usage events themselves carry no name, phone or address; what each service
+        receives once you order is listed below. Your email address is not sent with them
+        either — but a{' '}
         <strong>one-way cryptographic hash</strong> of it is, so that the same buyer on a
         phone and a laptop is counted as one person rather than two. The hash cannot be
         turned back into your address.
       </p>
       <p>
-        Some of this is shared with Meta so that advertising reaches people likely to want a
-        robot kit. If you would rather not be measured, the browser-level{' '}
+        Some of this — which pages were seen, and when an order is placed or paid for, with
+        its value — is shared with Meta and X so that advertising reaches people likely to
+        want a desktop robot. If you would rather not be measured, standard tracker blockers
+        stop all three in your browser, and nothing on the site depends on analytics running.
+        With{' '}
         <a href="https://globalprivacycontrol.org/" target="_blank" rel="noreferrer noopener">Global Privacy Control</a>{' '}
-        signal and standard tracker blockers both work here; nothing on the site depends on
-        analytics running.
+        switched on, X is told nothing about you at all — not by the page, and not by our
+        server.
+      </p>
+      <p>
+        X is also told, by our server, when an order is placed and when its deposit is paid,
+        so that it can count the sale against the advert that led to it. That report carries a{' '}
+        <strong>one-way SHA-256 hash</strong> of your email address and of your phone number —
+        never the plain values — the click id of the X advert you arrived through, if there
+        was one, and your IP address and browser. Never your name or your address.
       </p>
 
       <h2>Email</h2>
@@ -83,13 +96,16 @@ export default function Privacy() {
           to follow up on one that did not complete. It is not used for advertising.</li>
         <li><strong>Meta</strong> — site usage and the value of an order. Never your name,
           email, phone or address.</li>
+        <li><strong>X</strong> — site usage, the value of an order, and when you order, a
+          one-way hash of your email and phone, the X ad click id and your IP address and
+          browser. Never your name or address.</li>
       </ul>
       <p>Nobody else. We do not sell data and we do not share it for anyone else&apos;s advertising.</p>
 
       <h2>Paying in two parts</h2>
       <p>
         Booking takes a deposit through Razorpay. The rest is collected in cash by the courier
-        when the kit is handed to you, so the delivery company is told what you still owe. That
+        when your order is handed to you, so the delivery company is told what you still owe. That
         figure is fixed when you book and does not change afterwards, whatever the site happens
         to be charging by the time your box ships.
       </p>
@@ -104,7 +120,7 @@ export default function Privacy() {
 
       <h2>Children</h2>
       <p>
-        The kit is sold to adults. We do not knowingly collect details from anyone under 18.
+        Pebble-chan is sold to adults. We do not knowingly collect details from anyone under 18.
       </p>
 
       <h2>Changes</h2>

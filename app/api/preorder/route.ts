@@ -1,6 +1,7 @@
 import { preorderSchema, fieldErrors } from '@/lib/schema'
 import { createPreorder, duplicateField, resumeForEmail } from '@/lib/preorders'
 import { waitUntil } from '@vercel/functions'
+import { sendXConversion, requestIdentity } from '@/lib/x-conversions'
 
 /** Generous for four short fields, small enough to refuse junk outright. */
 const MAX_BODY_BYTES = 4096
@@ -49,14 +50,18 @@ export async function POST(request: Request) {
     return json({ error: 'Check the highlighted fields.', fields: fieldErrors(result.error) }, 400)
   }
 
-  const { company, ...record } = result.data
+  const { company, xid, ...record } = result.data
 
   // Honeypot: hidden from real users, so any content means a bot. Answer 201
   // so the bot cannot distinguish rejection from success, and write nothing.
   if (company) return json({ status: 'created', token: null }, 201)
 
   try {
-    const outcome = await createPreorder(record)
+    // Global Privacy Control, sent by the buyer's browser as a header. Kept with
+    // the order so the payment webhook — which the browser never sees — honours
+    // it too.
+    const adOptOut = request.headers.get('sec-gpc') === '1'
+    const outcome = await createPreorder(adOptOut ? { ...record, adOptOut } : record)
 
     if (outcome.status === 'unconfigured') {
       console.error('[preorder] DATABASE_URL is not set; reservation was not stored')
@@ -72,6 +77,18 @@ export async function POST(request: Request) {
     // can open checkout immediately. It is the buyer's own reservation, and
     // the token only permits paying for it.
     if (outcome.status === 'created') {
+      // An order now exists, so X hears about it — from here, where it is
+      // known to be true, with the id the browser will send for the same
+      // order so X counts it once. After the response, so nobody waits on it.
+      // Not at all for a buyer with Global Privacy Control on.
+      if (!adOptOut) afterResponse(sendXConversion({
+        event: 'lead',
+        conversionId: xid,
+        identity: {
+          email: record.email, phone: record.phone, twclid: record.twclid,
+          ...requestIdentity(request),
+        },
+      }))
       return json({ status: 'created', token: outcome.token }, 201)
     }
 
@@ -88,7 +105,7 @@ export async function POST(request: Request) {
     // address trips a unique violation rather than the ON CONFLICT clause.
     const field = duplicateField(error)
     if (field) {
-      const resume = await resumeForEmail(record.email, record.phone ?? null)
+      const resume = await resumeForEmail(record.email, record.phone ?? null, record.edition)
       return json({ status: 'duplicate', field, paid: resume.paid, token: resume.token }, 409)
     }
     console.error('[preorder] insert failed', error)

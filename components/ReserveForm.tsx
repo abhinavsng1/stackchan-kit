@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
-import { CONTACT, PRICE } from '@/lib/kit'
+import { CONTACT, EDITION, PRICE, type Edition } from '@/lib/kit'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
+import { useEdition } from '@/lib/edition-store'
+import EditionPicker from '@/components/EditionPicker'
+import { storedTwclid, xEvent } from '@/lib/x-pixel'
 
 type State =
   | { kind: 'idle' }
@@ -34,6 +37,19 @@ export default function ReserveForm() {
    * being told the email is taken.
    */
   const token = useRef<string | null>(null)
+  const edition = useEdition()
+  /**
+   * The edition as it was when the order was saved. The picker stays live
+   * while the payment window is open, and what is reported as bought has to be
+   * what the row says, not whatever the picker shows by then.
+   */
+  const ordered = useRef<Edition>(edition)
+  /**
+   * One id per order, made here, sent to our server and to the X pixel alike,
+   * so the two reports of the same order are counted once. Random, so it says
+   * nothing about the buyer.
+   */
+  const xid = useRef<string>('')
 
   // The buy box carries its quantity here, so nobody has to pick it twice.
   useEffect(() => {
@@ -76,8 +92,8 @@ export default function ReserveForm() {
           {state.why === 'failed' && state.detail
             ? `${state.detail} Your details are saved, so you can try the payment again without filling anything in.`
             : state.why === 'returning'
-              ? `We have your details from earlier. The ${PRICE.deposit} booking payment did not go through, so no kit is held for you yet.`
-              : `The payment window closed before anything went through. Your kit is not booked until the ${PRICE.deposit} is paid.`}
+              ? `We have your details from earlier. The ${PRICE.deposit} booking payment did not go through, so nothing is held for you yet.`
+              : `The payment window closed before anything went through. Your Pebble-chan is not booked until the ${PRICE.deposit} is paid.`}
         </p>
 
         <div className="flex flex-wrap items-center gap-4 mt-7">
@@ -110,7 +126,7 @@ export default function ReserveForm() {
 
         <p className="t-display text-[30px] mt-4 mb-3">
           {state.kind === 'paid'
-            ? 'Your kit is booked.'
+            ? 'Your Pebble-chan is booked.'
             : byPhone
               ? 'That number has already ordered.'
               : 'That email has already ordered.'}
@@ -124,7 +140,7 @@ export default function ReserveForm() {
             for the courier — that is the rest of the {PRICE.now}, and they cannot
             take a card.</>
           ) : (
-            <>We build one kit per person per batch. To change the address on an existing
+            <>We take one order per person per batch. To change the address on an existing
             order, or to order another, write to <a href={`mailto:${CONTACT.email}`}
               className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>.</>
           )}
@@ -154,6 +170,9 @@ export default function ReserveForm() {
       city: get('city'),
       pincode: get('pincode'),
       qty: get('qty') || '1',
+      edition: get('edition') || edition,
+      twclid: storedTwclid(),
+      xid: (xid.current ||= newOrderId()),
       company: get('company'),
     }
 
@@ -172,7 +191,10 @@ export default function ReserveForm() {
     setErrors(EMPTY)
     setState({ kind: 'submitting' })
     // Quantity and profession only. Never a name, email, phone or address.
-    track(EV.reserveSubmitted, { qty: local.data.qty, profession: local.data.profession })
+    ordered.current = local.data.edition
+    track(EV.reserveSubmitted, {
+      qty: local.data.qty, profession: local.data.profession, edition: local.data.edition,
+    })
 
     try {
       const res = await fetch('/api/preorder', {
@@ -196,8 +218,10 @@ export default function ReserveForm() {
           pincode: local.data.pincode,
           profession: local.data.profession,
           qty: local.data.qty,
+          edition: local.data.edition,
         })
-        track(EV.reserveSucceeded)
+        track(EV.reserveSucceeded, { edition: local.data.edition })
+        xEvent('lead', { conversion_id: xid.current })
         token.current = body.token ?? null
         return pay()
       }
@@ -246,11 +270,18 @@ export default function ReserveForm() {
       const outcome = await openCheckout({
         token: token.current,
         entity: CONTACT.entity,
-        description: 'Pebble-chan kit — batch 01',
+        description: `${EDITION[ordered.current].name} — batch 01`,
       })
       if (outcome.status === 'paid') {
-        recordPurchase({ qty: local_qty() })
-        track(EV.paymentSucceeded)
+        recordPurchase({ qty: local_qty(), edition: ordered.current })
+        track(EV.paymentSucceeded, { qty: local_qty(), edition: ordered.current })
+        // The server reports this sale too, under the same payment id.
+        xEvent('purchase', {
+          conversion_id: outcome.paymentId,
+          value: (PRICE.nowPaise / 100) * local_qty(),
+          currency: 'INR',
+          contents: [{ content_id: EDITION[ordered.current].sku, num_items: local_qty() }],
+        })
         return setState({ kind: 'paid', paymentId: outcome.paymentId })
       }
       if (outcome.status === 'dismissed') {
@@ -296,6 +327,11 @@ export default function ReserveForm() {
 
   return (
     <form onSubmit={onSubmit} onFocusCapture={onFirstTouch} noValidate className="max-w-[600px]">
+      <div className="mb-7">
+        <EditionPicker name="edition" location="form" disabled={busy} />
+        {errors.edition && <Err id="edition-err">{errors.edition}</Err>}
+      </div>
+
       <div className="grid gap-5 sm:grid-cols-2">
         <Field name="name" label="Name" autoComplete="name" error={errors.name} disabled={busy} />
         <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} disabled={busy} />
@@ -333,7 +369,7 @@ export default function ReserveForm() {
         <Field name="pincode" label="PIN code" inputMode="numeric" autoComplete="postal-code"
                placeholder="560078" error={errors.pincode} disabled={busy} />
         <div>
-          <label htmlFor="qty" className="t-label block mb-2">Kits</label>
+          <label htmlFor="qty" className="t-label block mb-2">Quantity</label>
           <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
@@ -405,4 +441,10 @@ function Field({
       {error && <Err id={`${name}-err`}>{error}</Err>}
     </div>
   )
+}
+
+/** A random id for one order, for matching the two reports of it at X. */
+function newOrderId(): string {
+  try { return crypto.randomUUID() } catch { /* insecure origin */ }
+  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 10)).join('-')
 }

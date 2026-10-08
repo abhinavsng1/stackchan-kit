@@ -5,43 +5,43 @@ import { CONTACT, PRICE } from '@/lib/kit'
 export const metadata: Metadata = {
   title: 'Returns and refunds · Pebble Robo',
   description:
-    'Pebble-chan returns: 7 days from delivery for a kit that does not work. ' +
+    'Pebble-chan returns: 7 days from delivery for a robot or kit that does not work. ' +
     'Refunds within 7 working days of the item reaching us.',
   alternates: { canonical: '/returns' },
 }
 
 export default function Returns() {
   return (
-    <LegalPage title="Returns and refunds" updated="25 September 2026">
+    <LegalPage title="Returns and refunds" updated="7 October 2026">
       <div className="keyfact">
-        <p><strong>7 days</strong> from delivery to raise a return, for a kit that does not work.</p>
+        <p><strong>7 days</strong> from delivery to raise a return, for a robot or kit that does not work.</p>
         <p><strong>Return postage is paid by you.</strong> Refunds are issued within{' '}
-          <strong>7 working days</strong> of the kit reaching us.</p>
+          <strong>7 working days</strong> of it reaching us.</p>
       </div>
 
       <h2>What we accept back</h2>
       <p>
-        We accept returns for <strong>a kit that does not work</strong> — a part that is
-        dead on arrival, damaged in transit, missing from the box, or that fails
-        during a normal build.
+        We accept returns for <strong>a robot or kit that does not work</strong> — a part
+        that is dead on arrival, damaged in transit, missing from the box, or that fails
+        in normal use or during a normal build.
       </p>
       <p>
-        We do not accept returns because you changed your mind. This is a build kit, not
-        a finished appliance: once a box is opened the parts have been handled, and we
-        cannot sell them to somebody else as new. We would rather say that plainly here
+        We do not accept returns because you changed your mind. Once a box is opened the
+        robot or its parts have been handled, and we cannot sell them to somebody else as
+        new. We would rather say that plainly here
         than write a policy we quietly decline to honour.
       </p>
 
       <h2>Condition</h2>
-      <p>The kit must come back <strong>undamaged</strong>, apart from the fault you are reporting.</p>
+      <p>It must come back <strong>undamaged</strong>, apart from the fault you are reporting.</p>
       <ul>
         <li>No physical damage caused after delivery — drops, bent pins, crushed housings.</li>
         <li>No damage from wrong wiring, reversed polarity, or a supply other than the one in the box.</li>
-        <li>Nothing cut, soldered, filed or glued. The kit assembles without any of that.</li>
+        <li>Nothing cut, soldered, filed or glued. Neither the robot nor the kit needs any of that.</li>
         <li>All parts present, including fasteners and the printed shell.</li>
       </ul>
       <p>
-        Cosmetic marks from an ordinary build are fine. We are looking for whether the
+        Cosmetic marks from ordinary use or an ordinary build are fine. We are looking for whether the
         part failed, not whether the box was opened carefully.
       </p>
 
@@ -58,12 +58,12 @@ export default function Returns() {
           round, which we can talk you through in a reply.
         </li>
         <li>We answer within two working days with a return address.</li>
-        <li>Post the kit back. <strong>You pay the return postage.</strong> Keep the tracking number.</li>
+        <li>Post it back. <strong>You pay the return postage.</strong> Keep the tracking number.</li>
       </ol>
 
       <h2>Refunds</h2>
       <p>
-        Once the kit reaches us we check the reported fault. If it holds up, we refund{' '}
+        Once it reaches us we check the reported fault. If it holds up, we refund{' '}
         <strong>within 7 working days</strong> to the same method you paid with — the card,
         UPI account or bank account used at checkout. We cannot refund to a different
         destination; that is a restriction of the payment system, not a preference.
@@ -74,19 +74,19 @@ export default function Returns() {
       </p>
       <p>
         If the fault does not hold up — the part works here, or the damage is post-delivery —
-        we will tell you what we found and send the kit back to you at our cost. We will not
-        keep both your kit and your money.
+        we will tell you what we found and send it back to you at our cost. We will not
+        keep both your Pebble-chan and your money.
       </p>
 
       <h2>Replacements instead</h2>
       <p>
         For a single dead component, a replacement part is usually faster than returning the
-        whole kit, and we will offer that first. Say if you would rather have the refund.
+        whole thing, and we will offer that first. Say if you would rather have the refund.
       </p>
 
       <h2>Cancelling before dispatch</h2>
       <p>
-        Orders can be cancelled for a full refund at any time before the kit ships. Write to{' '}
+        Orders can be cancelled for a full refund at any time before it ships. Write to{' '}
         <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>. Once it has shipped, the
         return terms above apply.
       </p>

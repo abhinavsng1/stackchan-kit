@@ -2,6 +2,7 @@ import { verifyWebhookSignature, orderAmountPaise, balanceDuePaise } from '@/lib
 import { markPaid } from '@/lib/preorders'
 import { sendPaymentReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
+import { sendXConversion } from '@/lib/x-conversions'
 
 /**
  * The authoritative record of a payment.
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
       name: result.name,
       email: result.email,
       qty: result.qty,
+      edition: result.edition,
       amountPaise: result.amountPaise,
       balanceDuePaise: result.balanceDuePaise,
       phone: result.phone,
@@ -103,6 +105,15 @@ export async function POST(request: Request) {
       city: result.city,
       pincode: result.pincode,
       paymentId: payment.id,
+    }))
+    // The sale, reported to X. Whichever of this and the browser callback
+    // settles the order sends it, exactly once. Razorpay made this request,
+    // not the buyer, so no address or user agent goes with it. Nothing at all
+    // for a buyer who ordered with Global Privacy Control on.
+    if (!result.adOptOut) afterResponse(sendXConversion({
+      event: 'purchase',
+      conversionId: payment.id,
+      identity: { email: result.email, phone: result.phone, twclid: result.twclid },
     }))
   }
 

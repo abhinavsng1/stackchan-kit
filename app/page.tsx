@@ -1,24 +1,24 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import DemoVideo from '@/components/DemoVideo'
 import Clip from '@/components/Clip'
 import StructuredData from '@/components/StructuredData'
 import Cut from '@/components/Cut'
 import Hero from '@/components/Hero'
-import Playground from '@/components/Playground'
+import Films from '@/components/Films'
+import Gallery from '@/components/Gallery'
 import BuyBox from '@/components/BuyBox'
 import Nav from '@/components/Nav'
 import ReserveForm from '@/components/ReserveForm'
 import BuyBar from '@/components/BuyBar'
-import Countdown from '@/components/Countdown'
 import PartArt from '@/components/PartArt'
 import OpenSource from '@/components/OpenSource'
+import { OrderSteps, ChooseEdition } from '@/components/OrderSteps'
+import { KitOnly, ForEdition, SwitchEdition } from '@/components/EditionGate'
 import { SignalFlow } from '@/components/Diagrams'
 import { TrackedLink, TrackedDetails } from '@/components/Tracked'
 import { EV } from '@/lib/events'
 import {
-  PARTS, BUILD_STEPS, SPEC_TABLES, BUILDS, FAQS, PRICE, CONTACT, CAMPAIGN, SKU,
-  BUILDERS,
+  PARTS, BUILD_STEPS, SPEC_TABLES, BUILDS, FAQS, PRICE, CONTACT, CAPABILITIES, BUILDERS,
 } from '@/lib/kit'
 
 function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
@@ -90,90 +90,205 @@ function Section({
   )
 }
 
+/** What the ticker says: what you get, not what it is made of. */
+const FEATURES = {
+  assembled: ['Fully assembled', 'Tested before it ships'],
+  kit: ['Build-it-yourself kit', 'Eight parts, no soldering'],
+} as const
+const COMMON_FEATURES = [
+  'ESP32-S3', '2.0″ capacitive touch display',
+  'Pan and tilt on two bus servos', 'Camera', 'Dual microphones', '1 W speaker',
+  'Wi-Fi and Bluetooth', 'Stack-chan firmware, Apache-2.0',
+]
+
+function Ticker({ items }: { items: string[] }) {
+  return (
+    <div className="marquee-track">
+      {[0, 1].map((dup) => (
+        <div key={dup} className="flex shrink-0" aria-hidden={dup === 1}>
+          {items.map((f) => (
+            <span key={f} className="flex items-center gap-6 px-3 whitespace-nowrap">
+              <span className="t-mono text-[12.5px] text-[var(--muted)]">{f}</span>
+              <span className="dot opacity-40" aria-hidden="true" />
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** The hardware, one line per subsystem. The full tables are in #specs. */
+const HARDWARE: [string, string][] = [
+  ['Face', '2.0″ IPS, 320 × 240, capacitive touch'],
+  ['Brain', 'ESP32-S3, dual-core 240 MHz, 16 MB flash, 8 MB PSRAM'],
+  ['Neck', 'Two SCS0009 bus servos — pan and tilt, with position readback'],
+  ['Voice', '1 W speaker and two microphones on a full-duplex codec'],
+  ['Senses', '0.3 MP camera, proximity and light, 6-axis IMU'],
+  ['Links', 'Wi-Fi, Bluetooth LE, USB-C'],
+  ['Power', '5 V 3 A adapter, in the box'],
+]
+
 export default function Page() {
+  const filmed = CAPABILITIES.filter((c) => c.clip)
+  const more = CAPABILITIES.filter((c) => !c.clip && c.key !== 'hack')
+
   return (
     <>
       <StructuredData />
       <div className="text-center text-[12.5px] sm:text-[13px] py-2.5 px-4 whitespace-nowrap overflow-hidden"
            style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
         <span className="t-pixel text-[10.5px] mr-2.5 opacity-70">Batch 01</span>
-        {/* The full line does not fit a phone, but dropping it entirely is
-            worse: most ad traffic lands here and the campaign is the offer. */}
-        <span className="sm:hidden">{CAMPAIGN.name} · </span>
-        <span className="hidden sm:inline">{CAMPAIGN.line} · </span>
-{PRICE.deposit} to book · {PRICE.now} total
+        <ForEdition
+          assembled={<>
+            <span className="sm:hidden">Fully assembled · </span>
+            <span className="hidden sm:inline">Fully assembled and tested, ready out of the box · </span>
+          </>}
+          kit={<>
+            <span className="sm:hidden">Build kit · </span>
+            <span className="hidden sm:inline">Build-it-yourself kit, shell printed, no soldering · </span>
+          </>} />
+        {PRICE.deposit} to book · {PRICE.now} total
       </div>
+
+      <Nav />
 
       <main id="top">
         <Hero />
 
-        <Nav />
-
         {/* ================= PRODUCT =================
-            One large photograph of a real unit, at the scale the guideline
-            asks for, with the order panel beside it. */}
-        <section className="wrap-wide pt-10 pb-14 md:pt-14 md:pb-20">
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-16 items-start">
-            <figure className="m-0">
-              <div className="relative overflow-hidden"
-                   style={{ borderRadius: 'var(--radius-tile)', background: 'var(--surface-2)' }}>
-                <Image src="/media/unit.webp" alt="An assembled Pebble-chan on a desk, its display showing a face"
-                       width={1100} height={1100} priority
-                       sizes="(max-width: 1024px) 94vw, 780px"
-                       className="w-full h-auto block overflow-hidden"
-                   style={{ borderRadius: 'var(--radius-tile)' }} />
-              </div>
-              <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4">
-                An assembled unit. Photographed, not rendered. · SKU {SKU}
-              </figcaption>
-            </figure>
+            Stills of a real unit beside the order panel. The edition is
+            chosen here, and the choice follows the visitor down the page. */}
+        <section id="buy" className="wrap-wide pt-4 pb-14 md:pt-6 md:pb-20 scroll-mt-20">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 items-start">
+            <Gallery />
             <div className="lg:sticky lg:top-24"><BuyBox /></div>
           </div>
         </section>
 
-        {/* ================= PART NUMBER TICKER ================= */}
+        {/* ================= FEATURE TICKER ================= */}
         <div className="marquee overflow-hidden border-y py-3.5"
              style={{ borderColor: 'var(--line)', background: 'var(--surface)' }}>
-          <div className="marquee-track">
-            {[0, 1].map((dup) => (
-              <div key={dup} className="flex shrink-0" aria-hidden={dup === 1}>
-                {PARTS.map((p) => (
-                  <span key={p.desig} className="flex items-center gap-2.5 px-6 whitespace-nowrap">
-                    <span className="t-mono text-[11px] text-[var(--muted)]">{p.desig}</span>
-                    <span className="t-mono text-[12.5px] text-[var(--muted)]">{p.name}</span>
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
+          <ForEdition
+            assembled={<Ticker items={[...FEATURES.assembled, ...COMMON_FEATURES]} />}
+            kit={<Ticker items={[...FEATURES.kit, ...COMMON_FEATURES]} />} />
         </div>
 
-        {/* ================= DEMO =================
-            The dark counterweight the guideline calls for: one per page, and
-            this is the right one, because the film is already dark. */}
-        <section id="demo" className="px-3 md:px-4 pt-14 md:pt-20 pb-4 scroll-mt-20">
+        {/* ================= WATCH =================
+            The page's dark counterweight. Three films rather than one, the
+            way the reference does it: someone living with it, how it is made,
+            and the motion on its own. */}
+        <section id="watch" className="px-3 md:px-4 pt-14 md:pt-20 pb-4 scroll-mt-20">
           <div className="overflow-hidden p-6 sm:p-10 lg:p-14"
                style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
-            <p className="t-label m-0 mb-4" style={{ color: 'rgba(243,241,237,.55)' }}>Demo</p>
-            <h2 className="t-display mt-0 mb-10 max-w-[18ch]"
-                style={{ fontSize: 'clamp(32px,5.2vw,64px)', lineHeight: 1.02, color: 'var(--pebble-white)' }}>
-              Forty seconds on what it is.
-            </h2>
-            <DemoVideo />
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end mb-10 lg:mb-14">
+              <div>
+                <p className="t-label m-0 mb-4" style={{ color: 'rgba(243,241,237,.55)' }}>Watch</p>
+                <h2 className="t-display m-0 max-w-[16ch]"
+                    style={{ fontSize: 'clamp(32px,5.2vw,64px)', lineHeight: 1.02, color: 'var(--pebble-white)' }}>
+                  Three ways to meet Pebble-chan.
+                </h2>
+              </div>
+              <p className="m-0 text-[16px] leading-[26px] max-w-[44ch] lg:justify-self-end"
+                 style={{ color: 'rgba(243,241,237,.62)' }}>
+                Shot on a phone, on real desks, with real units. Each film has
+                sound — press play when you are somewhere you can hear it.
+              </p>
+            </div>
+            <div className="max-w-[1120px] mx-auto"><Films /></div>
           </div>
         </section>
 
         {/* The brand's one graphic gesture. Once per layout — see Cut.tsx. */}
         <Cut className="py-0" />
 
-        {/* ================= PLAY =================
-            This replaced a six-tile grid that claimed these capabilities in
-            150px cards. A claim you can operate beats a claim you can read. */}
+        {/* ================= WHAT IT DOES ================= */}
         <Section id="does" eyebrow="What it does"
                  title="Not an ornament. It runs."
-                 lede="Seven claims, and you can execute every one of them here. The model is built from the print files that ship in the box, its screen is drawn at the panel's real resolution, and the camera and microphone demos use your own — nothing is recorded, nothing is uploaded."
+                 lede="It looks around, nods and pulls faces from the moment it is powered — filmed here on a batch 01 unit. Under the face is the hardware for everything you might teach it next."
                  tint>
-          <Playground />
+          <div className="rail rail-3">
+            {filmed.map((c) => (
+              <article key={c.key} className="m-0">
+                <div className="overflow-hidden aspect-[4/5]"
+                     style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+                  <Clip src={`/media/robot/${c.clip}`} poster={`/media/robot/${c.clip}.webp`}
+                        alt={c.title} className="h-full" />
+                </div>
+                <div className="pt-5">
+                  <h3 className="t-display text-[22px] m-0 mb-2">{c.title}</h3>
+                  <p className="text-[14.5px] leading-[23px] text-[var(--muted)] m-0">{c.body}</p>
+                  <p className="t-mono text-[11px] text-[var(--muted)] mt-3 mb-0">{c.source}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <p className="t-label mt-12 mb-4">And the hardware for what comes next</p>
+          <div className="rail rail-2">
+            {more.map((c) => (
+              <div key={c.key} className="card p-5">
+                <div className="flex items-baseline justify-between gap-4 mb-2">
+                  <h3 className="text-[16px] font-semibold m-0">{c.title}</h3>
+                  <span className="t-mono text-[10.5px] text-[var(--muted)] text-right">{c.source}</span>
+                </div>
+                <p className="text-[14px] leading-[22px] text-[var(--muted)] m-0">{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* ================= WHAT PEOPLE BUILD ================= */}
+        <Section id="builds" eyebrow="What people build"
+                 title="It sits on your desk. Then it gets a job."
+                 lede="Six things this hardware is good at, with an honest sense of how long each one takes. None of them is needed to enjoy it.">
+          <div className="rail">
+            {BUILDS.map((b, i) => (
+              <article key={b.title} className="card p-6 m-0 flex flex-col">
+                <div className="flex items-baseline justify-between gap-4 mb-6">
+                  <span className="t-mono text-[12px] text-[var(--muted)]">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="t-mono text-[11px] text-[var(--muted)]">{b.effort}</span>
+                </div>
+                <h3 className="t-display text-[21px] sm:text-[23px] m-0 mb-3">{b.title}</h3>
+                <p className="text-[14.5px] leading-[23px] text-[var(--muted)] m-0">{b.body}</p>
+              </article>
+            ))}
+          </div>
+        </Section>
+
+        {/* ================= HARDWARE ================= */}
+        <Section id="hardware" eyebrow="Hardware"
+                 title="Small head. Serious hardware."
+                 lede="A stock M5Stack CoreS3 Lite on two Feetech bus servos, named exactly, so you can look up every part before you buy — we would."
+                 tint>
+          <div className="grid gap-8 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] items-start">
+            <figure className="m-0">
+              <div className="relative overflow-hidden aspect-[4/3] md:aspect-[4/5]"
+                   style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+                <Image src="/media/robot/robot-full.webp" alt="An assembled Pebble-chan standing on a desk, head, neck and legs in view"
+                       fill sizes="(max-width: 768px) 94vw, 420px" className="object-cover"
+                       style={{ objectPosition: '50% 62%' }} />
+              </div>
+              <figcaption className="t-mono text-[11px] text-[var(--muted)] mt-3">
+                The CoreS3 head on its two-servo neck
+              </figcaption>
+            </figure>
+
+            <div>
+              <dl className="m-0 grid border-t" style={{ borderColor: 'var(--ink)' }}>
+                {HARDWARE.map(([k, v]) => (
+                  <div key={k} className="grid grid-cols-[110px_minmax(0,1fr)] sm:grid-cols-[140px_minmax(0,1fr)] gap-4 py-4 border-b"
+                       style={{ borderColor: 'var(--line)' }}>
+                    <dt className="t-display text-[19px] sm:text-[21px]">{k}</dt>
+                    <dd className="t-mono text-[13px] leading-[22px] m-0 pt-1">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              <a href="#specs" className="inline-block mt-6 text-[14px] text-[var(--ink)] underline underline-offset-4">
+                The full spec sheet ↓
+              </a>
+            </div>
+          </div>
         </Section>
 
         {/* ================= SOFTWARE ================= */}
@@ -181,24 +296,45 @@ export default function Page() {
           <OpenSource />
         </section>
 
-        {/* ================= IN THE BOX ================= */}
-        <Section id="box" eyebrow="In the box" title={`${PARTS.length} parts. Nothing else to buy.`}
-                 lede="Including the printed shell and the fasteners. You supply a USB-C cable and a computer."
-                >
-          <figure className="m-0">
-            <Image src="/kit-flatlay.webp" alt="Everything in the kit laid out beside its box"
-                   width={1672} height={941} sizes="(max-width: 1200px) 96vw, 1200px"
-                   className="w-full h-auto block overflow-hidden"
-                   style={{ borderRadius: 'var(--radius-tile)' }} />
-            <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-4">
-              Every part of one kit, as packed · {PARTS.length} parts
-            </figcaption>
-          </figure>
+        {/* ================= THE KIT =================
+            The second way to buy it, and only shown to someone who has chosen
+            it. Same price, so the only thing this section has to explain is
+            what building it involves. */}
+        <KitOnly>
+        <Section id="kit" eyebrow="Your kit"
+                 title="The same robot, as a kit."
+                 lede={`Same parts, same printed shell, same ${PRICE.now}. It arrives as eight parts and goes together in an evening, with no soldering — and afterwards you know every screw in it.`}
+                 aside={
+                   <div className="flex flex-col items-start gap-4">
+                     <ChooseEdition edition="kit" location="kit-section" className="btn btn-brand">
+                       Book the kit — {PRICE.deposit}
+                     </ChooseEdition>
+                     <SwitchEdition to="assembled" location="kit-section"
+                                    className="text-[14px] text-[var(--ink)] underline underline-offset-4 bg-transparent border-0 p-0 cursor-pointer">
+                       Switch to fully assembled
+                     </SwitchEdition>
+                   </div>
+                 }>
+          <div className="grid gap-4 grid-cols-2">
+            {[
+              ['/media/robot/parts.webp', 'Printed shell parts on a desk beside a finished robot', 'The printed parts, before assembly'],
+              ['/media/robot/print.webp', 'Shell parts on the bed of a 3D printer', 'Printed here — you never need a printer'],
+            ].map(([src, alt, caption]) => (
+              <figure key={src} className="m-0">
+                <div className="relative overflow-hidden aspect-[4/5]"
+                     style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+                  <Image src={src} alt={alt} fill sizes="(max-width: 1024px) 46vw, 420px" className="object-cover" />
+                </div>
+                <figcaption className="t-mono text-[11px] text-[var(--muted)] mt-3">{caption}</figcaption>
+              </figure>
+            ))}
+          </div>
 
-          <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 list-none p-0 m-0 mt-8">
+          <p className="t-label mt-12 mb-4">In the box · {PARTS.length} parts</p>
+          <ul className="grid gap-2.5 grid-cols-2 xl:grid-cols-3 list-none p-0 m-0">
             {PARTS.map((p) => (
               <li key={p.desig} className="card p-3 flex items-center gap-3">
-                <span className="w-[46px] h-[46px] shrink-0 rounded-lg grid place-items-center overflow-hidden"
+                <span className="w-[46px] h-[46px] shrink-0 rounded-lg hidden sm:grid place-items-center overflow-hidden"
                       style={{ background: 'var(--flatlay)' }}>
                   <span className="block w-[82%] [&>svg]:w-full [&>svg]:h-auto"><PartArt kind={p.art} /></span>
                 </span>
@@ -212,42 +348,11 @@ export default function Page() {
               </li>
             ))}
           </ul>
-        </Section>
+          <p className="text-[13.5px] text-[var(--muted)] mt-4 mb-0">
+            You supply a USB-C cable and a computer to flash it.
+          </p>
 
-        {/* ================= WHAT YOU CAN BUILD =================
-            Two up rather than three, so the footage is large enough to read.
-            The effort line is mono because it is a fact, and uncoloured
-            because the site has no accent. */}
-        <Section id="build-ideas" eyebrow="What you can build"
-                 title="It arrives as parts. What it becomes is up to you."
-                 lede="Six things people have actually made with this hardware, with an honest sense of how long each one takes."
-                 tint>
-          {/* A swipe rail on a phone. Six of these stacked was two and a half
-              screens of scrolling for one section — the reason the capability
-              grid was a rail in the first place. */}
-          <div className="rail rail-2">
-            {BUILDS.map((b) => (
-              <article key={b.title} className="m-0">
-                <div className="overflow-hidden"
-                     style={{ borderRadius: 'var(--radius-tile)', background: 'var(--surface-2)' }}>
-                  <Clip src={`/media/clips/${b.clip}`} poster={`/media/clips/${b.clip}.webp`}
-                        alt={b.title} className="h-[190px] md:h-[300px]" />
-                </div>
-                <div className="pt-5">
-                  <div className="flex items-baseline justify-between gap-4 mb-2.5">
-                    <h3 className="t-display text-[22px] sm:text-[26px] m-0">{b.title}</h3>
-                    <span className="t-mono text-[11px] text-[var(--muted)] shrink-0">{b.effort}</span>
-                  </div>
-                  <p className="text-[15px] leading-[24px] text-[var(--muted)] m-0 max-w-[52ch]">{b.body}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </Section>
-
-        {/* ================= BUILD ================= */}
-        <Section id="build" eyebrow="How you build it" title="Four steps, one evening"
-                 lede="In order, because the order matters.">
+          <p className="t-label mt-12 mb-4">Four steps, one evening</p>
           <ol className="grid gap-5 sm:gap-7 sm:grid-cols-2 list-none p-0 m-0">
             {BUILD_STEPS.map((s) => (
               <li key={s.n} className="flex sm:block gap-4 pt-5 border-t"
@@ -263,41 +368,38 @@ export default function Page() {
             ))}
           </ol>
 
-          {/* The assembly footage, which used to be the hero. It never worked
-              there — handheld, dim, shot portrait — but here it is evidence
-              rather than advertising, and being an unretouched phone video of
-              someone actually doing this is exactly the claim. */}
+          {/* The assembly footage. Shot on a phone held upright, so it is
+              cropped to a wide frame: the hands and the part being driven are
+              centred, which is all of the information in it. */}
           <figure className="m-0 mt-10">
-            {/* Shot on a phone held upright, so it is 9:16. Left to fill the
-                content column it rendered twelve hundred pixels tall and ate
-                the section. Cropped to a wide frame instead: the hands and the
-                part being driven are centred, which is all of the information
-                in it. */}
             <div className="relative overflow-hidden aspect-[16/9]"
                  style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
-            <video
-              className="absolute inset-0 w-full h-full object-cover"
-              poster="/media/build-poster.webp"
-              muted loop playsInline preload="none" controls
-            >
-              <source src="/media/build.webm" type="video/webm" />
-              <source src="/media/build.mp4" type="video/mp4" />
-            </video>
+              <video
+                className="absolute inset-0 w-full h-full object-cover"
+                poster="/media/build-poster.webp"
+                muted loop playsInline preload="none" controls
+              >
+                <source src="/media/build.webm" type="video/webm" />
+                <source src="/media/build.mp4" type="video/mp4" />
+              </video>
             </div>
             <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-3">
               One kit going together, unedited · 14 seconds
             </figcaption>
           </figure>
 
-          <div className="card p-5 md:p-8 mt-10">
+          {/* Hidden on phones, where it only ever showed as a sideways-scrolling
+              strip; the four steps above already say the same thing in words. */}
+          <div className="card p-5 md:p-8 mt-10 hidden sm:block">
             <div className="t-label mb-5">How a command reaches a servo</div>
             <div className="overflow-x-auto"><div className="min-w-[560px]"><SignalFlow /></div></div>
           </div>
         </Section>
+        </KitOnly>
 
         {/* ================= SPECIFICATIONS ================= */}
         <Section id="specs" eyebrow="Specifications" title="Read the whole datasheet"
-                 lede="Stock M5Stack and Feetech parts, named exactly. Look them up before you buy — we would."
+                 lede="Stock M5Stack and Feetech parts, named exactly. The robot and the kit are built from the same ones."
                  tint>
           <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
             {SPEC_TABLES.map((t) => (
@@ -331,11 +433,10 @@ export default function Page() {
 
         {/* ================= DOCUMENTS ================= */}
         <Section eyebrow="Learn and documents" title="Everything is someone else's open source"
-                 lede="We sell the parts, printed and matched. The software belongs to the Stack-chan project and always will."
-                >
+                 lede="We build the robot and print the parts. The software belongs to the Stack-chan project and always will.">
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              ['Stack-chan', 'The project this kit builds. Apache-2.0.', 'https://github.com/meganetaaan/stack-chan'],
+              ['Stack-chan', 'The project Pebble-chan runs. Apache-2.0.', 'https://github.com/meganetaaan/stack-chan'],
               ['Moddable SDK', 'The JavaScript runtime the firmware uses.', 'https://www.moddable.com/'],
               ['CoreS3 Lite', 'The controller datasheet, from M5Stack.', 'https://docs.m5stack.com/en/core/CoreS3-Lite'],
             ].map(([title, body, href]) => (
@@ -350,7 +451,7 @@ export default function Page() {
         </Section>
 
         {/* ================= FAQ ================= */}
-        <Section id="faq" eyebrow="Questions" title="The things people ask first" tint>
+        <Section id="faq" eyebrow="Questions" title="Good to know" tint>
           <div className="card overflow-hidden">
             {FAQS.map((f, i) => (
               <TrackedDetails key={f.q} event={EV.faqOpened} props={{ question: f.q }}
@@ -366,7 +467,7 @@ export default function Page() {
           </div>
         </Section>
 
-        {/* ================= RESERVE ================= */}
+        {/* ================= ORDER ================= */}
         <section id="reserve" className="py-14 md:py-20 scroll-mt-20">
           <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)] lg:gap-14">
             <div>
@@ -376,7 +477,8 @@ export default function Page() {
                 Order from batch 01
               </h2>
               <p className="text-[17px] leading-[28px] text-[var(--muted)] mt-0 mb-10 max-w-[46ch]">
-{PRICE.deposit} to book your kit now. The remaining {PRICE.balance} is paid in cash when it is delivered.
+                {PRICE.deposit} books your Pebble-chan now. The remaining {PRICE.balance} is
+                paid in cash when it is delivered.
               </p>
               <ReserveForm />
             </div>
@@ -388,31 +490,12 @@ export default function Page() {
               </div>
 
               <p className="text-[13px] text-[var(--muted)] mt-2 mb-3">
-                {PRICE.balance} in cash on delivery · {PRICE.now} total
+                {PRICE.balance} in cash on delivery · {PRICE.now} total, robot or kit
               </p>
 
-              <p className="t-label mt-2 mb-3">{PRICE.ship}</p>
-              <Countdown />
+              <p className="t-label mt-2 mb-0">{PRICE.ship}</p>
 
-              <ol className="mt-6 mb-0 p-0 list-none grid gap-4">
-                {[
-                  ['You book', `Your details and ${PRICE.deposit}, on this page. Card, UPI, netbanking or EMI.`],
-                  ['We box your kit', 'Parts matched, shell printed, servos addressed and centred.'],
-                  ['We ship it', 'Dispatch within 1–2 weeks of the batch closing.'],
-                  ['You pay the rest', `${PRICE.balance} in cash to the courier, when the box reaches you.`],
-                  ['You build it', 'Four steps, one evening. Everything you need is in the box.'],
-                ].map(([title, body], i) => (
-                  <li key={title} className="flex gap-3">
-                    <span className="t-mono text-[12px] text-[var(--muted)] pt-[3px] shrink-0">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[13.5px] font-semibold">{title}</span>
-                      <span className="block text-[13px] text-[var(--muted)] mt-0.5">{body}</span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
+              <OrderSteps />
 
               <p className="text-[12.5px] text-[var(--muted)] mt-6 mb-0 pt-4 border-t"
                  style={{ borderColor: 'var(--line)' }}>
@@ -442,6 +525,9 @@ export default function Page() {
           <div>
             <Image src="/brand/logo-horizontal.svg" alt="Pebble Robotics"
                    width={160} height={17} className="w-[150px] h-auto block mb-4" />
+            <p className="text-[13.5px] text-[var(--muted)] mt-0 mb-3 max-w-[30ch]">
+              The robot that lives on your desk.
+            </p>
             <a href={`mailto:${CONTACT.email}`}
                className="t-mono text-[13px] mt-1 mb-0 inline-block text-[var(--ink)] underline underline-offset-4">
               {CONTACT.email}
@@ -493,21 +579,18 @@ export default function Page() {
             <div className="t-label mb-3">Your data</div>
             <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
               Ordering stores your name, email, phone, shipping address and
-              profession. We use them to ship the kit, to tell you when it is on
-              its way, and — in Mixpanel — to follow up if an order does not
+              profession. We use them to ship your order, to tell you when it is
+              on its way, and — in Mixpanel — to follow up if an order does not
               complete. Card details go to Razorpay and never reach us. The
               courier is told your address and the balance to collect.
             </p>
-            <p className="text-[13.5px] text-[var(--muted)] m-0 mb-3 max-w-[36ch]">
-              The camera and microphone demos on this page run entirely in your
-              browser. Nothing from either is recorded, stored or sent anywhere,
-              and both stop the moment you switch away.
-            </p>
             <p className="text-[13.5px] text-[var(--muted)] m-0 max-w-[36ch]">
               We record how this page is used — clicks, scrolling and session
-              replays — and share some of it with Meta so our ads reach the
-              right people. Meta is never given your name, email, phone or
-              address. What you type into the form is never captured by the
+              replays — and share some of it with Meta and X so our ads reach
+              the right people. Meta is never given your name, email, phone or
+              address. X is sent a one-way hash of your email and phone when you
+              order — never the plain values, and never your name or address —
+              so it can count the sale. What you type into the form is never captured by the
               session replay.
             </p>
           </div>

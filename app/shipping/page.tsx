@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function Shipping() {
   return (
-    <LegalPage title="Shipping and delivery" updated="25 September 2026">
+    <LegalPage title="Shipping and delivery" updated="7 October 2026">
       <div className="keyfact">
         <p><strong>Delivery is free.</strong> The {PRICE.now} on the page is what you pay.</p>
         <p><strong>{PRICE.ship}</strong>, anywhere in India. We do not ship outside India.</p>
@@ -20,20 +20,21 @@ export default function Shipping() {
       <h2>Where we ship</h2>
       <p>
         Anywhere in India, to any address the courier serves. We do not ship
-        internationally — the kit is priced and supported for India only, and we would
+        internationally — Pebble-chan is priced and supported for India only, and we would
         rather not take an order we cannot support.
       </p>
 
       <h2>What it costs</h2>
       <p>
-        Nothing. Delivery is included in the kit price, and there is no separate charge at
-        checkout for any address in India. No cash-on-delivery: the kit is paid for on the
-        page before it is boxed.
+        Nothing. Delivery is included in the price, and there is no separate charge for any
+        address in India. You pay {PRICE.deposit} on the page to book, and the remaining{' '}
+        {PRICE.balance} in cash to the courier when it is delivered.
       </p>
 
       <h2>When it arrives</h2>
       <p>
-        Kits are built in batches. Yours is assembled after its batch closes and dispatched{' '}
+        Robots and kits are made in batches. Yours is built or packed after its batch closes
+        and dispatched{' '}
         <strong>within 1–2 weeks</strong> of that. Transit is then typically two to four
         days to a metro and up to a week elsewhere.
       </p>
@@ -47,7 +48,7 @@ export default function Shipping() {
       <p>
         Your order confirmation prints the address back to you. Check it when it arrives —
         if anything is wrong, reply to that email the same day and we will correct it before
-        the box is sealed. Once a kit has shipped, the address cannot be changed and a
+        the box is sealed. Once it has shipped, the address cannot be changed and a
         redelivery is between you and the courier.
       </p>
 
@@ -56,7 +57,7 @@ export default function Shipping() {
         If tracking has not moved for five working days, or the courier has marked it
         delivered and you do not have it, write to{' '}
         <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> with your payment id. We
-        will chase the courier. If a kit is genuinely lost in transit we send another one at
+        will chase the courier. If an order is genuinely lost in transit we send another one at
         our cost — a parcel we handed to a courier is our problem, not yours.
       </p>
 

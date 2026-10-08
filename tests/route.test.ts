@@ -15,6 +15,12 @@ vi.mock('@/lib/preorders', () => ({ createPreorder, duplicateField, resumeForEma
 const sendReservationEmail = vi.fn()
 vi.mock('@/lib/email', () => ({ sendReservationEmail }))
 
+const sendXConversion = vi.hoisted(() => vi.fn(async () => ({ ok: true, status: 200 })))
+vi.mock('@/lib/x-conversions', () => ({
+  sendXConversion,
+  requestIdentity: (r: Request) => ({ ipAddress: r.headers.get('x-forwarded-for'), userAgent: r.headers.get('user-agent') }),
+}))
+
 // Capture background work so tests can wait for it deterministically.
 const bg = vi.hoisted(() => ({ jobs: [] as Promise<unknown>[] }))
 vi.mock('@vercel/functions', () => ({
@@ -35,16 +41,17 @@ const body = {
   qty: 2,
 }
 
-function post(payload: unknown, raw?: string) {
+function post(payload: unknown, raw?: string, headers: Record<string, string> = {}) {
   return new Request('http://localhost/api/preorder', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...headers },
     body: raw ?? JSON.stringify(payload),
   })
 }
 
 beforeEach(() => {
   createPreorder.mockReset()
+  sendXConversion.mockClear()
   sendReservationEmail.mockReset()
   sendReservationEmail.mockResolvedValue({ ok: true, provider: 'resend', id: 'e_1' })
   bg.jobs.length = 0
@@ -153,9 +160,36 @@ describe('POST /api/preorder', () => {
     await POST(post(body))
     const arg = createPreorder.mock.calls[0][0]
     expect(Object.keys(arg).sort()).toEqual(
-      ['address', 'city', 'email', 'name', 'phone', 'pincode', 'profession', 'qty'].sort())
+      ['address', 'city', 'edition', 'email', 'name', 'phone', 'pincode', 'profession', 'qty'].sort())
     expect(arg.phone).toBe('+919876543210')
     expect(arg).not.toHaveProperty('company')
+  })
+
+  it('records the edition the buyer chose', async () => {
+    createPreorder.mockResolvedValue({ status: 'created' })
+    await POST(post({ ...body, edition: 'assembled' }))
+    await POST(post({ ...body, edition: 'kit' }))
+    expect(createPreorder.mock.calls.map((c) => c[0].edition)).toEqual(['assembled', 'kit'])
+  })
+
+  it('records an order from a page that predates the robot as a kit', async () => {
+    // That page sold only the kit, so an order with no edition was for one.
+    createPreorder.mockResolvedValue({ status: 'created' })
+    await POST(post(body))
+    expect(createPreorder.mock.calls[0][0].edition).toBe('kit')
+  })
+
+  it('refuses an edition that does not exist', async () => {
+    const res = await POST(post({ ...body, edition: 'gold' }))
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toMatchObject({ fields: { edition: expect.any(String) } })
+    expect(createPreorder).not.toHaveBeenCalled()
+  })
+
+  it('carries the chosen edition into a resumed order', async () => {
+    createPreorder.mockRejectedValue(Object.assign(new Error('dup'), { code: '23505' }))
+    await POST(post({ ...body, edition: 'assembled' }))
+    expect(resumeForEmail).toHaveBeenLastCalledWith('asha@example.com', '+919876543210', 'assembled')
   })
 
   it('treats a phone already on the list as a duplicate, not a crash', async () => {
@@ -263,5 +297,50 @@ describe('email is tied to payment, not to placing an order', () => {
 describe('GET /api/preorder', () => {
   it('is not allowed', async () => {
     expect((await GET()).status).toBe(405)
+  })
+})
+
+describe('X conversions from the order route', () => {
+  const browser = { 'x-forwarded-for': '203.0.113.9', 'user-agent': 'Mozilla/5.0' }
+
+  it('reports a new order as a lead, under the id the browser will send too', async () => {
+    createPreorder.mockResolvedValue({ status: 'created', token: 'a'.repeat(32) })
+    await POST(post({ ...body, twclid: 'click1', xid: 'abcd1234-ef' }, undefined, browser))
+    await settleBackground()
+    expect(sendXConversion).toHaveBeenCalledOnce()
+    expect(sendXConversion).toHaveBeenCalledWith({
+      event: 'lead',
+      conversionId: 'abcd1234-ef',
+      identity: {
+        email: 'asha@example.com', phone: '+919876543210', twclid: 'click1',
+        ipAddress: '203.0.113.9', userAgent: 'Mozilla/5.0',
+      },
+    })
+    // The click id is kept with the order for the sale, the lead id is not.
+    expect(createPreorder.mock.calls[0][0]).toMatchObject({ twclid: 'click1' })
+    expect(createPreorder.mock.calls[0][0]).not.toHaveProperty('xid')
+  })
+
+  it('drops a malformed click id rather than refusing the order', async () => {
+    createPreorder.mockResolvedValue({ status: 'created', token: 'a'.repeat(32) })
+    const res = await POST(post({ ...body, twclid: '<script>' }))
+    expect(res.status).toBe(201)
+    expect(createPreorder.mock.calls[0][0].twclid).toBeUndefined()
+  })
+
+  it('reports nothing for a duplicate — it is not a new order', async () => {
+    createPreorder.mockResolvedValue({ status: 'duplicate', field: 'email', paid: false, token: null })
+    await POST(post(body))
+    await settleBackground()
+    expect(sendXConversion).not.toHaveBeenCalled()
+  })
+
+  it('reports nothing, and remembers not to, when the browser sends Global Privacy Control', async () => {
+    createPreorder.mockResolvedValue({ status: 'created', token: 'a'.repeat(32) })
+    await POST(post(body, undefined, { ...browser, 'sec-gpc': '1' }))
+    await settleBackground()
+    expect(sendXConversion).not.toHaveBeenCalled()
+    // Kept with the order, so the payment webhook honours it as well.
+    expect(createPreorder.mock.calls[0][0]).toMatchObject({ adOptOut: true })
   })
 })

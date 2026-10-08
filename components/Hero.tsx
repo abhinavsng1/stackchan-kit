@@ -1,37 +1,26 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import Image from 'next/image'
-import { PRICE, CAMPAIGN } from '@/lib/kit'
-import Countdown from '@/components/Countdown'
+import { PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
+import { useEdition } from '@/lib/edition-store'
+import { SwitchEdition } from '@/components/EditionGate'
 
 /**
- * The first screen: the real build footage, full-bleed and sharp, with the
- * words in a panel that sits on it.
+ * The first screen: what it is, what it costs, and the thing itself, moving.
  *
- * Three attempts got here. A two-column layout with a video beside the text
- * read as a catalogue. A dark page with a signal colour read as an
- * engineering tool. Then the footage went behind a 2.5px blur and a heavy
- * top-to-bottom gradient so the headline would clear it — which made the one
- * asset that cannot be faked into an unreadable brown wash. A visitor saw no
- * product at all above the fold.
+ * The robot is now sold assembled, so the first screen leads with the finished
+ * robot rather than the build. The words sit on paper to the left and the
+ * footage stands upright to the right: it was shot on a phone held portrait,
+ * and cropping it to a letterbox to fill the width threw away the robot's
+ * legs — the one part that changed since the last batch.
  *
- * So the footage is now untouched: no blur, no full-frame scrim. The type
- * gets its own bounded panel instead, and contrast is solved where the words
- * are and nowhere else.
- *
- * The clip changed too, and that mattered more than any of the above. The
- * assembly footage is a handheld phone video shot portrait in a dim red-lit
- * room and cropped wide — authentic, but no amount of CSS makes it read as a
- * product at 1440. It has moved to the build section, where being a real
- * phone video of a real assembly is the point. What runs here instead is the
- * finished robot on a desk in daylight: steady, in focus, landscape, and
- * cycling through its own expressions. Someone arriving cold now sees the
- * thing they would be buying.
+ * The loop is two passages from the desk film, joined, silent, under 800 KB.
+ * It is a real batch 01 unit; the caption says so and has to stay true.
  */
 export default function Hero() {
   const video = useRef<HTMLVideoElement>(null)
+  const edition = useEdition()
 
   useEffect(() => {
     const el = video.current
@@ -43,114 +32,100 @@ export default function Hero() {
   }, [])
 
   return (
-    <section className="px-3 pt-3 pb-6 md:px-4 md:pt-4 md:pb-10">
-      <div
-        className="relative overflow-hidden isolate"
-        style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}
-      >
-        <video
-          ref={video}
-          data-testid="hero-video"
-          className="hero-video absolute inset-0 w-full h-full object-cover"
-          poster="/media/unit-demo-poster.webp"
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          aria-hidden="true"
-        >
-          <source src="/media/unit-demo.webm" type="video/webm" />
-          <source src="/media/unit-demo.mp4" type="video/mp4" />
-        </video>
+    <section className="wrap-wide pt-4 pb-12 md:pt-8 md:pb-20">
+      <div className="grid gap-8 lg:gap-16 items-center lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div className="max-w-[640px]">
+          <p className="t-label m-0 mb-5">
+            Pebble-chan · {edition === 'kit' ? 'Build kit' : 'Desktop robot'} · Batch 01
+          </p>
 
-        {/* Just enough at the very top for the logo, and a whisper at the
-            bottom so the panel is not a sticker. The middle of the frame is
-            left alone. */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(to bottom, rgba(11,11,12,.55) 0%, rgba(11,11,12,0) 22%,'
-              + ' rgba(11,11,12,0) 62%, rgba(11,11,12,.38) 100%)',
-          }}
-        />
+          <h1 className="t-display m-0 mb-6"
+              style={{ fontSize: 'clamp(42px, 6.2vw, 88px)', lineHeight: 0.98 }}>
+            The robot that lives on your desk.
+          </h1>
 
-        <div className="relative flex flex-col min-h-[74vh] md:min-h-[78vh] lg:min-h-[640px]
-                        p-4 sm:p-6 lg:p-8">
-          <Image
-            src="/brand/logo-horizontal-white.svg"
-            alt="Pebble Robotics"
-            width={160} height={17} priority
-            className="w-[124px] h-auto ml-2 mt-1 mb-auto opacity-95"
-          />
+          <p className="m-0 mb-8 text-[17px] sm:text-[19px] leading-[28px] sm:leading-[31px] text-[var(--muted)] max-w-[46ch]">
+            {edition === 'kit'
+              ? <>The same robot as a kit: eight parts, the shell already printed,
+                  one evening and no soldering. Built, it looks around, tilts its head
+                  and changes expression on its own — and every line of its code is
+                  open.</>
+              : <>Pebble-chan arrives fully assembled and tested. Plug it in and it
+                  wakes up: it looks around, tilts its head and changes expression on
+                  its own. When you want it to do more, every line of its code is open.</>}
+          </p>
 
-          {/* The panel. Ink rather than paper: the footage is warm and dim, and
-              a light block on it reads as a banner pasted over the film. */}
-          <div
-            className="w-full sm:max-w-[560px] lg:max-w-[600px] p-5 sm:p-8 lg:p-10 backdrop-blur-md"
-            style={{
-              borderRadius: 'var(--radius-tile)',
-              background: 'rgba(11,11,12,.80)',
-              border: '1px solid rgba(243,241,237,.12)',
-            }}
-          >
-            <p className="t-label m-0 mb-3 sm:mb-4" style={{ color: 'rgba(243,241,237,.66)' }}>
-              Pebble-chan · Batch 01 · {CAMPAIGN.name}
-            </p>
-
-            <h1
-              className="t-display m-0 mb-4 sm:mb-5"
-              style={{
-                fontSize: 'clamp(32px, 4.6vw, 62px)',
-                lineHeight: 1.0,
-                color: 'var(--pebble-white)',
-              }}
-            >
-              Build the robot.<br />Then teach it.
-            </h1>
-
-            <p className="m-0 mb-5 sm:mb-7 text-[15px] sm:text-[16px] leading-[24px] sm:leading-[26px] max-w-[42ch]"
-               style={{ color: 'rgba(243,241,237,.78)' }}>
-              Eight parts, one evening, no soldering. After that it runs whatever
-              you write.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <a
-                href="#reserve"
-                onClick={() => track(EV.reserveCtaClicked, { location: 'hero' })}
-                className="btn"
-                style={{
-                  background: 'var(--pebble-white)',
-                  borderColor: 'var(--pebble-white)',
-                  color: 'var(--pebble-black)',
-                  borderRadius: 999,
-                }}
-              >
-                Book for {PRICE.deposit}
-              </a>
-              <span className="t-mono text-[12.5px]" style={{ color: 'rgba(243,241,237,.62)' }}>
-                {PRICE.balance} on delivery · {PRICE.now} total
-              </span>
-            </div>
-
-            <div className="mt-6 pt-5 flex flex-wrap items-baseline gap-x-5 gap-y-2"
-                 style={{ borderTop: '1px solid rgba(243,241,237,.14)' }}>
-              <span className="t-mono text-[12.5px] line-through" style={{ color: 'rgba(243,241,237,.45)' }}>
-                {PRICE.mrp}
-              </span>
-              <span className="t-mono text-[12.5px]" style={{ color: 'rgba(243,241,237,.78)' }}>
-                {PRICE.save}
-              </span>
-              <Countdown tone="light" />
-            </div>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 mb-6">
+            <span className="t-display text-[40px] leading-none">{PRICE.now}</span>
+            <span className="t-mono text-[15px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
+            <span className="t-mono text-[13px] text-[var(--muted)]">
+              {PRICE.deposit} to book · {PRICE.balance} on delivery
+            </span>
           </div>
 
-          <p className="t-mono text-[11px] mt-4 mb-0 ml-2"
-             style={{ color: 'rgba(243,241,237,.58)' }}>
-            Not a render — a batch 01 unit running, filmed on a desk in Bengaluru
+          <div className="flex flex-wrap items-center gap-3">
+            <a href="#reserve"
+               onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}
+               className="btn btn-brand !px-7 !py-4 !text-[16px]">
+              Book yours — {PRICE.deposit}
+            </a>
+            <a href="#watch" className="btn btn-ghost !px-6 !py-4 !text-[16px]">
+              <span aria-hidden="true">▶</span> Watch it move
+            </a>
+          </div>
+
+          <p className="text-[14px] text-[var(--muted)] mt-6 mb-0 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="dot" />
+            <span>In stock · {PRICE.ship} · free delivery across India</span>
+          </p>
+
+          <p className="text-[14px] text-[var(--muted)] mt-3 mb-0">
+            {edition === 'kit' ? 'Rather have it ready to go? ' : 'Rather build it yourself? '}
+            <SwitchEdition to={edition === 'kit' ? 'assembled' : 'kit'} location="hero"
+                           className="text-[var(--ink)] underline underline-offset-4 bg-transparent border-0 p-0 cursor-pointer text-[14px]">
+              {edition === 'kit' ? 'Switch to fully assembled' : 'The kit is the same price'}
+            </SwitchEdition>.
           </p>
         </div>
+
+        <figure className="m-0">
+          <div className="relative overflow-hidden aspect-[4/5] lg:aspect-[5/6] w-full"
+               style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+            <video
+              ref={video}
+              data-testid="hero-video"
+              className="hero-video absolute inset-0 w-full h-full object-cover"
+              poster="/media/robot/hero.webp"
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-hidden="true"
+            >
+              <source src="/media/robot/hero.webm" type="video/webm" />
+              <source src="/media/robot/hero.mp4" type="video/mp4" />
+            </video>
+
+            <ul className="absolute left-4 right-4 bottom-4 sm:left-5 sm:bottom-5 flex flex-wrap gap-2 list-none p-0 m-0">
+              {(edition === 'kit'
+                ? ['Eight parts', 'No soldering', 'Pan and tilt']
+                : ['Assembled and tested', 'Pan and tilt', '2.0″ touch face']).map((t) => (
+                <li key={t} className="t-mono text-[11px] px-3 py-1.5 backdrop-blur-md"
+                    style={{
+                      borderRadius: 999,
+                      background: 'rgba(11,11,12,.62)',
+                      color: 'rgba(243,241,237,.9)',
+                      border: '1px solid rgba(243,241,237,.16)',
+                    }}>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <figcaption className="t-mono text-[11px] text-[var(--muted)] mt-3">
+            Not a render — a batch 01 unit, filmed on a desk in Bengaluru
+          </figcaption>
+        </figure>
       </div>
     </section>
   )

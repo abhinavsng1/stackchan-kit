@@ -13,19 +13,6 @@ test('every section anchor the nav points at exists', async ({ page }) => {
   }
 })
 
-test('the robot tracks the pointer', async ({ page }) => {
-  test.skip(true, 'needs WebGL; covered in the webgl project by hero3d.spec.ts')
-  await page.goto('/')
-  const readout = page.locator('figcaption span').filter({ hasText: '°' }).first()
-  await page.mouse.move(100, 400)
-  await page.waitForTimeout(900)
-  const left = await readout.textContent()
-  await page.mouse.move(1200, 400)
-  await page.waitForTimeout(900)
-  const right = await readout.textContent()
-  expect(left).not.toBe(right)
-})
-
 test('no horizontal scroll at phone, tablet and desktop widths', async ({ page }) => {
   for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 })
@@ -57,11 +44,16 @@ test.describe('discoverability', () => {
       expect(types).toEqual(expect.arrayContaining(['Organization', 'Product', 'FAQPage']))
 
       const product = graph.find((n) => n['@type'] === 'Product') as Record<string, never>
-      const offer = product.offers as unknown as Record<string, string>
-      expect(offer.priceCurrency).toBe('INR')
-      // A price with a currency symbol or comma in it is invalid schema.org and
-      // is silently dropped, taking the rich result with it.
-      expect(offer.price).toMatch(/^\d+$/)
+      const offers = product.offers as unknown as Array<Record<string, string>>
+      // One offer per edition, each under its own catalogue id, at one price.
+      expect(offers.map((o) => o.sku).sort()).toEqual(['PBL-BOT-01', 'PBL-KIT-01'])
+      expect(new Set(offers.map((o) => o.price)).size).toBe(1)
+      for (const offer of offers) {
+        expect(offer.priceCurrency).toBe('INR')
+        // A price with a currency symbol or comma in it is invalid schema.org and
+        // is silently dropped, taking the rich result with it.
+        expect(offer.price).toMatch(/^\d+$/)
+      }
     })
 
   test('llms.txt states the price and stays in step with the page', async ({ page }) => {

@@ -1,5 +1,9 @@
 import crypto from 'node:crypto'
 import { neon } from '@neondatabase/serverless'
+import { isEdition, type Edition } from '@/lib/kit'
+
+/** A stored edition, read defensively: anything unrecognised was a kit order. */
+const editionOf = (v: unknown): Edition => (isEdition(v) ? v : 'kit')
 
 /** 32 hex characters from a CSPRNG: unguessable, and safe in a URL. */
 export function newPaymentToken(): string {
@@ -15,6 +19,12 @@ export type PreorderRecord = {
   city?: string
   pincode?: string
   qty: number
+  /** Omitted only by callers that predate the robot; stored as the kit. */
+  edition?: Edition
+  /** The X ad click id the buyer arrived with, if any. */
+  twclid?: string
+  /** Global Privacy Control was on when they ordered: report nothing to ad platforms. */
+  adOptOut?: boolean
 }
 
 export type CreateResult =
@@ -41,11 +51,18 @@ export type CreateResult =
  *
  * A paid order returns nothing. There is no payment left to resume, and the
  * only thing a token could do is confuse.
+ *
+ * A buyer who resumes may have changed their mind about the edition since —
+ * someone who started a kit order before the robot was on sale, say. The
+ * choice they just made is the one they are about to pay for, so the unpaid
+ * row is brought up to date before its token is handed back. The price is the
+ * same either way, so this cannot change what anyone is charged.
  */
 async function resumeToken(
   sql: NonNullable<ReturnType<typeof client>>,
   email: string,
   phone: string | null,
+  edition?: Edition,
 ): Promise<{ paid: boolean; token: string | null }> {
   const rows = await sql`
     select payment_token, paid_at, phone
@@ -57,7 +74,14 @@ async function resumeToken(
   const stored = row.phone === null ? null : String(row.phone)
   const given = phone?.trim() || null
   const matches = stored !== null && given !== null && stored === given
-  return { paid: false, token: matches ? String(row.payment_token) : null }
+  if (!matches) return { paid: false, token: null }
+
+  if (edition) {
+    await sql`
+      update preorders set edition = ${edition}
+       where email = ${email.toLowerCase()} and paid_at is null`
+  }
+  return { paid: false, token: String(row.payment_token) }
 }
 
 /**
@@ -83,12 +107,12 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
   const token = newPaymentToken()
 
   const rows = await sql`
-    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token)
+    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token, edition, twclid, ad_opt_out)
     values (
       ${input.name}, ${input.email.toLowerCase()}, ${input.phone?.trim() || null},
       ${input.profession?.trim() || null}, ${input.address?.trim() || null},
       ${input.city?.trim() || null}, ${input.pincode?.trim() || null}, ${input.qty},
-      ${token}
+      ${token}, ${editionOf(input.edition)}, ${input.twclid ?? null}, ${input.adOptOut === true}
     )
     on conflict (email) do nothing
     returning id
@@ -98,7 +122,7 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
   // A phone collision throws 23505 instead and is classified by the caller.
   if (rows.length > 0) return { status: 'created', token }
 
-  const resume = await resumeToken(sql, input.email, input.phone ?? null)
+  const resume = await resumeToken(sql, input.email, input.phone ?? null, input.edition)
   return { status: 'duplicate', field: 'email', ...resume }
 }
 
@@ -108,11 +132,11 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
  * it the same way it answers a repeat email.
  */
 export async function resumeForEmail(
-  email: string, phone: string | null,
+  email: string, phone: string | null, edition?: Edition,
 ): Promise<{ paid: boolean; token: string | null }> {
   const sql = client()
   if (!sql) return { paid: false, token: null }
-  return resumeToken(sql, email, phone)
+  return resumeToken(sql, email, phone, edition)
 }
 
 /**
@@ -146,6 +170,7 @@ export type PayableReservation = {
   email: string
   phone: string | null
   qty: number
+  edition: Edition
   paidAt: Date | null
 }
 
@@ -159,7 +184,7 @@ export async function findByPaymentToken(token: string): Promise<PayableReservat
   if (!sql) return null
 
   const rows = await sql`
-    select id, name, email, phone, qty, paid_at
+    select id, name, email, phone, qty, edition, paid_at
     from preorders where payment_token = ${token} limit 1`
 
   const r = rows[0]
@@ -167,7 +192,8 @@ export async function findByPaymentToken(token: string): Promise<PayableReservat
   return {
     id: Number(r.id), name: String(r.name), email: String(r.email),
     phone: r.phone === null ? null : String(r.phone),
-    qty: Number(r.qty), paidAt: r.paid_at ? new Date(r.paid_at as string) : null,
+    qty: Number(r.qty), edition: editionOf(r.edition),
+    paidAt: r.paid_at ? new Date(r.paid_at as string) : null,
   }
 }
 
@@ -190,6 +216,12 @@ export type MarkPaidResult =
   | {
       status: 'paid'
       name: string; email: string; qty: number; amountPaise: number
+      /** Robot or kit, so the receipt names what is actually coming. */
+      edition: Edition
+      /** For the X Conversion API: the ad click this order came from, if any. */
+      twclid: string | null
+      /** The buyer asked not to be tracked (GPC); nothing goes to an ad platform. */
+      adOptOut: boolean
       /** Still owed, in cash, when the box arrives. */
       balanceDuePaise: number
       phone: string | null; address: string | null; city: string | null; pincode: string | null
@@ -233,7 +265,7 @@ export async function markPaid(input: {
   if (!sql) return { status: 'unknown_order' }
 
   const rows = await sql`
-    select id, name, email, qty, phone, address, city, pincode, paid_at
+    select id, name, email, qty, edition, twclid, ad_opt_out, phone, address, city, pincode, paid_at
       from preorders where razorpay_order_id = ${input.orderId} limit 1`
 
   const row = rows[0]
@@ -266,6 +298,9 @@ export async function markPaid(input: {
     name: String(row.name),
     email: String(row.email),
     qty: Number(row.qty),
+    edition: editionOf(row.edition),
+    twclid: text(row.twclid),
+    adOptOut: row.ad_opt_out === true,
     amountPaise: settledPaise,
     balanceDuePaise: balanceDue,
     phone: text(row.phone),

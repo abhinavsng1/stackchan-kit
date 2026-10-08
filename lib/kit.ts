@@ -52,48 +52,54 @@ export type Capability = {
   source: string
   tone: 'brand' | 'mint' | 'amber' | 'violet'
   /**
-   * Slug of the clip that shows this capability, where one exists. Wi-Fi and
-   * a software licence are not things a camera can point at, so those two
-   * tiles stay drawn rather than filmed.
+   * Slug of the clip in /media/robot that shows this capability, where one
+   * exists. Wi-Fi and a microphone are not things a camera can point at, so
+   * those tiles stay as text rather than pretend.
    */
   clip?: string
 }
 
 export const CAPABILITIES: Capability[] = [
   {
-    key: 'face', clip: 'face', tone: 'brand',
+    key: 'move', clip: 'clip-look', tone: 'mint',
+    title: 'It turns to look',
+    body: 'The head pans on a bus servo that reports the position it actually reached, so the robot knows where it is looking rather than guessing.',
+    source: 'M1 · SCS0009 pan',
+  },
+  {
+    key: 'tilt', clip: 'clip-tilt', tone: 'amber',
+    title: 'It nods and tilts',
+    body: 'A second servo, on its own address on the same bus, tips the head up, down and sideways. Two axes are what make it read as curious.',
+    source: 'M2 · SCS0009 tilt',
+  },
+  {
+    key: 'face', clip: 'clip-face', tone: 'brand',
     title: 'It has a face',
-    body: 'A 320 × 240 display renders the eyes. Expressions, blinking and a slow breathing idle are what the Stack-chan avatar library does out of the box.',
+    body: 'A 320 × 240 display draws the eyes. Expressions, blinking and a slow breathing idle run from the moment it is plugged in.',
     source: 'U1 · 2.0" IPS display',
   },
   {
-    key: 'move', clip: 'move', tone: 'mint',
-    title: 'It turns to look',
-    body: 'Pan and tilt on two bus servos. Each reports the position it actually reached, so your code knows where the head is rather than guessing.',
-    source: 'M1 + M2 · SCS0009',
-  },
-  {
-    key: 'see', clip: 'see', tone: 'amber',
+    key: 'see', tone: 'amber',
     title: 'It can see',
     body: 'An onboard camera plus a proximity and ambient-light sensor. Pointing the head at a face is the classic first project, and every part for it is in the box.',
     source: 'U1 · GC0308 + LTR-553ALS',
   },
   {
-    key: 'talk', clip: 'talk', tone: 'violet',
+    key: 'talk', tone: 'violet',
     title: 'It talks and listens',
     body: 'A 1 W speaker on an I²S amplifier and two microphones on a full-duplex codec. Speech in, speech out, no extra module.',
     source: 'U1 · AW88298 + ES7210',
   },
   {
-    key: 'touch', clip: 'touch', tone: 'amber',
+    key: 'touch', tone: 'amber',
     title: 'You can touch it',
     body: 'The display is capacitive, so the face doubles as the interface. Tap it, swipe it, put a menu on it — the driver is already wired up.',
     source: 'U1 · FT6336U',
   },
   {
-    key: 'net', clip: 'net', tone: 'brand',
+    key: 'net', tone: 'brand',
     title: 'It gets online',
-    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like — the kit takes no view on that.',
+    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like — Pebble-chan takes no view on that.',
     source: 'U1 · ESP32-S3',
   },
   {
@@ -191,43 +197,37 @@ export const SPEC_TABLES: SpecTable[] = [
 
 /* ---------------------------------------------------------------- */
 
-export type Build = { title: string; body: string; effort: string; tone: 'brand' | 'mint' | 'amber' | 'violet'; clip: string }
+export type Build = { title: string; body: string; effort: string; tone: 'brand' | 'mint' | 'amber' | 'violet' }
 
 /** Concrete projects, with an honest sense of how much work each one is. */
 export const BUILDS: Build[] = [
   {
     tone: 'brand', effort: 'An evening',
-    clip: 'build-1',
     title: 'A desk companion that notices you',
     body: 'Point the camera at your chair. It looks up when you sit down, follows you while you work, and goes sleepy when you leave. About forty lines once the face is drawing.',
   },
   {
     tone: 'mint', effort: 'A weekend',
-    clip: 'build-2',
     title: 'A voice assistant with a face',
     body: 'Two microphones in, a 1 W speaker out, Wi-Fi in between. Wire it to whichever speech and language API you already pay for — it reacts while it thinks, which is most of why it feels alive.',
   },
   {
     tone: 'amber', effort: 'An afternoon',
-    clip: 'build-3',
     title: 'A standup bot for the team',
     body: 'It turns to whoever is speaking, shows the build status on its face, and goes Error red when CI breaks. The twelve expressions are already there and settable over HTTP.',
   },
   {
     tone: 'violet', effort: 'An hour',
-    clip: 'build-4',
     title: 'A very good pomodoro timer',
     body: 'Curious while you work, sleepy on a break, excited when the cycle completes. The least useful thing you can build with it and the one people keep on the desk.',
   },
   {
     tone: 'brand', effort: 'A term',
-    clip: 'build-5',
     title: 'A teaching rig',
     body: 'One object that covers RS485, servo addressing, I²S audio, camera capture and an embedded JavaScript runtime. Students can break it and put it back together.',
   },
   {
     tone: 'mint', effort: 'Ongoing',
-    clip: 'build-6',
     title: 'Whatever you were going to build anyway',
     body: 'It is a stock CoreS3 on a servo bus with the shell already printed. If you had a robotics idea waiting on a mechanical starting point, this is one.',
   },
@@ -238,16 +238,18 @@ export const BUILDS: Build[] = [
 export type Faq = { q: string; a: string }
 
 export const FAQS: Faq[] = [
-  { q: 'Do I need a 3D printer?',
-    a: 'No. The shell and the servo brackets are printed here and ship in the box. If you would rather print your own, the Stack-chan project publishes the models.' },
+  { q: 'Does it arrive assembled?',
+    a: 'Yes, unless you choose otherwise. Pebble-chan ships built, flashed and tested: plug in the supplied power adapter and the face comes up. If you would rather build it yourself, choose the kit — same price, same parts.' },
+  { q: 'What is the difference between the robot and the kit?',
+    a: 'Only who puts it together. Both have the same CoreS3 Lite, the same two bus servos, the same printed shell and the same power supply, and both cost ₹4,999. The robot is assembled and tested by us; the kit arrives as eight parts and takes an evening, with no soldering.' },
+  { q: 'Do I need to know how to code?',
+    a: 'Not to enjoy it. It runs the Stack-chan firmware out of the box. When you want to change what it does, the behaviour is JavaScript on the Moddable SDK, and the controller is a stock CoreS3 Lite, so the Arduino core and M5Unified work as well.' },
   { q: 'What is Pebble-chan, exactly?',
-    a: 'It is our build kit, assembled around the open-source Stack-chan project and an M5Stack CoreS3 Lite. It is not the official M5Stack product — that is a different, pre-assembled device with its own hardware. The software is Stack-chan and we take no credit for it.' },
-  { q: 'What do I write the software in?',
-    a: 'Stack-chan runs on the Moddable SDK, so the behaviour is JavaScript. The controller is a stock CoreS3 Lite, so the Arduino core and M5Unified work as well if you prefer C++.' },
+    a: 'It is our desktop robot, built around the open-source Stack-chan project and an M5Stack CoreS3 Lite. It is not the official M5Stack product — that is a different device with its own hardware. The software is Stack-chan and we take no credit for it.' },
   { q: 'Does it need the internet to work?',
     a: 'No. The face, the motion and the sensors all run on the device. Wi-Fi is there for when you want to reach a speech or language API, and that choice is yours.' },
   { q: 'What do I need that is not in the box?',
-    a: 'A USB-C cable and a computer to flash it. Nothing else.' },
+    a: 'For the robot, nothing: the power supply is included. For the kit, a USB-C cable and a computer to flash it. You never need a 3D printer — the shell is printed here and ships with both.' },
   { q: 'When does it ship and when do I pay?',
     a: 'You pay ₹499 now to book your kit — card, UPI, netbanking or EMI. The remaining ₹4,500 is collected in cash when the kit is delivered. Kits dispatch within 1–2 weeks of the batch closing.' },
 ]
@@ -255,12 +257,62 @@ export const FAQS: Faq[] = [
 /* ---------------------------------------------------------------- */
 
 /**
- * The catalogue id. One constant, because it has to match in three places
- * that are read by different systems: the page, the Meta pixel's
- * `content_ids`, and a Merchant Center feed. A mismatch there does not error,
- * it just silently reports nothing.
+ * The catalogue ids. Each has to match in three places that are read by
+ * different systems: the page, the Meta pixel's `content_ids`, and a Merchant
+ * Center feed. A mismatch there does not error, it just silently reports
+ * nothing.
+ *
+ * SKU is the robot, which is what the page leads with. The kit keeps the id it
+ * has always had, so reporting on earlier kit orders still lines up.
  */
-export const SKU = 'PBL-KIT-01'
+export const SKU = 'PBL-BOT-01'
+export const KIT_SKU = 'PBL-KIT-01'
+
+/**
+ * Two ways to buy the same robot, at the same price.
+ *
+ * The robot arrives built, flashed and tested. The kit is the same parts in a
+ * box for someone who wants to put it together. Assembled is the default
+ * everywhere — the page, the buy box, the order form — and the order records
+ * which one was chosen, because the two are packed differently.
+ */
+export const EDITIONS = ['assembled', 'kit'] as const
+export type Edition = (typeof EDITIONS)[number]
+export const DEFAULT_EDITION: Edition = 'assembled'
+
+export const EDITION: Record<Edition, {
+  /** What it is called on a receipt or a packing slip. */
+  name: string
+  /** The choice, as a button label. */
+  label: string
+  /** One line under the label. */
+  pitch: string
+  sku: string
+  assembly: string
+  /** What we do between payment and dispatch. */
+  prep: string
+}> = {
+  assembled: {
+    name: 'Pebble-chan robot, fully assembled',
+    label: 'Fully assembled',
+    pitch: 'Built, flashed and tested. Plug it in and it wakes up.',
+    sku: SKU,
+    assembly: 'Done for you',
+    prep: 'We build it, flash the firmware, and test the face and both servos before it is boxed.',
+  },
+  kit: {
+    name: 'Pebble-chan build kit',
+    label: 'Build-it-yourself kit',
+    pitch: 'The same robot as eight parts. One evening, no soldering.',
+    sku: KIT_SKU,
+    assembly: 'You build it',
+    prep: 'We match the parts, print the shell, and address and centre the servos.',
+  },
+}
+
+export function isEdition(v: unknown): v is Edition {
+  return typeof v === 'string' && (EDITIONS as readonly string[]).includes(v)
+}
 
 export const PRICE = {
   mrp: '₹13,999',

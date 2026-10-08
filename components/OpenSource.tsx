@@ -19,12 +19,13 @@ export default function OpenSource() {
         </p>
         <h2 className="t-display m-0 mb-4"
             style={{ fontSize: 'clamp(30px,4.6vw,52px)', lineHeight: 1.02, color: 'var(--pebble-white)' }}>
-          You rewrite all of it.
+          Open it up when you are ready.
         </h2>
         <p className="text-[16px] leading-[26px] m-0 mb-7 max-w-[42ch]"
            style={{ color: 'rgba(243,241,237,.66)' }}>
-          JavaScript on the Moddable SDK. The controller is a stock CoreS3, so
-          Arduino and M5Unified work too. Nothing here is ours to lock.
+          It runs Stack-chan the day it arrives. Underneath, the behaviour is
+          JavaScript on the Moddable SDK, and the controller is a stock CoreS3,
+          so Arduino and M5Unified work too. Nothing here is ours to lock.
         </p>
         <div className="flex flex-wrap gap-2">
           {['Apache-2.0', 'JavaScript', 'Arduino / C++'].map((t) => (

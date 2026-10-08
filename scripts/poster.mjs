@@ -4,8 +4,10 @@
  * These are advertising assets: a price on one of them that disagrees with
  * the price the gateway takes is not a cosmetic bug, it is a false offer
  * running on Meta. So nothing here is typed by hand — the price, the saving,
- * the SKU and the deadline are all read out of lib/kit.ts, and the whole set
- * is regenerated with `node scripts/poster.mjs` whenever any of them change.
+ * the SKU and the dispatch time are all read out of lib/kit.ts, and the whole
+ * set is regenerated with `node scripts/poster.mjs` whenever any of them
+ * change. `PW_CHANNEL=chrome` renders with an installed Chrome instead of
+ * Playwright's own browser.
  *
  * Three sizes, because they have three different jobs:
  *   og      1200x630   link previews on WhatsApp, Twitter, Slack
@@ -13,8 +15,7 @@
  *   story   1080x1350  Meta 4:5, the placement that gets the most reach
  */
 import { chromium } from '@playwright/test'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -32,19 +33,13 @@ const BALANCE = pick(/balance: '([^']+)'/, 'balance')
 const MRP = pick(/mrp: '([^']+)'/, 'mrp')
 const SAVE = pick(/save: '([^']+)'/, 'saving')
 const SKU = pick(/export const SKU = '([^']+)'/, 'sku')
-const ENDS = pick(/endsAt: '([^']+)'/, 'deadline')
-
-
-const endsOn = new Date(ENDS).toLocaleDateString('en-IN', {
-  day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata',
-})
-const days = Math.max(
-  1, Math.ceil((new Date(ENDS).getTime() - Date.now()) / 86_400_000))
+const SHIP = pick(/ship: '([^']+)'/, 'dispatch time')
 
 const dataUri = (p, mime) =>
   `data:${mime};base64,${readFileSync(join(ROOT, 'public', p)).toString('base64')}`
 
-const SHOT = dataUri('media/unit-demo-poster.webp', 'image/webp')
+// A frame from the making-of film: a batch 01 unit, front-on, standing upright.
+const SHOT = dataUri('media/robot/robot-front.webp', 'image/webp')
 const LOGO = dataUri('brand/logo-horizontal-white.svg', 'image/svg+xml')
 
 /** Shared page. Layout differs only by aspect, so one template covers all three. */
@@ -57,15 +52,19 @@ const html = ({ w, h, wide }) => `<!doctype html>
   *{margin:0;padding:0;box-sizing:border-box}
   body{width:${w}px;height:${h}px;background:#0b0b0c;color:#f3f1ed;
        font-family:Outfit,system-ui,sans-serif;overflow:hidden;position:relative}
-  .shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-        object-position:56% 58%;filter:brightness(1.18) saturate(1.06)}
+  /* The still is a portrait phone frame. Landscape gives it the right-hand
+     side of the card at full height, where it fits without losing the
+     robot's legs; portrait lets it fill the card. */
+  .shot{position:absolute;object-fit:cover;filter:brightness(1.08) saturate(1.04);${wide
+    ? 'top:0;right:0;width:46%;height:100%;object-position:50% 70%'
+    : 'inset:0;width:100%;height:100%;object-position:50% 62%'}}
   /* Landscape keeps the type on the left and the product on the right.
      Portrait puts the type at the foot and leaves the middle of the frame
      clear, because a scrim strong enough to read against everywhere is a
      scrim that hides the thing being advertised. */
   .scrim{position:absolute;inset:0;background:${wide
-    ? `linear-gradient(to right, rgba(11,11,12,.95) 0%, rgba(11,11,12,.88) 46%,
-        rgba(11,11,12,.25) 78%, rgba(11,11,12,.15) 100%)`
+    ? `linear-gradient(to right, rgba(11,11,12,1) 0%, rgba(11,11,12,1) 54%,
+        rgba(11,11,12,.55) 60%, rgba(11,11,12,0) 72%)`
     : `linear-gradient(to top, rgba(11,11,12,.97) 0%, rgba(11,11,12,.93) 34%,
         rgba(11,11,12,.22) 66%, rgba(11,11,12,.62) 100%)`}}
   .pad{position:absolute;inset:0;padding:${wide ? '58px 64px' : '64px 60px'};
@@ -100,8 +99,8 @@ const html = ({ w, h, wide }) => `<!doctype html>
   <div class="scrim"></div>
   <div class="pad">
     <img class="logo" src="${LOGO}" alt="Pebble Robotics">
-    <span class="flag"><span class="dot"></span>Early bird · ${days} days left</span>
-    <h1>Build the robot.<br>Then teach it.</h1>
+    <span class="flag"><span class="dot"></span>Fully assembled · Batch 01</span>
+    <h1>The robot that lives on your desk.</h1>
     <!-- The deposit leads, because it is the number that decides whether
          somebody taps. The full price sits beside it rather than under it,
          so the ad cannot be read as "a robot for ₹499". -->
@@ -109,11 +108,11 @@ const html = ({ w, h, wide }) => `<!doctype html>
       <span class="now">${DEPOSIT}</span>
       <span class="save">to book &nbsp;·&nbsp; ${NOW} total</span>
     </div>
-    <p class="sub">Eight parts, one evening, no soldering. Pay ${BALANCE} cash
-      on delivery. Was ${MRP} — ${SAVE.toLowerCase()}.</p>
+    <p class="sub">Arrives assembled and tested — plug it in and it wakes up.
+      ${BALANCE} cash on delivery. Prefer to build it? The kit is the same price.</p>
     <div class="foot">
       <span class="site">pebblerobo.com</span>
-      <span>Ends ${endsOn}</span>
+      <span>${SHIP}</span>
       <span>${SKU}</span>
     </div>
   </div>
@@ -125,21 +124,21 @@ const SIZES = [
   { name: 'story', w: 1080, h: 1350, wide: false },
 ]
 
-const b = await chromium.launch()
+const b = await chromium.launch({ channel: process.env.PW_CHANNEL || undefined })
 for (const s of SIZES) {
   const page = await b.newPage({ viewport: { width: s.w, height: s.h }, deviceScaleFactor: 1 })
   await page.setContent(html(s), { waitUntil: 'networkidle' })
   await page.evaluate(() => document.fonts.ready)
-  const out = join(ROOT, 'public/campaign', `early-bird-${s.name}.png`)
+  const out = join(ROOT, 'public/campaign', `robot-${s.name}.png`)
   await page.screenshot({ path: out })
+  // The OG image is fetched by scrapers that will not wait, so it also ships
+  // as a jpg at the path the metadata already points at.
+  if (s.name === 'og') {
+    await page.screenshot({ path: join(ROOT, 'public/og.jpg'), type: 'jpeg', quality: 86 })
+  }
   await page.close()
   console.log('wrote', out)
 }
 await b.close()
 
-// The OG image is fetched by scrapers that will not wait, so it also ships as
-// a jpg at the path the metadata already points at.
-execFileSync('/bin/sh', ['-c',
-  `cd '${ROOT}' && npx --yes sharp-cli -i public/campaign/early-bird-og.png -o public/og.jpg -f jpeg -q 86 2>/dev/null || true`])
-console.log('done —', DEPOSIT, 'to book,', BALANCE, 'on delivery,', NOW, 'total',
-            '· ends', endsOn, `· ${days} days`)
+console.log('done —', DEPOSIT, 'to book,', BALANCE, 'on delivery,', NOW, 'total')

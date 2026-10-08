@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { EV, initAnalytics, track } from '@/lib/analytics'
 
 /** Sections worth knowing whether anyone actually reached. */
-const WATCH = ['does', 'box', 'specs', 'build', 'faq', 'reserve']
+const WATCH = ['buy', 'watch', 'does', 'builds', 'hardware', 'kit', 'specs', 'faq', 'reserve']
 
 /**
  * Starts analytics on load. There is no consent gate: the footer discloses what

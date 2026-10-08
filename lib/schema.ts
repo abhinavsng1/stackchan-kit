@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { EDITIONS } from '@/lib/kit'
 
 /**
  * Authoritative shape of a reservation. The client validates with this for
@@ -38,6 +39,12 @@ const optionalDetail = <T extends z.ZodType>(schema: T) => z.preprocess(
   schema.optional(),
 )
 
+/** A value that is kept when it matches and silently dropped when it does not. */
+const attribution = (shape: RegExp) => z.preprocess(
+  (value) => typeof value === 'string' && shape.test(value.trim()) ? value.trim() : undefined,
+  z.string().optional(),
+)
+
 export const preorderSchema = z.object({
   name: z.string().trim().min(2, 'Enter your full name').max(80, 'Name is too long'),
   email: z.email('Enter a valid email address').max(160, 'Email is too long'),
@@ -50,7 +57,23 @@ export const preorderSchema = z.object({
   city: z.string().trim().min(2, 'Enter your city').max(80, 'City is too long'),
   pincode: z.string().trim().regex(/^[1-9]\d{5}$/, 'Enter a 6-digit PIN code'),
   qty: z.coerce.number().int('Quantity must be a whole number')
-    .min(1, 'Minimum 1 kit').max(5, 'Maximum 5 kits per reservation'),
+    .min(1, 'Minimum 1 robot').max(5, 'Maximum 5 per order'),
+  /**
+   * Assembled robot or build kit. The page always sends one. An order with no
+   * edition at all can only come from a tab opened before the robot was on
+   * sale, when the kit was the only thing this page sold — so that is what it
+   * is recorded as.
+   */
+  edition: z.enum(EDITIONS, 'Choose the robot or the kit').default('kit'),
+  /**
+   * Attribution, not order details. The click id of the X ad the buyer came
+   * through, and an id the browser made up for this order so that X can match
+   * the pixel's report of it to the server's. Both are dropped rather than
+   * rejected when malformed: nobody should lose an order over a tracking value
+   * they never saw.
+   */
+  twclid: attribution(/^[A-Za-z0-9._~-]{1,200}$/),
+  xid: attribution(/^[A-Za-z0-9-]{8,64}$/),
   /**
    * Honeypot. Real people never see this field. The schema only accepts it —
    * enforcement lives in the route handler, which answers a filled honeypot

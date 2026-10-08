@@ -118,3 +118,31 @@ describe('provider selection', () => {
     expect(result).toMatchObject({ provider: 'none' })
   })
 })
+
+describe('the receipt names what is coming', () => {
+  const paid = {
+    name: 'Asha Rao', email: 'asha@example.com', qty: 1,
+    amountPaise: 49_900, balanceDuePaise: 450_000, paymentId: 'pay_TEST',
+  }
+
+  it('says robot for the robot, and says it is built for them', async () => {
+    const { receiptText, receiptHtml } = await import('@/lib/email')
+    const text = receiptText({ ...paid, edition: 'assembled' })
+    expect(text).toContain('Pebble-chan robot, fully assembled')
+    expect(text).toMatch(/We build it/)
+    expect(text).not.toMatch(/build kit/)
+    expect(receiptHtml({ ...paid, edition: 'assembled' })).toContain('Pebble-chan robot, fully assembled')
+  })
+
+  it('says kit for the kit', async () => {
+    const { receiptText } = await import('@/lib/email')
+    const text = receiptText({ ...paid, edition: 'kit' })
+    expect(text).toContain('Pebble-chan build kit')
+    expect(text).toMatch(/We match the parts/)
+  })
+
+  it('treats a receipt with no edition as a kit, the only thing sold before', async () => {
+    const { receiptText } = await import('@/lib/email')
+    expect(receiptText(paid)).toContain('Pebble-chan build kit')
+  })
+})
