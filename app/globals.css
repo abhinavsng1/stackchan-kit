@@ -51,10 +51,14 @@
   --dark-line:  rgba(0, 0, 0, .12);
 
   /* One accent. Never a fill on its own. */
-  --signal:    #a9cf51;
-  --signal-dk: #8fb53c;
-  --signal-wash: rgba(169, 207, 81, .08);
-  --signal-line: rgba(169, 207, 81, .35);
+  /* Ours, not borrowed: the cyan the firmware already shows while the robot
+     is talking. One accent, and never a solid field — a tinted wash under a
+     brighter hairline is what keeps it from taking over a near-black page. */
+  --signal:      #5ce1e6;
+  --signal-dk:   #37c3c9;
+  --signal-wash: rgba(92, 225, 230, .08);
+  --signal-line: rgba(92, 225, 230, .38);
+  --signal-glow: rgba(92, 225, 230, .22);
 
   --brand:     var(--pebble-paper);
   --brand-dk:  var(--pebble-mist);
@@ -66,7 +70,7 @@
   --flatlay:   var(--pebble-graphite);
 
   --danger:    #e0614f;
-  --positive:  #a9cf51;
+  --positive:  #5ce1e6;
 
   /* ---- type scale, measured ---- */
   --t-h1:      clamp(44px, 6.4vw, 92px);

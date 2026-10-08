@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import Hero3D from '@/components/Hero3D'
 import { PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
@@ -88,44 +89,11 @@ export default function Hero() {
           </p>
         </div>
 
-        <figure className="m-0">
-          <div className="relative overflow-hidden aspect-[4/5] lg:aspect-[5/6] w-full"
-               style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
-            <video
-              ref={video}
-              data-testid="hero-video"
-              className="hero-video absolute inset-0 w-full h-full object-cover"
-              poster="/media/robot/hero.webp"
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              aria-hidden="true"
-            >
-              <source src="/media/robot/hero.webm" type="video/webm" />
-              <source src="/media/robot/hero.mp4" type="video/mp4" />
-            </video>
-
-            <ul className="absolute left-4 right-4 bottom-4 sm:left-5 sm:bottom-5 flex flex-wrap gap-2 list-none p-0 m-0">
-              {(edition === 'kit'
-                ? ['Eight parts', 'No soldering', 'Pan and tilt']
-                : ['Assembled and tested', 'Pan and tilt', '2.0″ touch face']).map((t) => (
-                <li key={t} className="t-mono text-[11px] px-3 py-1.5 backdrop-blur-md"
-                    style={{
-                      borderRadius: 999,
-                      background: 'rgba(11,11,12,.62)',
-                      color: 'rgba(243,241,237,.9)',
-                      border: '1px solid rgba(243,241,237,.16)',
-                    }}>
-                  {t}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <figcaption className="t-mono text-[11px] text-[var(--muted)] mt-3">
-            Not a render — a batch 01 unit, filmed on a desk in Bengaluru
-          </figcaption>
-        </figure>
+        {/* The live model, not footage.
+            The "not a render" caption belongs to the films and the desk
+            photographs and stays with them — it may never sit beside a 3D
+            model, which is exactly what it exists to distinguish. */}
+        <Hero3D />
       </div>
     </section>
   )

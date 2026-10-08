@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { FACES, faceSvg, SCREEN } from '@/lib/faces'
+import { FACES } from '@/lib/faces'
+import { drawPanel, W as PANEL_W, H as PANEL_H, type PanelState } from '@/lib/panel'
 
 /**
  * The live model's actual machinery, kept out of the component so none of
@@ -32,7 +33,11 @@ const EASE = 0.08
 /** How long without a pointer before it starts looking around by itself. */
 const IDLE_AFTER_MS = 5000
 
-export type Started = { setFace: (id: string) => void; dispose: () => void }
+export type Started = {
+  setFace: (id: string) => void
+  setShell: (hex: string) => void
+  dispose: () => void
+}
 
 export async function start(
   host: HTMLElement,
@@ -109,7 +114,10 @@ export async function start(
     const fitH = radius / Math.sin(vFov / 2)
     const fitW = radius / Math.sin(Math.atan(Math.tan(vFov / 2) * camera.aspect))
     const dist = Math.max(fitH, fitW) * 1.08
-    camera.position.set(centre.x + dist * 0.28, centre.y + dist * 0.2, centre.z + dist * 0.94)
+    // The robot faces -Z: inside the model the CAD frame still applies, where
+    // front is +Y, and the root's -90 degree X rotation maps that to -Z. A
+    // camera on +Z looks straight into the open back of the head.
+    camera.position.set(centre.x - dist * 0.34, centre.y + dist * 0.22, centre.z - dist * 0.91)
     camera.lookAt(centre)
     camera.updateProjectionMatrix()
   }
@@ -118,24 +126,44 @@ export async function start(
   /* ------------------------------ the face ------------------------------ */
 
   const canvas = document.createElement('canvas')
-  canvas.width = SCREEN.w
-  canvas.height = SCREEN.h
+  canvas.width = PANEL_W
+  canvas.height = PANEL_H
   const ctx = canvas.getContext('2d')!
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
-  screen.material = new THREE.MeshBasicMaterial({ map: texture, toneMapped: false })
+  // The panel's UVs come out of the rig's rotation 180 degrees round, which
+  // shows as the mouth above the eyes and the status line mirrored. Turning
+  // the texture fixes it without re-exporting the model, and keeps the
+  // correction next to the thing that draws it.
+  texture.center.set(0.5, 0.5)
+  texture.rotation = Math.PI
+  // Double-sided on purpose. The panel is a plane whose normal depends on how
+  // the rig was rotated on export, and a single-sided screen that happens to
+  // face inward is invisible with no error anywhere — the head just reads as
+  // a blank slab, which is the least debuggable failure on the page.
+  screen.material = new THREE.MeshBasicMaterial({
+    map: texture, toneMapped: false, side: THREE.DoubleSide,
+  })
 
   let faceIndex = 0
+
+  /**
+   * Paint the face straight onto the canvas with the same routine the demo
+   * panel uses.
+   *
+   * It used to rasterise the SVG atlas through an Image, which is one async
+   * hop too many: the texture reports a map, the mesh reports visible, and
+   * the bitmap is blank, so the robot shows a dead slab and nothing anywhere
+   * says why. Drawing with 2D primitives is synchronous and cannot half-fail.
+   */
   function drawFace(index: number) {
     const face = FACES[index % FACES.length]
-    const img = new window.Image()
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      texture.needsUpdate = true
+    const state: PanelState = {
+      mode: 'face', faceId: face.id, levels: null, video: null,
+      ripples: [], notice: null, wifiAt: 0, game: null,
     }
-    img.src = 'data:image/svg+xml;base64,'
-      + btoa(unescape(encodeURIComponent(faceSvg(face))))
+    drawPanel(ctx, state, performance.now())
+    texture.needsUpdate = true
     onFace?.(index % FACES.length)
   }
   drawFace(0)
@@ -183,6 +211,14 @@ export async function start(
       want.tilt = Math.sin(t * 0.23) * 5
     }
 
+    // drawPanel animates from the clock, so repaint each frame to keep the
+    // blink alive rather than freezing on whichever frame was last drawn.
+    drawPanel(ctx, {
+      mode: 'face', faceId: FACES[faceIndex % FACES.length].id, levels: null,
+      video: null, ripples: [], notice: null, wifiAt: 0, game: null,
+    }, now)
+    texture.needsUpdate = true
+
     shown.pan += (want.pan - shown.pan) * EASE
     shown.tilt += (want.tilt - shown.tilt) * EASE
     // Inside the model the CAD frame still applies: the vertical the head
@@ -209,7 +245,31 @@ export async function start(
   window.addEventListener('resize', onResize)
   run(true)
 
+  // Every printed part shares one material in the export, but the CoreS3,
+  // the bezel and the screen must not follow the shell colour — recolouring
+  // those would paint the electronics to match the plastic.
+  const NOT_PRINTED = new Set(['CoreS3', 'Screen_Bezel', 'Screen'])
+  const shellMaterials = new Set<THREE.MeshStandardMaterial>()
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh
+    if (!mesh.isMesh || NOT_PRINTED.has(mesh.name)) return
+    const mat = mesh.material as THREE.MeshStandardMaterial
+    if (mat?.color) shellMaterials.add(mat)
+  })
+
+  // A probe for the asset build and for debugging in a console. The screen
+  // being invisible is a silent failure, so make it inspectable.
+  ;(window as unknown as { __rig?: unknown }).__rig = {
+    screenWorld: screen.getWorldPosition(new THREE.Vector3()).toArray(),
+    screenVisible: screen.visible,
+    hasMap: () => Boolean((screen.material as THREE.MeshBasicMaterial).map),
+    nodes: (() => { const n: string[] = []; root.traverse((o) => n.push(o.name)); return n })(),
+  }
+
   return {
+    setShell: (hex: string) => {
+      for (const m of shellMaterials) m.color = new THREE.Color(hex)
+    },
     setFace: (id: string) => {
       const i = FACES.findIndex((f) => f.id === id)
       if (i >= 0) { faceIndex = i; drawFace(i) }

@@ -122,7 +122,12 @@ export async function buildRig(THREE, STLLoader, {
   )
   tilt.add(core)
 
-  const faceY = core.position.y + CORE.d / 2 + 0.2
+  // Measure the module's real front face. ExtrudeGeometry's bevel makes the
+  // box deeper than its nominal thickness, so placing the panel at
+  // position + CORE.d/2 puts it *inside* the module: the screen renders, is
+  // visible, carries its texture, and is hidden behind 0.6 mm of plastic.
+  core.geometry.computeBoundingBox()
+  const faceY = core.position.y + core.geometry.boundingBox.max.y + 0.4
   const bezel = new THREE.Mesh(
     new THREE.PlaneGeometry(SCREEN.w + 4.2, SCREEN.h + 11),
     new THREE.MeshPhysicalMaterial({ color: '#0a0b0d', roughness: 0.12, clearcoat: 1 }))

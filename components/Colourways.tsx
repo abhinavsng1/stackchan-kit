@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { SHELLS } from '@/lib/shells'
 
 /**
  * The shell, in each colour it can be printed in.
@@ -15,13 +16,6 @@ import Image from 'next/image'
  * Every shot is a render and says so. The films and the desk photographs are
  * the only real footage on this page and they keep that claim to themselves.
  */
-const SHELLS = [
-  { id: 'graphite', name: 'Graphite', hex: '#2b2d31' },
-  { id: 'bone', name: 'Bone', hex: '#e9e6df' },
-  { id: 'signal', name: 'Signal', hex: '#5ce1e6' },
-  { id: 'ember', name: 'Ember', hex: '#d2552f' },
-  { id: 'moss', name: 'Moss', hex: '#7f9b55' },
-] as const
 
 export default function Colourways() {
   const [active, setActive] = useState(0)
