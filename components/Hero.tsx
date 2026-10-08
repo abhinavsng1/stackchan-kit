@@ -36,24 +36,29 @@ export default function Hero() {
     <section className="wrap-wide pt-4 pb-12 md:pt-8 md:pb-20">
       <div className="grid gap-8 lg:gap-16 items-center lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="max-w-[640px]">
-          <p className="t-label m-0 mb-5">
-            Pebble-chan · {edition === 'kit' ? 'Build kit' : 'Desktop robot'} · Batch 01
+          <p className="t-label m-0 mb-5 flex items-center gap-2.5">
+            <span aria-hidden="true" style={{ width: 8, height: 8, background: 'var(--signal)' }} />
+            {edition === 'kit' ? 'A small robot, in parts' : 'A small robot for your desk'}
           </p>
 
+          {/* What it does, in the words someone would use about a pet rather
+              than about a dev board. The accent falls on the half of the
+              sentence that is the product's whole idea. */}
           <h1 className="t-display m-0 mb-6"
               style={{ fontSize: 'clamp(42px, 6.2vw, 88px)', lineHeight: 0.98 }}>
-            The robot that lives on your desk.
+            It looks up<br />
+            <span style={{ color: 'var(--signal)' }}>when you sit down.</span>
           </h1>
 
           <p className="m-0 mb-8 text-[17px] sm:text-[19px] leading-[28px] sm:leading-[31px] text-[var(--muted)] max-w-[46ch]">
             {edition === 'kit'
-              ? <>The same robot as a kit: eight parts, the shell already printed,
-                  one evening and no soldering. Built, it looks around, tilts its head
-                  and changes expression on its own — and every line of its code is
-                  open.</>
-              : <>Pebble-chan arrives fully assembled and tested. Plug it in and it
-                  wakes up: it looks around, tilts its head and changes expression on
-                  its own. When you want it to do more, every line of its code is open.</>}
+              ? <>The same robot, in eight parts, with the shell already printed. An
+                  evening to put together and no soldering — then it turns to find
+                  you, pulls faces while you work and dozes off when you leave it
+                  alone.</>
+              : <>Pebble-chan turns to find you, pulls faces while you work, and dozes
+                  off when you leave it alone. It arrives built and tested: plug it in
+                  and it wakes up.</>}
           </p>
 
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 mb-6">
@@ -75,10 +80,16 @@ export default function Hero() {
             </a>
           </div>
 
-          <p className="text-[14px] text-[var(--muted)] mt-6 mb-0 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="dot" />
-            <span>In stock · {PRICE.ship} · free delivery across India</span>
-          </p>
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 list-none p-0 mt-7 mb-0">
+            {['Built and tested', 'Free delivery across India',
+              `${PRICE.deposit} now, the rest on delivery`].map((t) => (
+              <li key={t} className="t-mono text-[12.5px] flex items-center gap-2"
+                  style={{ color: 'var(--muted-2)' }}>
+                <span aria-hidden="true" style={{ color: 'var(--signal)' }}>✓</span>
+                {t}
+              </li>
+            ))}
+          </ul>
 
           <p className="text-[14px] text-[var(--muted)] mt-3 mb-0">
             {edition === 'kit' ? 'Rather have it ready to go? ' : 'Rather build it yourself? '}

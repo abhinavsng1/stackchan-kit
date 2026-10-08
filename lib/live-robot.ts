@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { FACES } from '@/lib/faces'
+import { FACES, faceSvg } from '@/lib/faces'
 import { drawPanel, W as PANEL_W, H as PANEL_H, type PanelState } from '@/lib/panel'
 
 /**
@@ -113,7 +113,10 @@ export async function start(
     const vFov = THREE.MathUtils.degToRad(camera.fov)
     const fitH = radius / Math.sin(vFov / 2)
     const fitW = radius / Math.sin(Math.atan(Math.tan(vFov / 2) * camera.aspect))
-    const dist = Math.max(fitH, fitW) * 1.08
+    // Enough room for the base and the shadow under it. At 1.08 the model
+    // filled the frame edge to edge and the feet were being cut off, which
+    // reads as a cropping mistake rather than a product shot.
+    const dist = Math.max(fitH, fitW) * 1.32
     // The robot faces -Z: inside the model the CAD frame still applies, where
     // front is +Y, and the root's -90 degree X rotation maps that to -Z. A
     // camera on +Z looks straight into the open back of the head.
@@ -148,25 +151,51 @@ export async function start(
   let faceIndex = 0
 
   /**
-   * Paint the face straight onto the canvas with the same routine the demo
-   * panel uses.
+   * The atlas art, decoded once up front.
    *
-   * It used to rasterise the SVG atlas through an Image, which is one async
-   * hop too many: the texture reports a map, the mesh reports visible, and
-   * the bitmap is blank, so the robot shows a dead slab and nothing anywhere
-   * says why. Drawing with 2D primitives is synchronous and cannot half-fail.
+   * The richer faces live as SVG — cheeks, highlights, the lot — and they are
+   * what makes the screen worth looking at. Rasterising one on demand was the
+   * bug that showed a blank panel: the texture reported a map, the mesh
+   * reported visible, and the bitmap had not been painted yet. Decoding every
+   * face before the first frame turns that race into a wait, and the 2D
+   * routine stays as the fallback for anything that fails to decode.
    */
-  function drawFace(index: number) {
+  const art = new Map<string, HTMLImageElement>()
+  await Promise.all(FACES.map((face) => new Promise<void>((done) => {
+    const img = new window.Image()
+    img.onload = () => { art.set(face.id, img); done() }
+    img.onerror = () => done()
+    img.src = 'data:image/svg+xml;base64,'
+      + btoa(unescape(encodeURIComponent(faceSvg(face))))
+  })))
+
+  function paint(index: number, t: number) {
     const face = FACES[index % FACES.length]
-    const state: PanelState = {
-      mode: 'face', faceId: face.id, levels: null, video: null,
-      ripples: [], notice: null, wifiAt: 0, game: null,
+    const img = art.get(face.id)
+    if (img) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    } else {
+      const state: PanelState = {
+        mode: 'face', faceId: face.id, levels: null, video: null,
+        ripples: [], notice: null, wifiAt: 0, game: null,
+      }
+      drawPanel(ctx, state, t)
     }
-    drawPanel(ctx, state, performance.now())
     texture.needsUpdate = true
+  }
+
+  function drawFace(index: number) {
+    paint(index, performance.now())
     onFace?.(index % FACES.length)
   }
-  drawFace(0)
+
+  // Open on something with warmth in it. 'neutral' is the firmware's resting
+  // state and reads as switched-on-but-vacant, which is the wrong first
+  // impression for the one screen a buyer actually looks at.
+  const opening = Math.max(0, FACES.findIndex((f) => f.id === 'happy'))
+  faceIndex = opening
+  drawFace(opening)
 
   /* ----------------------------- the motion ----------------------------- */
 
@@ -210,14 +239,6 @@ export async function start(
       want.pan = Math.sin(t * 0.35) * 22 + Math.sin(t * 0.11) * 8
       want.tilt = Math.sin(t * 0.23) * 5
     }
-
-    // drawPanel animates from the clock, so repaint each frame to keep the
-    // blink alive rather than freezing on whichever frame was last drawn.
-    drawPanel(ctx, {
-      mode: 'face', faceId: FACES[faceIndex % FACES.length].id, levels: null,
-      video: null, ripples: [], notice: null, wifiAt: 0, game: null,
-    }, now)
-    texture.needsUpdate = true
 
     shown.pan += (want.pan - shown.pan) * EASE
     shown.tilt += (want.tilt - shown.tilt) * EASE

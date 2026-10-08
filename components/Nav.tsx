@@ -40,15 +40,20 @@ export default function Nav() {
         borderBottom: `1px solid ${stuck ? 'var(--line)' : 'transparent'}`,
       }}
     >
-      <div className="wrap flex items-center gap-6 h-16">
+      <div className="wrap flex items-center gap-6 h-[72px]">
         <a href="#top" className="shrink-0 no-underline" aria-label="Pebble Robotics — home">
           {/* Supplied artwork, never retyped. 140px is the stated minimum
               width for the horizontal lockup on screen. */}
+          {/* Supplied artwork, never retyped. Full opacity: the wordmark was
+              being drawn at the same weight as the links beside it, which made
+              the one fixed thing on the page read as the least important. */}
           <Image src="/brand/logo-horizontal-white.svg" alt="Pebble Robotics"
-                 width={160} height={17} priority className="w-[150px] h-auto block" />
+                 width={160} height={17} priority className="w-[158px] h-auto block" />
         </a>
 
-        <nav className="hidden xl:flex items-center gap-7 ml-2">
+        {/* Centred, so the wordmark and the action anchor the two ends rather
+            than the links crowding the logo. */}
+        <nav className="hidden xl:flex items-center gap-8 mx-auto">
           {links.map(([label, href]) => (
             <a key={href} href={href}
                className="text-[14px] text-[var(--muted)] no-underline hover:text-[var(--ink)] transition-colors">
@@ -57,13 +62,20 @@ export default function Nav() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="flex items-center gap-4 shrink-0">
           <span className="hidden xl:flex items-baseline gap-2">
             <span className="t-mono text-[13px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
             <span className="t-display text-[18px]">{PRICE.now}</span>
           </span>
+          {/* The page's one primary action, and the only filled accent on it. */}
           <a href="#reserve" onClick={() => track(EV.reserveCtaClicked, { location: 'nav', edition })}
-             className="btn btn-brand !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex">Buy</a>
+             className="btn !px-5 !py-2.5 !text-[14px] hidden lg:inline-flex"
+             style={{
+               background: 'var(--signal)', borderColor: 'var(--signal)',
+               color: '#04282a', boxShadow: '0 0 0 1px var(--signal-line), 0 8px 26px -8px var(--signal)',
+             }}>
+            Book — {PRICE.deposit}
+          </a>
         </div>
       </div>
 

@@ -76,17 +76,22 @@ export default function Hero3D() {
 
   return (
     <div className="relative">
-      <div
-        className="relative"
-        style={{
-          borderRadius: 'var(--radius-tile)',
-          background:
-            'radial-gradient(70% 55% at 42% 44%, var(--signal-glow) 0%, transparent 68%),'
-            + ' linear-gradient(165deg, #0d0e11 0%, #050505 62%)',
-          border: '1px solid var(--line-soft)',
-          overflow: 'hidden',
-        }}
-      >
+      {/* No card. A product shot on a page this dark does not need a frame
+          drawn round it — the frame was doing the job a shadow should do, and
+          a bordered box in the middle of a hero reads as a widget. What sits
+          under the robot instead is one soft radial behind it and an
+          elliptical contact shadow below, which is what an object on a
+          surface actually casts. */}
+      <div className="relative">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(44% 40% at 50% 44%, var(--signal-glow) 0%, transparent 70%)',
+            filter: 'blur(14px)',
+          }}
+        />
         <div ref={host} className="relative w-full" style={{ aspectRatio: '1 / 1' }}>
           <Image
             src={`/media/shots/shell-${SHELLS[shell].id}.webp`}
@@ -97,6 +102,18 @@ export default function Hero3D() {
             style={{ opacity: live ? 0 : 1, transition: 'opacity 500ms' }}
           />
         </div>
+        {/* The shadow it stands in. Elliptical, because a round object lit
+            from above casts an ellipse, and soft enough to read as contact
+            rather than as a drawn circle. */}
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{
+            bottom: '7%', width: '46%', height: '7%',
+            background: 'radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.85) 0%, transparent 72%)',
+            filter: 'blur(10px)',
+          }}
+        />
       </div>
 
       {/* Callouts sit on an unclipped layer so one may hang over the frame's

@@ -675,7 +675,7 @@ h3, .t-sub {
 .marquee-track {
   display: flex;
   width: max-content;
-  animation: marquee-scroll 42s linear infinite;
+  animation: marquee-scroll 68s linear infinite;
 }
 
 .marquee:hover .marquee-track,
@@ -683,20 +683,23 @@ h3, .t-sub {
   animation-play-state: paused;
 }
 
+/* Quieter than it was. A strip of full-contrast caps travelling across the
+   top of the page competes with the headline underneath it, which is the one
+   thing it must not do: it is a footnote that happens to move. */
 .marquee-item {
   display: inline-flex;
   align-items: center;
-  gap: 18px;
-  padding-block: 10px;
-  padding-inline-end: 18px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  gap: 16px;
+  padding-block: 8px;
+  padding-inline-end: 16px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted-2);
+  color: color-mix(in srgb, var(--muted-2) 70%, transparent);
   white-space: nowrap;
 }
 
-.marquee-star { color: var(--signal); font-size: 10px; }
+.marquee-star { color: var(--signal); font-size: 7px; opacity: .65; }
 
 @keyframes marquee-scroll {
   from { transform: translate3d(0, 0, 0); }
