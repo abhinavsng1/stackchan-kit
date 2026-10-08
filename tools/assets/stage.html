@@ -13,6 +13,7 @@ import * as THREE from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { buildRobot, SCREEN } from './scene.js'
 import { FACES, faceSvg } from './.gen/faces.js'
 
@@ -39,7 +40,7 @@ const rim = new THREE.DirectionalLight(0x9ec5ff, 1.1); rim.position.set(-120, 60
 const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-40, 20, 110); scene.add(fill)
 scene.add(new THREE.AmbientLight(0xffffff, 0.35))
 
-const { root, screen } = await buildRobot(THREE, STLLoader, {})
+const { root, screen } = await buildRobot(THREE, STLLoader, { mergeVertices })
 root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
 scene.add(root)
 
@@ -114,7 +115,13 @@ window.__render = async (angleName, faceId, width) => {
 
 window.__exportGLB = () => new Promise((res, rej) => {
   new GLTFExporter().parse(root, (buf) => res(Array.from(new Uint8Array(buf))),
-    (e) => rej(e), { binary: true, onlyVisible: true })
+    (e) => rej(e), {
+      binary: true, onlyVisible: true,
+      // Half-float positions and normals. The model is 90 mm across and
+      // displayed at a few hundred pixels; float32 precision on a part that
+      // size is storing noise.
+      quantizePosition: 14, quantizeNormal: 10,
+    })
 })
 
 window.__ready = true

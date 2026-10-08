@@ -11,12 +11,15 @@
  * a gigabyte of toolchain that nothing else in this repo needs.
  */
 import { chromium } from '@playwright/test'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { createServer } from 'node:http'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+const run = promisify(execFile)
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const OUT = join(ROOT, 'public/media/render')
 const MODELS = join(ROOT, 'public/models')
@@ -61,8 +64,26 @@ async function main() {
   // --- GLB -------------------------------------------------------------
   const glb = await page.evaluate(() => window.__exportGLB())
   await writeFile(join(MODELS, 'pebble.glb'), Buffer.from(glb))
-  const kb = (Buffer.from(glb).length / 1024).toFixed(0)
-  console.log(`  public/models/pebble.glb  ${kb} KB`)
+  const raw = (Buffer.from(glb).length / 1024).toFixed(0)
+
+  // Draco only. NOT `gltf-transform optimize`: that runs flatten and join,
+  // which collapse the scene graph — the exported file comes back with
+  // Base_Body as its root and no Neck_Pan or Head_Tilt at all, so the live
+  // model silently loses the ability to turn its head. Verified below rather
+  // than trusted.
+  const out = join(MODELS, 'pebble.glb')
+  await run('npx', ['gltf-transform', 'draco', out, out], { cwd: ROOT })
+
+  const buf = await readFile(out)
+  const jsonLen = buf.readUInt32LE(12)
+  const gltf = JSON.parse(buf.slice(20, 20 + jsonLen).toString('utf8'))
+  const names = (gltf.nodes ?? []).map((n) => n.name)
+  const missing = ['Base', 'Neck_Pan', 'Head_Tilt', 'Screen'].filter((n) => !names.includes(n))
+  if (missing.length) throw new Error(`GLB lost rig nodes: ${missing.join(', ')}`)
+
+  const kb = (buf.length / 1024).toFixed(0)
+  if (buf.length > 500 * 1024) throw new Error(`GLB is ${kb} KB, over the 500 KB budget`)
+  console.log(`  public/models/pebble.glb  ${raw} KB -> ${kb} KB, rig intact`)
 
   // --- renders ---------------------------------------------------------
   const manifest = []

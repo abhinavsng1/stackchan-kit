@@ -46,9 +46,26 @@ export const PART_URLS = {
  * component drives the rig by looking them up, and the GLB export carries them
  * through.
  */
-export async function buildRobot(THREE, STLLoader, { shellColour = '#2a2b2e' } = {}) {
+export async function buildRobot(THREE, STLLoader, {
+  shellColour = '#2a2b2e', mergeVertices = null, simplify = null,
+} = {}) {
   const loader = new STLLoader()
-  const load = (url) => new Promise((res, rej) => loader.load(url, res, undefined, rej))
+  /**
+   * STL has no concept of a shared vertex: every triangle carries its own
+   * three, so a 16k-triangle shell arrives as 48k positions with every
+   * interior vertex repeated six times. Indexing it is the single biggest
+   * size win available and it changes nothing about the shape.
+   *
+   * `simplify` then decimates for the web model only. The renders use the
+   * full-resolution geometry, because a still has no frame budget to protect.
+   */
+  const load = async (url) => {
+    let geo = await new Promise((res, rej) => loader.load(url, res, undefined, rej))
+    if (mergeVertices) geo = mergeVertices(geo, 1e-4)
+    if (simplify) geo = simplify(geo)
+    geo.computeVertexNormals()
+    return geo
+  }
 
   const printed = new THREE.MeshPhysicalMaterial({
     color: shellColour,

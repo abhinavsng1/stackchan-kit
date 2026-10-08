@@ -68,10 +68,26 @@ with the same materials means the gallery and the interactive card cannot
 drift apart. Cycles would look better in isolation and worse in context, and
 would add a gigabyte of toolchain nothing else here needs.
 
+## Size
+
+| Stage | Size |
+|---|---|
+| Raw export | 2,145 KB |
+| Indexed (`mergeVertices`) | 1,444 KB |
+| Draco | **71 KB** |
+
+STL stores no shared vertices — every triangle carries its own three, so a
+16k-triangle shell arrives with each interior vertex repeated six times.
+Indexing is the first third of the saving and changes nothing about the shape.
+
+**`gltf-transform optimize` must not be used here.** It runs `flatten` and
+`join`, which collapse the scene graph: the file comes back with `Base_Body`
+as its root and no `Neck_Pan` or `Head_Tilt`, so the live model silently loses
+the ability to turn its head. The build runs `draco` alone and then asserts
+all four rig nodes are present and the file is under budget, failing the build
+if either is untrue.
+
 ## Known gaps
 
-- **GLB is 2,145 KB against a 500 KB target.** Draco compression needs
-  `@gltf-transform/cli`, which is not installed. Decimation and compression
-  are not done.
 - The printed shell reads as a collar behind the head rather than wrapping it
   as tightly as the real part does.
