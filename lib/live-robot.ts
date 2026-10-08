@@ -16,10 +16,17 @@ import { FACES, faceSvg, SCREEN } from '@/lib/faces'
  * critically damped in practice: it arrives, and it never overshoots.
  */
 
-/** What the real pan and tilt servos can reach, in degrees. */
-const PAN_LIMIT = 35
-const TILT_MIN = -10
-const TILT_MAX = 15
+/**
+ * What the servos actually reach, from the body project's assembly notes:
+ * tilt 0 to 90 degrees, pan +/-90, collision-free from -1 to 91 and +/-95.
+ *
+ * The cursor is mapped into a fraction of that rather than the whole of it.
+ * A head that swings 90 degrees to follow a mouse reads as a turret; a head
+ * that leans is the thing the real robot does when it notices you.
+ */
+const PAN_LIMIT = 42
+const TILT_MIN = -6
+const TILT_MAX = 26
 /** Fraction of the remaining distance covered each frame. */
 const EASE = 0.08
 /** How long without a pointer before it starts looking around by itself. */
@@ -62,7 +69,7 @@ export async function start(
   const loader = new GLTFLoader()
   loader.setDRACOLoader(draco)
 
-  const gltf = await loader.loadAsync('/models/pebble.glb')
+  const gltf = await loader.loadAsync('/models/pebble-v3.glb')
   const root = gltf.scene
   scene.add(root)
 
@@ -135,6 +142,8 @@ export async function start(
 
   /* ----------------------------- the motion ----------------------------- */
 
+  // The screen sits in the CAD frame too, so its plane is XZ and the face
+  // texture needs no extra flip here.
   const want = { pan: 0, tilt: 0 }
   const shown = { pan: 0, tilt: 0 }
   let lastPointerAt = performance.now()
@@ -176,7 +185,9 @@ export async function start(
 
     shown.pan += (want.pan - shown.pan) * EASE
     shown.tilt += (want.tilt - shown.tilt) * EASE
-    pan!.rotation.y = THREE.MathUtils.degToRad(shown.pan)
+    // Inside the model the CAD frame still applies: the vertical the head
+    // pans about is Z, not Y. Driving rotation.y tips the head off the base.
+    pan!.rotation.z = THREE.MathUtils.degToRad(shown.pan)
     tilt!.rotation.x = THREE.MathUtils.degToRad(shown.tilt)
     renderer.render(scene, camera)
   }

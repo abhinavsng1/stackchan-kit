@@ -15,6 +15,7 @@ import OpenSource from '@/components/OpenSource'
 import Roles from '@/components/Roles'
 import LiveRobot from '@/components/LiveRobot'
 import AnnotatedShot from '@/components/AnnotatedShot'
+import Colourways from '@/components/Colourways'
 import Marquee from '@/components/Marquee'
 import { OrderSteps, ChooseEdition } from '@/components/OrderSteps'
 import { KitOnly, ForEdition, SwitchEdition } from '@/components/EditionGate'
@@ -189,6 +190,10 @@ export default function Page() {
             <div className="max-w-[1120px] mx-auto"><Films /></div>
           </div>
         </section>
+
+        {/* The shell, in each colour it prints in. Straight after the films
+            because that is where someone starts picturing it on their desk. */}
+        <Colourways />
 
         {/* What people make it. Sits straight after the films, because the
             films show it moving and this answers "and then what". */}
