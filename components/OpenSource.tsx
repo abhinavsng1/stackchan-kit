@@ -1,3 +1,4 @@
+import CodeWindow from '@/components/CodeWindow'
 /**
  * The open-source band.
  *
@@ -41,27 +42,7 @@ export default function OpenSource() {
         </div>
       </div>
 
-      <div className="rounded-xl overflow-hidden"
-           style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)' }}>
-        <div className="flex items-center gap-1.5 px-3.5 py-2.5"
-             style={{ borderBottom: '1px solid rgba(255,255,255,.1)' }}>
-          {[0, 1, 2].map((i) => (
-            <span key={i} className="w-2.5 h-2.5 rounded-full"
-                  style={{ background: 'rgba(255,255,255,.22)' }} />
-          ))}
-          <span className="t-mono text-[10.5px] ml-2" style={{ color: 'rgba(255,255,255,.35)' }}>
-            zsh
-          </span>
-        </div>
-        <pre className="t-mono text-[12px] leading-[2] m-0 px-4 py-4 overflow-x-auto"
-             style={{ color: 'rgba(255,255,255,.86)' }}>
-<span style={{ color: 'rgba(255,255,255,.38)' }}>$</span> git clone https://github.com/{'\n'}      meganetaaan/stack-chan.git
-{'\n'}<span style={{ color: 'rgba(255,255,255,.38)' }}>$</span> cd stack-chan && npm i
-{'\n'}<span style={{ color: 'rgba(255,255,255,.38)' }}>$</span> npm run setup -- --device=esp32
-{'\n'}<span style={{ color: 'rgba(255,255,255,.38)' }}>$</span> npm run flash
-{'\n'}<span style={{ color: 'rgba(255,255,255,.34)' }}># the face comes up.</span><span className="caret"> ▋</span>
-        </pre>
-      </div>
+      <CodeWindow />
     </div>
   )
 }
