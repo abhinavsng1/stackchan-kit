@@ -2,8 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { FACES, faceSvg } from '@/lib/faces'
-import { drawPanel, W as PANEL_W, H as PANEL_H, type PanelState } from '@/lib/panel'
+import { MOODS, drawCompanion, PANEL } from '@/lib/companion-face'
 
 /**
  * The live model's actual machinery, kept out of the component so none of
@@ -129,8 +128,8 @@ export async function start(
   /* ------------------------------ the face ------------------------------ */
 
   const canvas = document.createElement('canvas')
-  canvas.width = PANEL_W
-  canvas.height = PANEL_H
+  canvas.width = PANEL.w
+  canvas.height = PANEL.h
   const ctx = canvas.getContext('2d')!
   const texture = new THREE.CanvasTexture(canvas)
   texture.colorSpace = THREE.SRGBColorSpace
@@ -151,51 +150,23 @@ export async function start(
   let faceIndex = 0
 
   /**
-   * The atlas art, decoded once up front.
+   * The face, drawn every frame.
    *
-   * The richer faces live as SVG — cheeks, highlights, the lot — and they are
-   * what makes the screen worth looking at. Rasterising one on demand was the
-   * bug that showed a blank panel: the texture reported a map, the mesh
-   * reported visible, and the bitmap had not been painted yet. Decoding every
-   * face before the first frame turns that race into a wait, and the 2D
-   * routine stays as the fallback for anything that fails to decode.
+   * It is repainted continuously rather than on change because the blink and
+   * the breath come from the clock — a face painted once holds perfectly
+   * still, which reads as a screenshot of a robot rather than a robot.
    */
-  const art = new Map<string, HTMLImageElement>()
-  await Promise.all(FACES.map((face) => new Promise<void>((done) => {
-    const img = new window.Image()
-    img.onload = () => { art.set(face.id, img); done() }
-    img.onerror = () => done()
-    img.src = 'data:image/svg+xml;base64,'
-      + btoa(unescape(encodeURIComponent(faceSvg(face))))
-  })))
-
-  function paint(index: number, t: number) {
-    const face = FACES[index % FACES.length]
-    const img = art.get(face.id)
-    if (img) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-    } else {
-      const state: PanelState = {
-        mode: 'face', faceId: face.id, levels: null, video: null,
-        ripples: [], notice: null, wifiAt: 0, game: null,
-      }
-      drawPanel(ctx, state, t)
-    }
+  function paint(t: number) {
+    drawCompanion(ctx, MOODS[faceIndex % MOODS.length], t)
     texture.needsUpdate = true
   }
 
   function drawFace(index: number) {
-    paint(index, performance.now())
-    onFace?.(index % FACES.length)
+    faceIndex = ((index % MOODS.length) + MOODS.length) % MOODS.length
+    paint(performance.now())
+    onFace?.(faceIndex)
   }
-
-  // Open on something with warmth in it. 'neutral' is the firmware's resting
-  // state and reads as switched-on-but-vacant, which is the wrong first
-  // impression for the one screen a buyer actually looks at.
-  const opening = Math.max(0, FACES.findIndex((f) => f.id === 'happy'))
-  faceIndex = opening
-  drawFace(opening)
+  drawFace(0)
 
   /* ----------------------------- the motion ----------------------------- */
 
@@ -217,7 +188,7 @@ export async function start(
 
   const onMove = (e: PointerEvent) => { pointerInside = true; aim(e.clientX, e.clientY) }
   const onLeave = () => { pointerInside = false }
-  const onTap = () => { faceIndex += 1; drawFace(faceIndex) }
+  const onTap = () => drawFace(faceIndex + 1)
 
   host.addEventListener('pointermove', onMove, { passive: true })
   host.addEventListener('pointerleave', onLeave)
@@ -239,6 +210,8 @@ export async function start(
       want.pan = Math.sin(t * 0.35) * 22 + Math.sin(t * 0.11) * 8
       want.tilt = Math.sin(t * 0.23) * 5
     }
+
+    paint(now)
 
     shown.pan += (want.pan - shown.pan) * EASE
     shown.tilt += (want.tilt - shown.tilt) * EASE
@@ -292,8 +265,8 @@ export async function start(
       for (const m of shellMaterials) m.color = new THREE.Color(hex)
     },
     setFace: (id: string) => {
-      const i = FACES.findIndex((f) => f.id === id)
-      if (i >= 0) { faceIndex = i; drawFace(i) }
+      const i = MOODS.findIndex((m) => m.id === id)
+      if (i >= 0) drawFace(i)
     },
     dispose: () => {
       run(false)

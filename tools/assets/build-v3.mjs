@@ -123,6 +123,12 @@ async function main() {
     await writeFile(raw, Buffer.from(png))
     const out = join(OUT, `${shot.name}.webp`)
     await compose(raw, out, { w: W, h: H, accent, tmp: TMP })
+
+    // The same render with nothing behind it. The hero draws its own glow
+    // and shadow in CSS, so a shot with a ground baked in shows up there as
+    // a dark rectangle floating on the page — which is exactly what it did.
+    await run('magick', [raw, '-resize', `${W}x${H}`, '-quality', '92',
+      '-define', 'webp:lossless=false', join(OUT, `float-${shot.name}.webp`)])
     manifest.push({
       file: `${shot.name}.webp`, width: W, height: H, alt: shot.alt,
       shell: shot.shell.name, render: true,

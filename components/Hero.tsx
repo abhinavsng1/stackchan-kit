@@ -38,7 +38,7 @@ export default function Hero() {
         <div className="max-w-[640px]">
           <p className="t-label m-0 mb-5 flex items-center gap-2.5">
             <span aria-hidden="true" style={{ width: 8, height: 8, background: 'var(--signal)' }} />
-            {edition === 'kit' ? 'A small robot, in parts' : 'A small robot for your desk'}
+            {edition === 'kit' ? 'An AI companion, in parts' : 'An AI companion for your desk'}
           </p>
 
           {/* What it does, in the words someone would use about a pet rather
@@ -46,19 +46,19 @@ export default function Hero() {
               sentence that is the product's whole idea. */}
           <h1 className="t-display m-0 mb-6"
               style={{ fontSize: 'clamp(42px, 6.2vw, 88px)', lineHeight: 0.98 }}>
-            It looks up<br />
-            <span style={{ color: 'var(--signal)' }}>when you sit down.</span>
+            Think out loud.<br />
+            <span style={{ color: 'var(--signal)' }}>It&rsquo;s listening.</span>
           </h1>
 
           <p className="m-0 mb-8 text-[17px] sm:text-[19px] leading-[28px] sm:leading-[31px] text-[var(--muted)] max-w-[46ch]">
             {edition === 'kit'
-              ? <>The same robot, in eight parts, with the shell already printed. An
-                  evening to put together and no soldering — then it turns to find
-                  you, pulls faces while you work and dozes off when you leave it
-                  alone.</>
-              : <>Pebble-chan turns to find you, pulls faces while you work, and dozes
-                  off when you leave it alone. It arrives built and tested: plug it in
-                  and it wakes up.</>}
+              ? <>The same companion, in eight parts, with the shell already printed.
+                  An evening to put together and no soldering — then say its name and
+                  it looks up, listens and answers out loud.</>
+              : <>Say its name and Pebble-chan looks up, listens, and answers out
+                  loud. No app to open, no phone in your hand. The rest of the time it
+                  simply keeps you company — it reacts, it fidgets, and it dozes off
+                  when you do.</>}
           </p>
 
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 mb-6">

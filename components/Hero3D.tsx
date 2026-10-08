@@ -83,18 +83,25 @@ export default function Hero3D() {
           elliptical contact shadow below, which is what an object on a
           surface actually casts. */}
       <div className="relative">
+        {/* Two stacked radials and no blur filter. Blurring a gradient on a
+            near-black ground bands and leaves a visible rectangle at the
+            element's edge, which is what the glow was doing. */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 pointer-events-none"
+          className="absolute pointer-events-none"
           style={{
+            inset: '-18%',
             background:
-              'radial-gradient(44% 40% at 50% 44%, var(--signal-glow) 0%, transparent 70%)',
-            filter: 'blur(14px)',
+              'radial-gradient(38% 32% at 52% 42%, rgba(92,225,230,.13) 0%, transparent 72%),'
+              + ' radial-gradient(58% 50% at 50% 50%, rgba(92,225,230,.05) 0%, transparent 78%)',
           }}
         />
         <div ref={host} className="relative w-full" style={{ aspectRatio: '1 / 1' }}>
           <Image
-            src={`/media/shots/shell-${SHELLS[shell].id}.webp`}
+            /* The float renders carry no ground: the hero draws its own glow
+               and shadow, and a shot with one baked in reads as a dark
+               rectangle sitting on the page. */
+            src={`/media/shots/float-shell-${SHELLS[shell].id}.webp`}
             alt="Pebble-chan, the assembled desk robot"
             width={1600} height={1200} priority
             sizes="(max-width: 1024px) 94vw, 620px"
@@ -109,9 +116,8 @@ export default function Hero3D() {
           aria-hidden="true"
           className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
           style={{
-            bottom: '7%', width: '46%', height: '7%',
-            background: 'radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.85) 0%, transparent 72%)',
-            filter: 'blur(10px)',
+            bottom: '9%', width: '40%', height: '5%',
+            background: 'radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.9) 0%, transparent 70%)',
           }}
         />
       </div>
