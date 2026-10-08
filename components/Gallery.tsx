@@ -11,11 +11,11 @@ import { EV, track } from '@/lib/analytics'
  * the Meet section.
  */
 const SHOTS = [
-  { src: '/media/render/gallery-hero.webp', alt: 'PebbleRobo in Graphite, three-quarter view', label: 'Three-quarter' },
-  { src: '/media/render/gallery-front.webp', alt: 'PebbleRobo in Graphite, front view, smiling', label: 'Front' },
-  { src: '/media/render/gallery-right.webp', alt: 'PebbleRobo in Graphite, from the right', label: 'Right' },
-  { src: '/media/render/gallery-profile.webp', alt: 'PebbleRobo in Graphite, in profile', label: 'Profile' },
-  { src: '/media/render/gallery-high.webp', alt: 'PebbleRobo in Graphite, from above', label: 'Above' },
+  { src: '/media/render/gallery-hero.webp', alt: 'PebbleRobo in Ember, three-quarter view', label: 'Three-quarter' },
+  { src: '/media/render/gallery-front.webp', alt: 'PebbleRobo in Ember, front view, smiling', label: 'Front' },
+  { src: '/media/render/gallery-right.webp', alt: 'PebbleRobo in Ember, from the right', label: 'Right' },
+  { src: '/media/render/gallery-profile.webp', alt: 'PebbleRobo in Ember, in profile', label: 'Profile' },
+  { src: '/media/render/gallery-high.webp', alt: 'PebbleRobo in Ember, from above', label: 'Above' },
 ] as const
 
 export default function Gallery() {

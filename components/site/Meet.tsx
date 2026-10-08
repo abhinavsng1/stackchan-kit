@@ -1,9 +1,9 @@
 'use client'
 
 import { useRef } from 'react'
-import Image from 'next/image'
 import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react'
 import Film from '@/components/site/Film'
+import LiveTurntable from '@/components/site/LiveTurntable'
 import { Reveal } from '@/components/site/motion'
 
 /**
@@ -44,16 +44,12 @@ export default function Meet() {
             </div>
           </motion.div>
           <motion.div className="col-span-5 md:col-span-4 md:col-start-8 mt-24 md:mt-40" style={{ y: fast }}>
-            <div className="media" style={{ aspectRatio: '4 / 5' }}>
-              <Image src="/media/render/meet-face.webp" fill quality={90}
-                     sizes="(max-width: 768px) 40vw, 420px"
-                     alt="PebbleRobo in Graphite, close up, smiling" className="object-cover" />
-              <span className="tag absolute right-3 bottom-3">Render</span>
-            </div>
+            <LiveTurntable />
             <Reveal delay={0.1}>
               <p className="text-[15px] leading-[1.5] text-[var(--muted)] mt-5 mb-0 max-w-[30ch] hidden sm:block">
                 The film is a real unit from our first batch, on a real desk.
-                Everything else is rendered from the same 3D model, and says so.
+                Beside it is the same robot in 3D: drag it round, and it will
+                keep an eye on you while it turns.
               </p>
             </Reveal>
           </motion.div>

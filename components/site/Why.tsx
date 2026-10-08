@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import LiveLineup from '@/components/site/LiveLineup'
 import { motion } from 'motion/react'
 import { EASE, Reveal } from '@/components/site/motion'
 
@@ -64,13 +64,10 @@ export default function Why() {
           </ol>
         </div>
 
-        {/* The five of them, side by side: one robot, five characters. */}
+        {/* The five of them, live, in an arc: one robot, five characters,
+            every one of them watching the cursor. */}
         <Reveal className="mt-20 md:mt-28" y={40}>
-          <div className="media" style={{ aspectRatio: '12 / 5' }}>
-            <Image src="/media/render/lineup@2400.webp" fill sizes="(max-width: 1400px) 96vw, 1360px"
-                   alt="Five PebbleRobos in a row, one in each shell colour" className="object-cover" />
-            <span className="tag absolute right-4 bottom-4">Render</span>
-          </div>
+          <LiveLineup />
         </Reveal>
       </div>
     </section>

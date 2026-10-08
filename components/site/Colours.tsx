@@ -16,7 +16,8 @@ import { EASE, Reveal } from '@/components/site/motion'
  * the subject of this section, so it gets the typography.
  */
 export default function Colours() {
-  const [active, setActive] = useState(0)
+  // Ember leads, as it does in the hero.
+  const [active, setActive] = useState(() => Math.max(0, SHELLS.findIndex((s) => s.id === 'ember')))
   const shell = SHELLS[active]
 
   return (

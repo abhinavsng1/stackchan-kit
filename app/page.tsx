@@ -16,6 +16,13 @@ import Footer from '@/components/site/Footer'
 import { visibleProof } from '@/lib/proof'
 
 /**
+ * Stories (customer reviews) is hidden for now, everywhere: the section and
+ * its link in the nav. Set this back to true to show it again; production
+ * still only ever shows real entries (lib/proof.ts).
+ */
+const SHOW_STORIES = false
+
+/**
  * One page, told as a story, one idea per section:
  *
  *   what it is like to have one  →  hero
@@ -38,7 +45,7 @@ export default function Page() {
   return (
     <MotionRoot>
       <StructuredData />
-      <SiteNav stories={proof.hasStories} />
+      <SiteNav stories={SHOW_STORIES && proof.hasStories} />
 
       <main id="top">
         <Hero />
@@ -47,7 +54,7 @@ export default function Page() {
         <Talk />
         <Why />
         <Colours />
-        <Stories proof={proof} />
+        {SHOW_STORIES && <Stories proof={proof} />}
         <Inside />
         <Buy />
         <Faq />
