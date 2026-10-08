@@ -589,3 +589,56 @@ p { text-wrap: pretty; }
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
 }
+
+/* ============================================================
+   Dark scope — /pebble-chan only.
+
+   The kit page sells a thing you build, and paper suits an instruction
+   manual. The assembled robot sells on one asset: a screen with a face on
+   it, glowing. Paper flattens that; black lets it light the page.
+
+   Scoped rather than global on purpose. The homepage is live and selling,
+   and a palette is not the kind of change to make to a running shop as a
+   side effect of restyling a different page. Every role token is redefined
+   here, so .card, .field, .badge and .btn invert without touching their
+   own rules.
+   ============================================================ */
+
+.pebble-dark {
+  color-scheme: dark;
+
+  --bg:        var(--pebble-ink);
+  --surface:   #141417;
+  --surface-2: #1b1b1f;
+  --ink:       var(--pebble-paper);
+  --muted:     #9b968e;
+  --line:      #2a2a2e;
+  --well:      #000000;
+
+  /* Shadows do nothing on black. Separation is a hairline and a lighter
+     surface; leaving the light-mode values in place only muddies edges. */
+  --sh-sm: none;
+  --sh-md: 0 8px 30px rgba(0,0,0,.5);
+  --sh-lg: 0 20px 60px rgba(0,0,0,.6);
+
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* .btn already inverts through --ink/--bg. The primary action pins black
+   and white literally, which on this ground is a black key on near-black. */
+.pebble-dark .btn-brand {
+  background: var(--pebble-paper);
+  border-color: var(--pebble-paper);
+  color: var(--pebble-ink);
+}
+.pebble-dark .btn-brand:hover:not(:disabled) {
+  background: var(--pebble-white);
+  border-color: var(--pebble-white);
+}
+
+.pebble-dark .field { border-color: #3a3a40; background: var(--surface); }
+.pebble-dark .field:focus { border-color: var(--ink); }
+
+/* Hairline, not a filled chip: on black a filled badge reads as a button. */
+.pebble-dark .badge { background: transparent; }

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { PRICE, EDITION, type Edition } from '@/lib/kit'
+import { isVariant, pricing } from '@/lib/variants'
 
 /**
  * Razorpay, server side only.
@@ -59,8 +60,12 @@ export function orderAmountPaise(qty: number): number {
  * up on a packing slip and in a courier's hands, and it is the only number
  * standing between a buyer and being asked for the wrong amount at the door.
  */
-export function balanceDuePaise(qty: number): number {
+export function balanceDuePaise(qty: number, variant: string | null = null): number {
   assertQty(qty)
+  // The assembled robot's two price arms owe different amounts on delivery.
+  // An unrecognised variant falls back to the kit's balance rather than
+  // guessing, because a wrong figure here is what a courier asks for at a door.
+  if (variant && isVariant(variant)) return pricing(variant).balancePaise * qty
   return PRICE.balancePaise * qty
 }
 

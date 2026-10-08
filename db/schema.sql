@@ -100,3 +100,17 @@ alter table preorders add column if not exists twclid text;
 -- server — not when it is placed, and not when the webhook settles it later,
 -- which is why the signal has to be kept with the order.
 alter table preorders add column if not exists ad_opt_out boolean not null default false;
+-- Pricing experiment on /pebble-chan. Additive and safe to re-run.
+--
+-- Two columns, because a conversion rate needs two numbers. `variant` on the
+-- order is the numerator: which price this buyer was actually shown.
+-- variant_views is the denominator: how many people saw each price. With only
+-- the first, the arms cannot be compared at all.
+alter table preorders add column if not exists variant text;
+
+create table if not exists variant_views (
+  day     date    not null,
+  variant text    not null,
+  count   integer not null default 0,
+  primary key (day, variant)
+);

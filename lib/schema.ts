@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { EDITIONS } from '@/lib/kit'
+import { VARIANTS } from '@/lib/variants'
 
 /**
  * Authoritative shape of a reservation. The client validates with this for
@@ -74,6 +75,12 @@ export const preorderSchema = z.object({
    */
   twclid: attribution(/^[A-Za-z0-9._~-]{1,200}$/),
   xid: attribution(/^[A-Za-z0-9-]{8,64}$/),
+  /**
+   * Which price this buyer was shown, on the pages that run the experiment.
+   * Absent on the kit page, which has one price. An unknown value is rejected
+   * rather than stored, so a forged cookie cannot invent an arm.
+   */
+  variant: z.enum(VARIANTS).optional(),
   /**
    * Honeypot. Real people never see this field. The schema only accepts it —
    * enforcement lives in the route handler, which answers a filled honeypot
