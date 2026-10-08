@@ -12,6 +12,7 @@ import ReserveForm from '@/components/ReserveForm'
 import BuyBar from '@/components/BuyBar'
 import PartArt from '@/components/PartArt'
 import OpenSource from '@/components/OpenSource'
+import Roles from '@/components/Roles'
 import { OrderSteps, ChooseEdition } from '@/components/OrderSteps'
 import { KitOnly, ForEdition, SwitchEdition } from '@/components/EditionGate'
 import { SignalFlow } from '@/components/Diagrams'
@@ -198,6 +199,10 @@ export default function Page() {
             <div className="max-w-[1120px] mx-auto"><Films /></div>
           </div>
         </section>
+
+        {/* What people make it. Sits straight after the films, because the
+            films show it moving and this answers "and then what". */}
+        <Roles />
 
         {/* The brand's one graphic gesture. Once per layout — see Cut.tsx. */}
         <Cut className="py-0" />

@@ -96,7 +96,7 @@ function frame(angleName, aspect) {
   // Fit by whichever dimension is tighter, with room to breathe.
   const fitH = radius / Math.sin(vFov / 2)
   const fitW = radius / Math.sin(2 * Math.atan(Math.tan(vFov / 2) * aspect) / 2)
-  const dist = Math.max(fitH, fitW) * 1.22
+  const dist = Math.max(fitH, fitW) * 1.04
   camera.position.copy(centre).addScaledVector(dir, dist)
   camera.lookAt(centre)
   camera.updateProjectionMatrix()
