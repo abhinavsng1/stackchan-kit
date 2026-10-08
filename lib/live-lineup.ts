@@ -13,18 +13,33 @@ import { aimAt, frameBox, gazeFor, makeStage, Servo, wanderer, watchPointer } fr
  * alone they look around together. Tap one and it changes its mood and nods.
  */
 
-/** The arc: radius and the angle between neighbours, mm and degrees. tools/assets/build-site.mjs uses the same. */
-export const ARC = { radius: 300, step: 16.5 }
+/**
+ * The arc: radius and the angle between neighbours, mm and degrees, and how
+ * far alternate robots step forward and back. tools/assets/build-site.mjs
+ * uses the same numbers.
+ *
+ * Compact is for a phone, where the row is as wide as the screen allows:
+ * the robots stand closer, and every other one steps back so the heads can
+ * still turn without touching — a 55 mm gap alone would let two heads turned
+ * the same way collide, staggered 60 mm they clear at any angle.
+ */
+export const ARC = { radius: 300, step: 16.5, stagger: 0 }
+export const ARC_COMPACT = { radius: 300, step: 10.5, stagger: 30 }
+/** Below this width, in CSS pixels, the row goes compact. */
+export const COMPACT_BELOW = 640
 
 /** Where robot i of n stands on the arc, and which way its body faces (toward the arc's centre). */
-export function arcPlace(i: number, n: number) {
-  const a = THREE.MathUtils.degToRad((i - (n - 1) / 2) * ARC.step)
-  return { x: ARC.radius * Math.sin(a), z: ARC.radius * (1 - Math.cos(a)), yaw: -THREE.MathUtils.radToDeg(a) }
+export function arcPlace(i: number, n: number, compact = false) {
+  const arc = compact ? ARC_COMPACT : ARC
+  const a = THREE.MathUtils.degToRad((i - (n - 1) / 2) * arc.step)
+  const step = i % 2 === 0 ? arc.stagger : -arc.stagger
+  return { x: arc.radius * Math.sin(a), z: arc.radius * (1 - Math.cos(a)) + step, yaw: -THREE.MathUtils.radToDeg(a) }
 }
 
 const IDLE_AFTER_MS = 4000
-/** A little above and a touch to the side: enough to see the arc as an arc. */
+/** A little above and a touch to the side: enough to see the arc as an arc. Compact looks straight on. */
 const VIEW = { az: 6, el: 15 }
+const VIEW_COMPACT = { az: 0, el: 14 }
 
 export async function startLineup(host: HTMLElement, {
   shells, moods = ['pleased', 'awake', 'listening', 'pleased', 'awake'],
@@ -35,9 +50,7 @@ export async function startLineup(host: HTMLElement, {
 
   const units = shells.map((way, i) => {
     const robot = buildRobot(parts, way)
-    const at = arcPlace(i, shells.length)
-    robot.root.position.set(at.x, 0, at.z)
-    robot.root.rotation.y = THREE.MathUtils.degToRad(at.yaw)
+    const at = { x: 0, z: 0, yaw: 0 }
     scene.add(robot.root)
     studio.adopt(robot.root)
     return {
@@ -48,18 +61,36 @@ export async function startLineup(host: HTMLElement, {
       clock: i * 1370,
     }
   })
-  scene.updateMatrixWorld(true)
-  const box = new THREE.Box3()
-  for (const u of units) box.expandByObject(u.robot.root)
-  studio.fitShadow(box, units.map((u) => u.at))
-  const target = box.getCenter(new THREE.Vector3())
-
+  // Lay the row out for the width it has, and frame it; again whenever the
+  // width crosses into or out of compact.
+  let compact: boolean | null = null
+  let view = VIEW
   let dist = 400
+  const box = new THREE.Box3()
+  const target = new THREE.Vector3()
   const dirFor = (dAz: number, dEl: number) => {
-    const az = THREE.MathUtils.degToRad(VIEW.az + dAz), el = THREE.MathUtils.degToRad(VIEW.el + dEl)
+    const az = THREE.MathUtils.degToRad(view.az + dAz), el = THREE.MathUtils.degToRad(view.el + dEl)
     return new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el))
   }
-  const fit = () => { stage.resize(); dist = frameBox(camera, box, dirFor(0, 0), { target, margin: 0.96 }) }
+  const fit = () => {
+    stage.resize()
+    const now = host.clientWidth < COMPACT_BELOW
+    if (now !== compact) {
+      compact = now
+      view = compact ? VIEW_COMPACT : VIEW
+      units.forEach((u, i) => {
+        Object.assign(u.at, arcPlace(i, units.length, compact!))
+        u.robot.root.position.set(u.at.x, 0, u.at.z)
+        u.robot.root.rotation.y = THREE.MathUtils.degToRad(u.at.yaw)
+      })
+      scene.updateMatrixWorld(true)
+      box.makeEmpty()
+      for (const u of units) box.expandByObject(u.robot.root)
+      studio.fitShadow(box, units.map((u) => u.at))
+      box.getCenter(target)
+    }
+    dist = frameBox(camera, box, dirFor(0, 0), { target, margin: compact ? 0.99 : 0.96 })
+  }
   fit()
 
   const pointer = watchPointer(window, stage.renderer.domElement)

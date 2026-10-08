@@ -35,10 +35,11 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 
 // The face, the body and the colourways are compiled from lib/ first, so the
 // renders read the same definitions as the site.
-await run(join(ROOT, 'node_modules/.bin/tsc'), ['lib/companion-face.ts', 'lib/robot-body.ts', 'lib/shells.ts', '--ignoreConfig',
+await run(join(ROOT, 'node_modules/.bin/tsc'), ['lib/companion-face.ts', 'lib/robot-body.ts', 'lib/shells.ts', 'lib/talk-script.ts', '--ignoreConfig',
   '--target', 'es2020', '--module', 'es2020', '--moduleResolution', 'bundler', '--outDir', 'tools/assets/.gen', '--skipLibCheck'], { cwd: ROOT })
 const { SHELLS } = await import('./.gen/shells.js')
 const SHELL = Object.fromEntries(SHELLS.map((s) => [s.id, s]))
+const { SCRIPT, SPEAKING, CHAT_LOOP } = await import('./.gen/talk-script.js')
 
 /** The live hero's own camera (lib/live-robot.ts VIEW): front three-quarter from the speaker side. */
 const az = 26 * Math.PI / 180, el = 10 * Math.PI / 180
@@ -120,6 +121,20 @@ const SHOTS = [
       }
     }),
     alt: 'Five PebbleRobos standing in an arc, one in each shell colour, all looking the same way',
+  },
+  // The same five, closed up and staggered for a phone (lib/live-lineup.ts
+  // ARC_COMPACT, VIEW_COMPACT): the live lineup's stand-in below 640 px.
+  {
+    out: 'public/media/render/lineup-compact', widths: [1600], ground: 'studio', w: 1600, h: 900,
+    dir: [0, Math.sin(14 * Math.PI / 180), Math.cos(14 * Math.PI / 180)], fit: 'box', margin: 0.99,
+    units: ['graphite', 'bone', 'ember', 'signal', 'moss'].map((id, i) => {
+      const a = (i - 2) * 10.5 * Math.PI / 180
+      return {
+        shell: SHELL[id], mood: ['pleased', 'awake', 'listening', 'pleased', 'awake'][i],
+        x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)) + (i % 2 === 0 ? 30 : -30), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
+      }
+    }),
+    alt: 'Five PebbleRobos standing close together, one in each shell colour',
   },
 ]
 
@@ -211,6 +226,35 @@ const LOOPS = [
     pose: (p) => ({ shell: SHELL.ember, mood: 'pleased', clock: 900 + p * 3000,
       pan: 8, tilt: 10 - (p < 0.7 ? 10 * up(Math.sin(Math.PI * 2 * (p / 0.35))) * (1 - ease(p / 0.7) * 0.2) : 0) }),
   },
+  {
+    // The phone's "Talk to it": the whole exchange in one loop, timed to
+    // lib/talk-script.ts so the conversation laid over it lands on cue. It
+    // is looking elsewhere, hears its name, turns and looks up, answers;
+    // listens, glances at what you hold, answers again, and drifts back.
+    // Framed high in a portrait card, leaving the lower half for the chat.
+    out: 'public/media/render/loop-chat', w: 720, h: 900, frames: CHAT_LOOP * 24, ground: 'stage',
+    dir: [0.42, 0.14, 0.9], fill: 1.14, aim: [0, -30, 0],
+    pose: (p) => {
+      const t = p * CHAT_LOOP
+      const heard = SCRIPT[0].at, asked = SCRIPT[3].at, looks = SCRIPT[4].at
+      const turn = between(t, heard + 0.3, heard + 1.1, 0, 1) - between(t, CHAT_LOOP - 1.4, CHAT_LOOP - 0.3, 0, 1)
+      const atHand = between(t, looks - 0.1, looks + 0.5, 0, 1) - between(t, SPEAKING[1][0] - 0.6, SPEAKING[1][0], 0, 1)
+      const curious = between(t, asked, asked + 0.4, 0, 1) - between(t, looks - 0.1, looks + 0.3, 0, 1)
+      const speaking = SPEAKING.findIndex(([a, b]) => t > a && t < b)
+      let mood = 'awake'
+      if ((t > heard + 0.3 && t < SPEAKING[0][0]) || (t > asked && t < looks)) mood = 'listening'
+      if (atHand > 0.5) mood = 'thinking'
+      if (t >= SPEAKING[1][0] && t < CHAT_LOOP - 1.4) mood = 'pleased'
+      return {
+        shell: SHELL.signal, mood, clock: 1000 + t * 1000,
+        // From this camera, negative pan looks away and positive turns to you.
+        pan: -24 * (1 - turn) + 12 * turn - 14 * atHand,
+        tilt: up(2 + 10 * turn - 9 * atHand + 4 * curious + (speaking >= 0 ? 2.5 * Math.sin(Math.PI * 3 * t) : 0)),
+        gaze: { x: -1 * (1 - turn) + 0.4 * turn - 0.6 * atHand, y: -0.5 * turn * (1 - atHand) + atHand },
+        speak: speaking >= 0 ? speech(t - SPEAKING[speaking][0]) : 0,
+      }
+    },
+  },
 ]
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm' }
@@ -247,8 +291,12 @@ async function main() {
 
   const stills = !process.argv.includes('--loops')
   const loops = !process.argv.includes('--stills')
+  // --only <text>: just the shots and loops whose output path contains it.
+  const onlyAt = process.argv.indexOf('--only')
+  const only = onlyAt >= 0 ? process.argv[onlyAt + 1] : null
+  const wanted = (x) => !only || x.out.includes(only)
 
-  for (const shot of stills ? SHOTS : []) {
+  for (const shot of stills ? SHOTS.filter(wanted) : []) {
     const { out, alt, ...spec } = shot
     const urls = await page.evaluate((s) => window.__still(s), spec)
     const files = shot.widths ? shot.widths.map((wd) => `${out}@${wd}.webp`) : [out]
@@ -259,7 +307,7 @@ async function main() {
     console.log(`  ${out}`)
   }
 
-  for (const loop of loops ? LOOPS : []) {
+  for (const loop of loops ? LOOPS.filter(wanted) : []) {
     const { out, pose, frameAt, frames, ...spec } = loop
     const list = Array.from({ length: frames }, (_, i) => [pose(i / frames)])
     // frameAt: frame the camera on the widest pose, then hold it for every frame.

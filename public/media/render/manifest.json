@@ -152,6 +152,16 @@
       "file": "/media/render/loop-nod.webm",
       "alt": "public/media/render/loop-nod",
       "render": true
+    },
+    {
+      "file": "/media/render/loop-chat.webm",
+      "alt": "public/media/render/loop-chat",
+      "render": true
+    },
+    {
+      "file": "/media/render/lineup-compact@1600.webp",
+      "alt": "Five PebbleRobos standing close together, one in each shell colour",
+      "render": true
     }
   ]
 }

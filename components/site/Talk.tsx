@@ -4,6 +4,8 @@ import Clip from '@/components/Clip'
 import { motion } from 'motion/react'
 import { EASE, Reveal, Stagger, StaggerItem } from '@/components/site/motion'
 import { ROLES } from '@/lib/roles'
+import { SCRIPT } from '@/lib/talk-script'
+import TalkStage from '@/components/site/TalkStage'
 
 /**
  * Talking to it, shown as a moment rather than described as a feature.
@@ -16,15 +18,12 @@ import { ROLES } from '@/lib/roles'
  * The pictures here are rendered loops of the same rig as the live robot:
  * it notices you, looks up, and answers with its mouth moving; it performs;
  * it copies you. Each one is labelled as a render.
+ *
+ * On a desktop the exchange and the robot sit side by side. On a phone they
+ * would stack and the robot would only arrive after the chat had scrolled
+ * away, so there the two become one stage card (TalkStage): the robot plays
+ * in it and the conversation lands over it, on cue.
  */
-const SCRIPT: { who: 'you' | 'robot' | 'note'; text: string }[] = [
-  { who: 'you', text: 'Hi, Stack-chan.' },
-  { who: 'note', text: 'It looks up, and turns to you.' },
-  { who: 'robot', text: 'Hey! What’s up?' },
-  { who: 'you', text: 'What’s this I’m holding?' },
-  { who: 'note', text: 'It takes a photo to see what you mean.' },
-  { who: 'robot', text: 'A little cactus. It looks thirsty.' },
-]
 
 const role = (id: string) => ROLES.find((r) => r.id === id)!
 
@@ -50,8 +49,10 @@ export default function Talk() {
               </p>
             </Reveal>
 
+            <div className="lg:hidden mt-10"><TalkStage /></div>
+
             <motion.ol
-              className="list-none p-0 mt-12 mb-0 grid gap-3"
+              className="hidden lg:grid list-none p-0 mt-12 mb-0 gap-3"
               initial="hidden" whileInView="shown" viewport={{ once: true, margin: '0px 0px -20% 0px' }}
               variants={{ hidden: {}, shown: { transition: { staggerChildren: 0.55, delayChildren: 0.2 } } }}
               aria-label="An example exchange"
@@ -88,7 +89,7 @@ export default function Talk() {
             </p>
           </div>
 
-          <Reveal className="lg:col-span-7" delay={0.1} y={40}>
+          <Reveal className="hidden lg:block lg:col-span-7" delay={0.1} y={40}>
             <div className="media" style={{ aspectRatio: '4 / 3', background: 'var(--stage)' }}>
               <Clip src="/media/render/loop-talk" poster="/media/render/loop-talk.webp"
                     alt="PebbleRobo turning to look up, then answering out loud" className="absolute inset-0" />
