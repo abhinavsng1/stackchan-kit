@@ -1,8 +1,19 @@
 import type { PreorderRecord } from '@/lib/preorders'
 import { CONTACT, PRICE, EDITION, type Edition } from '@/lib/kit'
+import { SHELLS } from '@/lib/shells'
 
 /** What is on its way, by name. Absent means an order from before the robot, which was a kit. */
 const editionOf = (e?: Edition) => EDITION[e ?? 'kit']
+
+/**
+ * The colourway's name, from its id.
+ *
+ * Falls back to the id itself rather than to nothing: an unrecognised value
+ * still has to reach whoever packs the box, and "shell: teal" is useful where
+ * a blank line is not.
+ */
+const shellOf = (id?: string | null) =>
+  id ? (SHELLS.find((s) => s.id === id)?.name ?? id) : null
 
 /**
  * Confirmation mail for a new reservation.
@@ -65,7 +76,7 @@ until we write to you again.
 
 WHAT YOU RESERVED
   ${editionOf(r.edition).name} x ${r.qty}
-  ${PRICE.now} each (was ${PRICE.mrp})
+${shellOf(r.shell) ? `  Colour: ${shellOf(r.shell)}\n` : ''}  ${PRICE.now} each (was ${PRICE.mrp})
   Dispatch: 1-2 weeks
 
 ${delivery.heading.toUpperCase()}
@@ -111,6 +122,7 @@ export function reservationHtml(r: PreorderRecord) {
     <p style="margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">What you reserved</p>
     <table style="border-collapse:collapse;width:100%">
       ${row('Order', `${editionOf(r.edition).name} x ${r.qty}`)}
+      ${shellOf(r.shell) ? row('Colour', shellOf(r.shell) as string) : ''}
       ${row('Price', `${PRICE.now} each (was ${PRICE.mrp})`)}
       ${row('Dispatch', '1-2 weeks')}
     </table>
@@ -202,6 +214,8 @@ export type Receipt = {
   qty: number
   /** Robot or kit. Optional only for orders placed before the robot existed. */
   edition?: Edition
+  /** The colourway chosen. Absent on orders placed before the picker existed. */
+  shell?: string | null
   /** The deposit that just settled. */
   amountPaise: number
   /** Cash still owed when the courier arrives. */

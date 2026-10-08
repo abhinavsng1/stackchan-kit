@@ -159,8 +159,14 @@ describe('POST /api/preorder', () => {
     createPreorder.mockResolvedValue({ status: 'created' })
     await POST(post(body))
     const arg = createPreorder.mock.calls[0][0]
+    // An exact set, not a subset: the point is that a new field reaching the
+    // database write has to be added here deliberately. 'shell' is on the
+    // list because the colour picker was added, not because the list drifted.
     expect(Object.keys(arg).sort()).toEqual(
-      ['address', 'city', 'edition', 'email', 'name', 'phone', 'pincode', 'profession', 'qty'].sort())
+      ['address', 'city', 'edition', 'email', 'name', 'phone', 'pincode',
+       'profession', 'qty', 'shell'].sort())
+    // The optional field still arrives filled, because the schema defaults it.
+    expect(arg.shell).toBe('graphite')
     expect(arg.phone).toBe('+919876543210')
     expect(arg).not.toHaveProperty('company')
   })

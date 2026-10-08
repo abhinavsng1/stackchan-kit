@@ -5,6 +5,7 @@ import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
 import { CONTACT, EDITION, PRICE, type Edition } from '@/lib/kit'
 import { pricing, type Variant } from '@/lib/variants'
+import { SHELLS, DEFAULT_SHELL } from '@/lib/shells'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 import { useEdition } from '@/lib/edition-store'
 import EditionPicker from '@/components/EditionPicker'
@@ -39,6 +40,9 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
   const paysNow = variant ? pricing(variant).deposit : PRICE.deposit
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
+  // Starts on a real colourway rather than empty, so the optional field is
+  // optional in the sense that matters: ignoring it still produces an order.
+  const [shell, setShell] = useState<string>(DEFAULT_SHELL)
   const qtyRef = useRef<HTMLSelectElement>(null)
   const started = useRef(false)
   /**
@@ -381,18 +385,54 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
         <Field name="pincode" label="PIN code" inputMode="numeric" autoComplete="postal-code"
                placeholder="560078" error={errors.pincode} disabled={busy} />
         <div>
-          {/* Edition is the authoritative signal now that both branches are
-              in: it says which of the two things is being bought. The variant
-              prop only ever appears on a page that sells the assembled robot,
-              so it cannot disagree — but edition is the one to read. */}
-          <label htmlFor="qty" className="t-label block mb-2">
-            {edition === 'kit' ? 'Kits' : 'Robots'}
-          </label>
+          {/* "Quantity", not the product's name.
+              This label was briefly edition-aware — "Robots" or "Kits" — which
+              reads as a flourish and costs clarity: the field is a count, and
+              the thing being counted is already named all over the page. It
+              also named the field after the product, which is what the
+              checkout tests find it by. Neutral is both clearer and stable. */}
+          <label htmlFor="qty" className="t-label block mb-2">Quantity</label>
           <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
       </div>
+
+      {/* Colour. Optional on purpose: it starts on a real answer, so someone
+          who scrolls past it still gets a robot rather than a validation
+          error. The value posts through a hidden input because swatches are
+          buttons, and a button's label is a colour, not a word. */}
+      <fieldset className="border-0 p-0 m-0 mt-5">
+        <legend className="t-label mb-2 p-0">
+          Colour <span style={{ color: 'var(--muted-2)' }}>— optional</span>
+        </legend>
+        <input type="hidden" name="shell" value={shell} />
+        <div className="flex flex-wrap items-center gap-3">
+          <div role="radiogroup" aria-label="Shell colour"
+               className="inline-flex items-center gap-2.5 p-2.5"
+               style={{ borderRadius: 999, border: '1px solid var(--line)' }}>
+            {SHELLS.map((s) => (
+              <button
+                key={s.id} type="button" role="radio"
+                aria-checked={s.id === shell} aria-label={s.name}
+                disabled={busy}
+                onClick={() => setShell(s.id)}
+                className="block cursor-pointer"
+                style={{
+                  width: 24, height: 24, borderRadius: 999, background: s.hex,
+                  // The ring sits outside the swatch so it never tints the
+                  // colour someone is trying to judge.
+                  outline: s.id === shell ? '2px solid var(--ink)' : '1px solid var(--line)',
+                  outlineOffset: 2,
+                }}
+              />
+            ))}
+          </div>
+          <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
+            {SHELLS.find((s) => s.id === shell)?.name ?? ''}
+          </span>
+        </div>
+      </fieldset>
 
       {/* Honeypot. Hidden from people and from screen readers alike. */}
       <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px' }}>

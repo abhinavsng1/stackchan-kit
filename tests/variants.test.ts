@@ -105,14 +105,15 @@ describe('the form small print', () => {
 
 describe('the quantity label', () => {
   it('counts robots on the product page and kits on the kit page', async () => {
-    // The same form serves both. "Kits: 2" on a page selling an assembled
-    // robot is the form describing a different product from the one above it.
+    // The same form serves both editions. "Kits: 2" on a page selling an
+    // assembled robot is the form describing a different product from the one
+    // above it, so the label names neither.
     const src = await import('node:fs').then((fs) =>
       fs.readFileSync(new URL('../components/ReserveForm.tsx', import.meta.url), 'utf8'))
-    // Was keyed off the variant prop, which only exists on the page running
-    // the pricing experiment. Since the assembled-robot work merged, edition
-    // is the field that actually says which of the two things is in the
-    // basket, so the label reads that instead.
-    expect(src).toContain("{edition === 'kit' ? 'Kits' : 'Robots'}")
+    // The original worry was a robot page calling the thing a "kit". A
+    // neutral label settles that outright — and unlike a label that changes
+    // with the edition, it cannot drift back into naming the wrong product.
+    expect(src).toContain('>Quantity</label>')
+    expect(src).not.toMatch(/>\s*Kits\s*</)
   })
 })

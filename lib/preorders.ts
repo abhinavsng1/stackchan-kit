@@ -25,6 +25,8 @@ export type PreorderRecord = {
   twclid?: string
   /** Global Privacy Control was on when they ordered: report nothing to ad platforms. */
   adOptOut?: boolean
+  /** The colourway chosen, or the default the schema filled in. */
+  shell?: string
   /** Which price arm this buyer saw, on the pages that run the experiment. */
   variant?: string
 }
@@ -109,13 +111,13 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
   const token = newPaymentToken()
 
   const rows = await sql`
-    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token, edition, twclid, ad_opt_out, variant)
+    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token, edition, twclid, ad_opt_out, variant, shell)
     values (
       ${input.name}, ${input.email.toLowerCase()}, ${input.phone?.trim() || null},
       ${input.profession?.trim() || null}, ${input.address?.trim() || null},
       ${input.city?.trim() || null}, ${input.pincode?.trim() || null}, ${input.qty},
       ${token}, ${editionOf(input.edition)}, ${input.twclid ?? null},
-      ${input.adOptOut === true}, ${input.variant ?? null}
+      ${input.adOptOut === true}, ${input.variant ?? null}, ${input.shell ?? null}
     )
     on conflict (email) do nothing
     returning id
@@ -273,7 +275,7 @@ export async function markPaid(input: {
   if (!sql) return { status: 'unknown_order' }
 
   const rows = await sql`
-    select id, name, email, qty, edition, twclid, ad_opt_out, variant,
+    select id, name, email, qty, edition, twclid, ad_opt_out, variant, shell,
            phone, address, city, pincode, paid_at
       from preorders where razorpay_order_id = ${input.orderId} limit 1`
 

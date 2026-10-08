@@ -52,3 +52,15 @@ export const SHELLS: Shell[] = [
   },
 ]
 
+
+/**
+ * The colourway ids, derived rather than retyped.
+ *
+ * The order schema validates against this, so a colourway that is removed
+ * from the list stops being orderable in the same commit — rather than the
+ * two drifting until someone orders a colour nobody prints any more.
+ */
+export const SHELL_IDS = SHELLS.map((s) => s.id) as [string, ...string[]]
+
+/** What a buyer gets if they never touch the picker. */
+export const DEFAULT_SHELL = 'graphite'

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { EDITIONS } from '@/lib/kit'
+import { SHELL_IDS, DEFAULT_SHELL } from '@/lib/shells'
 import { VARIANTS } from '@/lib/variants'
 
 /**
@@ -80,6 +81,18 @@ export const preorderSchema = z.object({
    * Absent on the kit page, which has one price. An unknown value is rejected
    * rather than stored, so a forged cookie cannot invent an arm.
    */
+  /**
+   * The colour, which the buyer may simply not answer.
+   *
+   * Preprocessed because an untouched <select> posts an empty string, and an
+   * empty string is not a member of the enum — without this, leaving the
+   * optional field alone would fail the whole order.
+   */
+  shell: z.preprocess(
+    (v) => (v === '' || v === null ? undefined : v),
+    z.enum(SHELL_IDS, 'Choose one of the colours we print').default(DEFAULT_SHELL),
+  ),
+
   variant: z.enum(VARIANTS).optional(),
   /**
    * Honeypot. Real people never see this field. The schema only accepts it —

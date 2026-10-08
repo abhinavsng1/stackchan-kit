@@ -114,3 +114,13 @@ create table if not exists variant_views (
   count   integer not null default 0,
   primary key (day, variant)
 );
+
+-- ---------------------------------------------------------------------------
+-- Shell colour. Additive and safe to re-run.
+--
+-- Optional at the form, so it is nullable here: every order placed before the
+-- picker existed has no answer, and inventing one for them would be a guess
+-- written into the record. The application fills the default on new orders,
+-- which is why there is no default on the column — a default here would make
+-- an old row indistinguishable from a deliberate choice.
+alter table preorders add column if not exists shell text;
