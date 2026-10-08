@@ -1,28 +1,34 @@
 /**
- * The face the robot wears on the hero.
+ * The face the robot wears: chunky pixels on a black panel, the way the
+ * display actually shows it.
  *
- * The firmware's atlas is a cartoon — arcs for eyes, dots for cheeks — which
- * is right on a desk at arm's length and wrong at the size a hero renders it,
- * where it reads as a sticker. This is the same idea drawn for a product shot:
- * a black panel, two luminous eyes, and nothing else.
+ * Drawn on a 24 x 18 grid of cells that fills the 2.0" panel's active area.
+ * At the size lib/robot-body.ts uses (384 x 288) a cell is exactly 16 pixels,
+ * so every edge lands on a pixel and the texture can be sampled nearest-
+ * neighbour without shimmering. Any other canvas size scales the grid.
  *
- * Everything is drawn at the panel's real 320 x 240 so the proportions match
- * the hardware rather than flattering it.
+ * Two white eyes, a warm pixel on each cheek and a small mouth. Moods change
+ * the shapes, never the palette, so the robot reads as one character whatever
+ * it is feeling. The eyes carry their own soft glow, drawn here rather than
+ * by a post-process, so the live robot and every render glow the same.
  *
- * It breathes and it blinks, both on slow irregular timers. That matters more
- * than any amount of detail — a face that holds perfectly still reads as a
- * screenshot of a robot, and a face that moves a little reads as something
- * that is on.
+ * It blinks on slow irregular timers. A face that holds perfectly still reads
+ * as a screenshot of a robot; one that blinks reads as something that is on.
  */
-export const PANEL = { w: 320, h: 240 };
+export const PANEL = { w: 384, h: 288 };
+/** The grid the face is drawn on. */
+const COLS = 24;
+const ROWS = 18;
 export const MOODS = [
-    { id: 'awake', name: 'Awake', glow: '#9fe8ff', openness: 1, mouth: 'none' },
-    { id: 'listening', name: 'Listening', glow: '#5ce1e6', openness: 0.92, mouth: 'line' },
-    { id: 'pleased', name: 'Pleased', glow: '#ffd98a', openness: 0.5, mouth: 'smile' },
-    { id: 'thinking', name: 'Thinking', glow: '#b7a6ff', openness: 0.78, mouth: 'none' },
-    { id: 'resting', name: 'Resting', glow: '#7f93b8', openness: 0.14, mouth: 'none' },
+    { id: 'awake', name: 'Awake', glow: '#ffffff', openness: 1, mouth: 'smile' },
+    { id: 'listening', name: 'Listening', glow: '#9fe8ff', openness: 1, mouth: 'line' },
+    { id: 'pleased', name: 'Pleased', glow: '#ffd98a', openness: 1, mouth: 'smile' },
+    { id: 'thinking', name: 'Thinking', glow: '#b7a6ff', openness: 0.75, mouth: 'line' },
+    { id: 'resting', name: 'Resting', glow: '#7f93b8', openness: 0, mouth: 'none' },
 ];
 export const moodById = (id) => MOODS.find((m) => m.id === id) ?? MOODS[0];
+const EYE = '#ffffff';
+const CHEEK = '#ff6a1a';
 /** A blink every few seconds, never on a metronome. */
 function blinkAmount(t) {
     // Two primes, so the pattern does not repeat on any interval a viewer can
@@ -38,105 +44,80 @@ function blinkAmount(t) {
 /**
  * Draw the face.
  *
- * @param t Milliseconds, from any monotonic clock. Only differences matter.
+ * @param t     Milliseconds, from any monotonic clock. Only differences matter.
+ * @param speak How far the mouth is open while it speaks, 0 to 1. 0 draws the mood's own mouth.
+ * @param gaze  Where the eyes look, in cells: x right, y down, each about -1 to 1.
  */
-export function drawCompanion(ctx, mood, t, 
-/** How far the mouth is open while it speaks, 0 to 1. 0 draws the mood's own mouth. */
-speak = 0) {
-    const { w, h } = PANEL;
+export function drawCompanion(ctx, mood, t, speak = 0, gaze = { x: 0, y: 0 }) {
+    const w = ctx.canvas.width, h = ctx.canvas.height;
+    const C = w / COLS;
+    const oy = (h - ROWS * C) / 2;
     ctx.clearRect(0, 0, w, h);
-    // The panel itself: near-black, with the faintest vertical lift so it reads
-    // as glass rather than as a hole cut in the page.
-    const ground = ctx.createLinearGradient(0, 0, 0, h);
-    ground.addColorStop(0, '#0b0e12');
-    ground.addColorStop(1, '#05070a');
-    ctx.fillStyle = ground;
+    ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
-    const breathe = 1 + Math.sin(t / 2600) * 0.035;
+    // Cells snap to half a cell, so movement steps like pixel art.
+    const snap = (v) => Math.round(v * 2) / 2;
+    const cell = (x, y, cw, ch) => ctx.fillRect(Math.round(x * C), Math.round(oy + y * C), Math.round(cw * C), Math.round(ch * C));
+    const glow = (fill, strength, draw) => {
+        ctx.save();
+        ctx.fillStyle = fill;
+        ctx.shadowColor = fill === EYE ? 'rgba(255,255,255,0.55)' : fill;
+        ctx.shadowBlur = C * 0.9 * strength;
+        draw();
+        ctx.restore();
+        ctx.fillStyle = fill;
+        draw();
+    };
+    const ex = snap(Math.max(-1, Math.min(1, gaze.x)));
+    const ey = snap(Math.max(-0.5, Math.min(1, gaze.y)));
     const blink = blinkAmount(t);
-    const open = Math.max(0.06, mood.openness * (1 - blink)) * breathe;
-    const eyeW = 46;
-    const eyeH = 62 * open;
-    const y = h * 0.47;
-    const gap = 58;
-    for (const dx of [-gap, gap]) {
-        const x = w / 2 + dx;
-        // The bloom comes first so the eye sits on top of its own light rather
-        // than being washed out by it.
-        const halo = ctx.createRadialGradient(x, y, 0, x, y, 74);
-        halo.addColorStop(0, `${mood.glow}55`);
-        halo.addColorStop(0.45, `${mood.glow}1f`);
-        halo.addColorStop(1, 'transparent');
-        ctx.fillStyle = halo;
-        ctx.beginPath();
-        ctx.arc(x, y, 74, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = mood.glow;
-        roundRect(ctx, x - eyeW / 2, y - eyeH / 2, eyeW, Math.max(3, eyeH), Math.min(eyeW / 2, eyeH / 2));
-        ctx.fill();
-        // One highlight, high and left on both eyes, as a single light source
-        // would actually leave it.
-        if (eyeH > 16) {
-            ctx.fillStyle = 'rgba(255,255,255,.72)';
-            roundRect(ctx, x - eyeW / 2 + 7, y - eyeH / 2 + 7, 13, Math.min(15, eyeH * 0.3), 6);
-            ctx.fill();
+    glow(EYE, 1, () => {
+        for (const bx of [6, 15]) {
+            const x = bx + ex;
+            const y = 5 + ey + (mood.id === 'thinking' ? -0.5 : 0);
+            if (mood.id === 'pleased') {
+                // Happy: an upturned V.
+                cell(x, y + 2, 1, 1);
+                cell(x + 1, y + 1, 1, 1);
+                cell(x + 2, y + 2, 1, 1);
+                cell(x + 0.5, y + 1.5, 2, 0.5);
+                continue;
+            }
+            const open = Math.max(0, mood.openness * (1 - blink));
+            if (open < 0.12) {
+                // Shut: a line along the bottom of where the eye would be.
+                cell(x, y + 3.5, 3, 0.5);
+                continue;
+            }
+            const eh = Math.max(0.5, snap(4 * open));
+            cell(x, y + (4 - eh) / 2, 3, eh);
         }
-    }
-    if (speak > 0.02)
-        drawSpeech(ctx, mood, speak, y);
-    else
-        drawMouth(ctx, mood, blink, y);
-    // The glass. A soft diagonal sheen from the top left and a bright hairline
-    // along the top edge — what a glossy panel shows under a window, and what
-    // makes it read as glass rather than as a picture of a face.
-    const sheen = ctx.createLinearGradient(0, 0, w * 0.75, h);
-    sheen.addColorStop(0, 'rgba(255,255,255,0.13)');
-    sheen.addColorStop(0.32, 'rgba(255,255,255,0.04)');
-    sheen.addColorStop(0.33, 'rgba(255,255,255,0)');
-    ctx.fillStyle = sheen;
-    ctx.fillRect(0, 0, w, h);
-    const edge = ctx.createLinearGradient(0, 0, 0, 10);
-    edge.addColorStop(0, 'rgba(255,255,255,0.18)');
-    edge.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = edge;
-    ctx.fillRect(0, 0, w, 10);
-}
-/** A mouth mid-word: a rounded opening that grows with the sound. */
-function drawSpeech(ctx, mood, open, y) {
-    const { w } = PANEL;
-    const mw = 22 + open * 14;
-    const mh = 6 + open * 20;
-    ctx.fillStyle = `${mood.glow}dd`;
-    roundRect(ctx, w / 2 - mw / 2, y + 62 - mh / 2, mw, mh, Math.min(mw, mh) / 2);
-    ctx.fill();
-}
-function drawMouth(ctx, mood, blink, y) {
-    const { w } = PANEL;
-    if (mood.mouth === 'smile' && blink < 0.5) {
-        ctx.strokeStyle = `${mood.glow}cc`;
-        ctx.lineWidth = 7;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(w / 2 - 26, y + 56);
-        ctx.quadraticCurveTo(w / 2, y + 74, w / 2 + 26, y + 56);
-        ctx.stroke();
-    }
-    else if (mood.mouth === 'line') {
-        ctx.strokeStyle = `${mood.glow}88`;
-        ctx.lineWidth = 6;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(w / 2 - 17, y + 60);
-        ctx.lineTo(w / 2 + 17, y + 60);
-        ctx.stroke();
-    }
-}
-function roundRect(c, x, y, w, h, r) {
-    c.beginPath();
-    c.moveTo(x + r, y);
-    c.arcTo(x + w, y, x + w, y + h, r);
-    c.arcTo(x + w, y + h, x, y + h, r);
-    c.arcTo(x, y + h, x, y, r);
-    c.arcTo(x, y, x + w, y, r);
-    c.closePath();
+    });
+    // Cheeks: one warm pixel under the outer corner of each eye.
+    glow(CHEEK, 0.45, () => { cell(5, 9, 1, 1); cell(18, 9, 1, 1); });
+    glow(EYE, 0.8, () => {
+        if (speak > 0.02) {
+            // Mid-word: an opening that grows with the sound.
+            const mh = snap(0.5 + speak * 1.5);
+            cell(11, 11, 2, mh);
+            cell(10.5, 11 + Math.max(0, mh - 0.5) / 2, 0.5, 0.5);
+            cell(13, 11 + Math.max(0, mh - 0.5) / 2, 0.5, 0.5);
+        }
+        else if (mood.id === 'pleased') {
+            cell(9, 11, 1, 1);
+            cell(10, 12, 4, 1);
+            cell(14, 11, 1, 1);
+        }
+        else if (mood.mouth === 'smile') {
+            cell(10, 11, 1, 1);
+            cell(11, 12, 2, 1);
+            cell(13, 11, 1, 1);
+        }
+        else if (mood.mouth === 'line') {
+            cell(mood.id === 'thinking' ? 12 : 11, 12, 2, 0.5);
+        }
+        else {
+            cell(11.5, 12, 1, 0.5);
+        }
+    });
 }

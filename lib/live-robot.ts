@@ -1,37 +1,26 @@
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { MOODS, drawCompanion } from '@/lib/companion-face'
-import { dressRobot, type Colourway } from '@/lib/robot-look'
+import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
+import { aimAt, gazeFor, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
 
 /**
- * The live model's actual machinery, kept out of the component so none of
- * three reaches the initial bundle — the component imports this lazily, once
- * the card is near the viewport.
+ * The hero's robot: one live robot, watching the cursor anywhere on the
+ * first screen.
  *
- * The movement is the point. A head that snaps to the pointer looks like a
- * mouse-follower; a head that eases into position looks like a servo, which
- * is what the real robot has. So the angles are clamped to what the hardware
- * can actually reach and approached with a fixed per-frame fraction, which is
- * critically damped in practice: it arrives, and it never overshoots.
- */
-
-/**
- * What the servos actually reach, from the body project's assembly notes:
- * tilt 0 to 90 degrees, pan +/-90, collision-free from -1 to 91 and +/-95.
+ * The robot, its finish and its lighting come from lib/robot-body.ts, the
+ * same definition every render uses, so the hero and the pictures of it
+ * cannot drift. Its framing matches the render that stands in for it while it
+ * loads (float-shell-*.webp), so the hand-over is invisible.
  *
- * The cursor is mapped into a fraction of that rather than the whole of it.
- * A head that swings 90 degrees to follow a mouse reads as a turret; a head
- * that leans is the thing the real robot does when it notices you.
+ * A head that swings 90 degrees to follow a mouse reads as a turret; this one
+ * leans, inside what the servos reach, and eases like a servo does.
  */
-const PAN_LIMIT = 42
-const TILT_MIN = -6
-const TILT_MAX = 26
-/** Fraction of the remaining distance covered each frame. */
-const EASE = 0.08
+const PAN_LIMIT = 55
+const TILT_MAX = 30
 /** How long without a pointer before it starts looking around by itself. */
 const IDLE_AFTER_MS = 5000
+/** Front three-quarter from the speaker side, a little above. */
+const VIEW = { az: 26, el: 10 }
 
 export type Started = {
   setFace: (id: string) => void
@@ -44,122 +33,60 @@ export async function start(
   {
     onFace,
     pointerArea,
+    shell = { head: '#e2581a', neck: '#18191c', base: '#e2581a' },
   }: {
     onFace?: (index: number) => void
-    /**
-     * Where the pointer is watched. Defaults to the canvas itself. The hero
-     * passes the whole first screen, so the robot notices the cursor wherever
-     * it is rather than only when it is over the robot. Angles are still
-     * measured from the robot and clamped to what the servos reach.
-     */
+    /** Where the pointer is watched; the hero passes the whole first screen. */
     pointerArea?: HTMLElement
+    shell?: Colourway
   } = {},
 ): Promise<Started> {
-  // Quality scales with the screen it is drawn on.
-  //
-  // Measured at 4x CPU throttle on a 390px viewport, full-fat settings gave
-  // 28 fps. Multisampling and a 2x pixel ratio are both quadratic in pixels
-  // and neither is visible on a palm-sized canvas: dropping them is most of
-  // the frame budget back for no difference anyone can see. A desktop keeps
-  // both, where there is headroom and the canvas is large enough to show it.
-  const small = window.innerWidth < 900
-  const renderer = new THREE.WebGLRenderer({ antialias: !small, alpha: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, small ? 1.5 : 2))
-  renderer.setSize(host.clientWidth, host.clientHeight)
-  renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%'
-  host.appendChild(renderer.domElement)
+  const parts = await loadBody()
+  const stage = makeStage(host, { shadow: 0.26 })
+  const { scene, camera, studio } = stage
+  const robot = buildRobot(parts, shell)
+  scene.add(robot.root)
+  studio.adopt(robot.root)
+  const screen = robot.root.getObjectByName('Screen') as THREE.Mesh
 
-  const scene = new THREE.Scene()
-  const pmrem = new THREE.PMREMGenerator(renderer)
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), small ? 0.12 : 0.04).texture
-
-  const key = new THREE.DirectionalLight(0xffffff, 2.2)
-  key.position.set(90, 140, 120)
-  scene.add(key, new THREE.AmbientLight(0xffffff, 0.45))
-  const rim = new THREE.DirectionalLight(0x9ec5ff, 0.9)
-  rim.position.set(-120, 60, -90)
-  scene.add(rim)
-
-  const draco = new DRACOLoader()
-  draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/')
-  const loader = new GLTFLoader()
-  loader.setDRACOLoader(draco)
-
-  const gltf = await loader.loadAsync('/models/pebble-v3.glb')
-  const root = gltf.scene
-  scene.add(root)
-
-  const pan = root.getObjectByName('Neck_Pan')
-  const tilt = root.getObjectByName('Head_Tilt')
-  const screen = root.getObjectByName('Screen') as THREE.Mesh | undefined
-  if (!pan || !tilt || !screen) {
-    throw new Error('pebble.glb is missing its rig — Neck_Pan, Head_Tilt or Screen')
-  }
-
-  // Frame from the model's own bounds so a change to the geometry cannot
-  // crop the shot, exactly as the render pipeline does.
-  const box = new THREE.Box3().setFromObject(root)
+  // Framed from the model's own bounds, exactly as the render pipeline frames
+  // the stand-in, so a change to the geometry cannot crop the shot.
+  const box = new THREE.Box3().setFromObject(robot.root)
+  studio.fitShadow(box)
   const centre = box.getCenter(new THREE.Vector3())
   const radius = box.getSize(new THREE.Vector3()).length() / 2
-  const camera = new THREE.PerspectiveCamera(32, 4 / 3, 1, 3000)
-
-  /**
-   * Keep the drawing buffer inside a fixed pixel budget.
-   *
-   * Cost here is per device pixel, not per CSS pixel, so a wide canvas on a
-   * 2x display is four times the work of the same canvas on a phone. Capping
-   * the ratio alone does not bound that — a 1600px-wide card still asks for
-   * three million pixels a frame. This holds the total instead, which is what
-   * the GPU actually cares about, and lets the ratio fall where it must.
-   */
-  const PIXEL_BUDGET = 1_200_000
-
-  function frame() {
-    const w = host.clientWidth, h = host.clientHeight
-    const want = Math.min(window.devicePixelRatio, small ? 1.5 : 2)
-    const fit = Math.sqrt(PIXEL_BUDGET / Math.max(1, w * h))
-    renderer.setPixelRatio(Math.max(1, Math.min(want, fit)))
-    renderer.setSize(w, h)
-    camera.aspect = w / h
+  let dist = 300
+  const fit = () => {
+    stage.resize()
     const vFov = THREE.MathUtils.degToRad(camera.fov)
     const fitH = radius / Math.sin(vFov / 2)
     const fitW = radius / Math.sin(Math.atan(Math.tan(vFov / 2) * camera.aspect))
-    // Enough room for the base and the shadow under it. At 1.08 the model
-    // filled the frame edge to edge and the feet were being cut off, which
-    // reads as a cropping mistake rather than a product shot.
-    const dist = Math.max(fitH, fitW) * 1.32
-    // The robot faces -Z: inside the model the CAD frame still applies, where
-    // front is +Y, and the root's -90 degree X rotation maps that to -Z. A
-    // camera on +Z looks straight into the open back of the head.
-    camera.position.set(centre.x - dist * 0.34, centre.y + dist * 0.22, centre.z - dist * 0.91)
-    camera.lookAt(centre)
-    camera.updateProjectionMatrix()
+    dist = Math.max(fitH, fitW) * 1.08
   }
-  frame()
+  fit()
+  const look = { x: 0, y: 0 }
+  const place = () => {
+    const az = THREE.MathUtils.degToRad(VIEW.az + look.x * 5)
+    const el = THREE.MathUtils.degToRad(VIEW.el - look.y * 3)
+    camera.position.set(
+      centre.x + dist * Math.cos(el) * Math.sin(az),
+      centre.y - 2 + dist * Math.sin(el),
+      centre.z + dist * Math.cos(el) * Math.cos(az),
+    )
+    camera.lookAt(centre.x, centre.y - 2, centre.z)
+    camera.updateMatrixWorld()
+  }
+  place()
 
   /* ------------------------------ the face ------------------------------ */
 
-  // The screen, the frame and the shell all come from one definition shared
-  // with the renders, so the live robot and the pictures of it cannot drift.
-  const look = dressRobot(THREE, root)
-  const ctx = look.ctx
-
   let faceIndex = 0
-
-  /**
-   * The face, drawn every frame.
-   *
-   * It is repainted continuously rather than on change because the blink and
-   * the breath come from the clock — a face painted once holds perfectly
-   * still, which reads as a screenshot of a robot rather than a robot.
-   */
-  function paint(t: number) {
-    drawCompanion(ctx, MOODS[faceIndex % MOODS.length], t)
-    look.update()
+  let gaze = { x: 0, y: 0 }
+  const paint = (t: number) => {
+    drawCompanion(robot.ctx, MOODS[faceIndex % MOODS.length], t, 0, gaze)
+    robot.update()
   }
-
-  function drawFace(index: number) {
+  const drawFace = (index: number) => {
     faceIndex = ((index % MOODS.length) + MOODS.length) % MOODS.length
     paint(performance.now())
     onFace?.(faceIndex)
@@ -168,75 +95,30 @@ export async function start(
 
   /* ----------------------------- the motion ----------------------------- */
 
-  // The screen sits in the CAD frame too, so its plane is XZ and the face
-  // texture needs no extra flip here.
-  const want = { pan: 0, tilt: 0 }
-  const shown = { pan: 0, tilt: 0 }
-  let lastPointerAt = performance.now()
-  let pointerInside = false
-
-  const aim = (clientX: number, clientY: number) => {
-    const r = host.getBoundingClientRect()
-    const nx = ((clientX - r.left) / r.width) * 2 - 1
-    const ny = ((clientY - r.top) / r.height) * 2 - 1
-    want.pan = THREE.MathUtils.clamp(-nx * PAN_LIMIT, -PAN_LIMIT, PAN_LIMIT)
-    want.tilt = THREE.MathUtils.clamp(ny * TILT_MAX, TILT_MIN, TILT_MAX)
-    lastPointerAt = performance.now()
-  }
-
-  const onMove = (e: PointerEvent) => { pointerInside = true; aim(e.clientX, e.clientY) }
-  const onLeave = () => { pointerInside = false }
-  const onTap = () => drawFace(faceIndex + 1)
-
-  const area = pointerArea ?? host
-  area.addEventListener('pointermove', onMove, { passive: true })
-  area.addEventListener('pointerleave', onLeave)
+  const pointer = watchPointer(pointerArea ?? host, stage.renderer.domElement)
+  const pan = new Servo(), tilt = new Servo()
+  const onTap = () => { drawFace(faceIndex + 1); tilt.v += 260 }
   host.addEventListener('pointerdown', onTap)
+  const wander = wanderer(7)
 
-  /* ------------------------------ the loop ------------------------------ */
-
-  let frameId = 0
-  let running = false
-
-  const tick = () => {
-    if (!running) return
-    frameId = requestAnimationFrame(tick)
-    const now = performance.now()
-
+  stage.loop((dt, now) => {
     // Left alone, it looks around on its own rather than freezing mid-stare.
-    if (!pointerInside && now - lastPointerAt > IDLE_AFTER_MS) {
-      const t = now / 1000
-      want.pan = Math.sin(t * 0.35) * 22 + Math.sin(t * 0.11) * 8
-      want.tilt = Math.sin(t * 0.23) * 5
-    }
+    const idle = !pointer.inside && now - pointer.lastAt > IDLE_AFTER_MS
+    const g = idle ? wander(now) : pointer
 
+    look.x += (THREE.MathUtils.clamp(g.x, -1, 1) - look.x) * 0.06
+    look.y += (THREE.MathUtils.clamp(g.y, -1, 1) - look.y) * 0.06
+    place()
+    studio.turn(look.x * 0.35)
+
+    const want = aimAt(robot, camera, g, { maxPan: PAN_LIMIT, maxTilt: TILT_MAX })
+    robot.pose({ pan: pan.step(want.pan, dt), tilt: Math.max(-1, tilt.step(want.tilt, dt)) })
+    gaze = gazeFor(robot, camera, g)
     paint(now)
+  })
 
-    shown.pan += (want.pan - shown.pan) * EASE
-    shown.tilt += (want.tilt - shown.tilt) * EASE
-    // Inside the model the CAD frame still applies: the vertical the head
-    // pans about is Z, not Y. Driving rotation.y tips the head off the base.
-    pan!.rotation.z = THREE.MathUtils.degToRad(shown.pan)
-    tilt!.rotation.x = THREE.MathUtils.degToRad(shown.tilt)
-    renderer.render(scene, camera)
-  }
-
-  const run = (on: boolean) => {
-    if (on === running) return
-    running = on
-    if (on) frameId = requestAnimationFrame(tick)
-    else cancelAnimationFrame(frameId)
-  }
-
-  // Offscreen or a background tab means nobody is looking. Painting an idle
-  // animation into either is a laptop fan for no reason.
-  const io = new IntersectionObserver(([e]) => run(e.isIntersecting), { threshold: 0.01 })
-  io.observe(host)
-  const onVisibility = () => run(document.visibilityState === 'visible')
-  document.addEventListener('visibilitychange', onVisibility)
-  const onResize = () => frame()
+  const onResize = () => { fit(); place() }
   window.addEventListener('resize', onResize)
-  run(true)
 
   // A probe for the asset build and for debugging in a console. The screen
   // being invisible is a silent failure, so make it inspectable.
@@ -244,27 +126,22 @@ export async function start(
     screenWorld: screen.getWorldPosition(new THREE.Vector3()).toArray(),
     screenVisible: screen.visible,
     hasMap: () => Boolean((screen.material as THREE.MeshPhysicalMaterial).emissiveMap),
-    nodes: (() => { const n: string[] = []; root.traverse((o) => n.push(o.name)); return n })(),
+    nodes: (() => { const n: string[] = []; robot.root.traverse((o) => { if (o.name) n.push(o.name) }); return n })(),
+    pose: () => ({ pan: pan.x, tilt: tilt.x }),
   }
 
   return {
-    setShell: look.setShell,
+    setShell: robot.setShell,
     setFace: (id: string) => {
       const i = MOODS.findIndex((m) => m.id === id)
       if (i >= 0) drawFace(i)
     },
     dispose: () => {
-      run(false)
-      io.disconnect()
-      document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('resize', onResize)
-      area.removeEventListener('pointermove', onMove)
-      area.removeEventListener('pointerleave', onLeave)
       host.removeEventListener('pointerdown', onTap)
-      renderer.dispose()
-      pmrem.dispose()
-      draco.dispose()
-      renderer.domElement.remove()
+      pointer.dispose()
+      robot.dispose()
+      stage.dispose()
     },
   }
 }

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { AnimatePresence, motion } from 'motion/react'
 import { SHELLS } from '@/lib/shells'
 import Swatch from '@/components/site/Swatch'
+import { rendered } from '@/lib/renders'
 import { EASE, Reveal } from '@/components/site/motion'
 
 /**
@@ -16,7 +17,8 @@ import { EASE, Reveal } from '@/components/site/motion'
  * the subject of this section, so it gets the typography.
  */
 export default function Colours() {
-  const [active, setActive] = useState(0)
+  // Ember leads, as it does in the hero.
+  const [active, setActive] = useState(() => Math.max(0, SHELLS.findIndex((s) => s.id === 'ember')))
   const shell = SHELLS[active]
 
   return (
@@ -55,7 +57,7 @@ export default function Colours() {
                           initial={false}
                           animate={{ opacity: i === active ? 1 : 0, scale: i === active ? 1 : 0.97 }}
                           transition={{ duration: 0.5, ease: EASE }}>
-                <Image src={`/media/shots/float-shell-${s.id}.webp`} fill
+                <Image src={rendered(`/media/shots/float-shell-${s.id}.webp`)} fill
                        sizes="(max-width: 768px) 92vw, 760px"
                        alt={`PebbleRobo with a ${s.name} shell`} aria-hidden={i !== active}
                        className="object-contain" />

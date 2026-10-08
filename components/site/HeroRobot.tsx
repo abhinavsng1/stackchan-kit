@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { AnimatePresence, motion } from 'motion/react'
 import { SHELLS, type Shell } from '@/lib/shells'
 import Swatch from '@/components/site/Swatch'
+import { rendered } from '@/lib/renders'
 import { MOODS } from '@/lib/companion-face'
 import { EASE } from '@/components/site/motion'
 
@@ -19,11 +20,14 @@ import { EASE } from '@/components/site/motion'
  * The mood readout under it is the robot's own state, reported back from the
  * face it is drawing — tap it and the word changes with the face.
  */
+/** Ember leads: the orange shell with the graphite neck. */
+const LEAD = Math.max(0, SHELLS.findIndex((s) => s.id === 'ember'))
+
 export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement | null> }) {
   const host = useRef<HTMLDivElement>(null)
   const api = useRef<{ setShell: (way: Shell) => void; dispose: () => void } | null>(null)
   const [live, setLive] = useState(false)
-  const [shell, setShell] = useState(0)
+  const [shell, setShell] = useState(LEAD)
   const [mood, setMood] = useState(0)
   const [quiet, setQuiet] = useState<boolean | null>(null)
 
@@ -53,6 +57,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
         const started = await mod.start(el, {
           onFace: setMood,
           pointerArea: area.current ?? undefined,
+          shell: SHELLS[shell],
         })
         if (cancelled) { started.dispose(); return }
         api.current = started
@@ -80,22 +85,17 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
   return (
     <div className="relative">
       <div className="relative">
-        {/* The floor it stands on: one soft ellipse, which is what an object
-            lit from above actually casts. No glow, no gradient halo. */}
-        <div aria-hidden="true" className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-             style={{
-               bottom: '11%', width: '46%', height: '6%',
-               background: 'radial-gradient(50% 50% at 50% 50%, rgba(17,17,17,.22) 0%, transparent 70%)',
-             }} />
+        {/* No painted floor: the robot casts its own shadow, live and in the
+            render that stands in for it until the live one loads. */}
         <div ref={host} className="relative w-full cursor-pointer" style={{ aspectRatio: '1 / 1' }}
              data-testid="hero-robot">
           {SHELLS.map((s, i) => (
             <Image
               key={s.id}
-              src={`/media/shots/float-shell-${s.id}.webp`}
-              alt={i === 0 ? 'PebbleRobo, the assembled desk robot' : ''}
-              aria-hidden={i !== 0}
-              width={1600} height={1200} priority={i === 0}
+              src={rendered(`/media/shots/float-shell-${s.id}.webp`)}
+              alt={i === LEAD ? 'PebbleRobo, the assembled desk robot' : ''}
+              aria-hidden={i !== LEAD}
+              width={1400} height={1400} priority={i === LEAD}
               sizes="(max-width: 1024px) 92vw, 640px"
               className="absolute inset-0 w-full h-full object-contain"
               style={{

@@ -1,121 +1,132 @@
 /**
- * The site's renders, in the site's own light.
+ * The site's renders.
  *
- *   node tools/assets/build-site.mjs
+ *   node tools/assets/build-body.mjs     # the model, once, if the STL changed
+ *   node tools/assets/build-site.mjs     # every still and loop
+ *   node tools/assets/build-site.mjs --stills | --loops
  *
- * Every shot comes from public/models/pebble-v3.glb — the rig the live robot
- * uses — so the renders and the robot on the page agree on everything,
- * including which way the base faces. Each one is a render and is labelled
- * as one wherever it appears.
+ * Every shot is the robot from lib/robot-body.ts — the same body, finish and
+ * studio the live hero uses — so the renders and the robot on the page agree
+ * on everything. Each one is a render and is labelled as one wherever it
+ * appears.
  *
- * Three grounds, matching the page:
- *   float   transparent, for places the page draws its own floor
- *   studio  a white sweep with a soft contact shadow, like a product table
- *   stage   near-black with a warm pool, for the one dark section
+ * The stage page does all the finishing (ground, shadow, reflection, WebP,
+ * WebM and MP4 through WebCodecs), so this needs Google Chrome and nothing
+ * else: no ImageMagick, no ffmpeg. Chrome rather than Playwright's Chromium
+ * because only Chrome ships an H.264 encoder.
+ *
+ * Coordinates: the robot faces +Z, Y is up. `dir` is where the camera sits,
+ * seen from the robot. Pan is degrees about Y, positive turning the face
+ * toward +X; tilt is degrees up, and the real hinge stops at level, so it is
+ * never negative.
  */
 import { chromium } from '@playwright/test'
 import { createServer } from 'node:http'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
+import { readFile, writeFile, readdir, utimes } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join, extname, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const run = promisify(execFile)
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const TMP = join(ROOT, '.shots-tmp/site')
 
-// The colourways and the face are compiled from lib/ first, so the renders
-// read the same definitions as the site.
-await run('npx', ['tsc', 'lib/companion-face.ts', 'lib/robot-look.ts', 'lib/shells.ts', '--ignoreConfig',
-  '--target', 'es2020', '--module', 'es2020', '--outDir', 'tools/assets/.gen', '--skipLibCheck'], { cwd: ROOT })
+// The face, the body and the colourways are compiled from lib/ first, so the
+// renders read the same definitions as the site.
+await run(join(ROOT, 'node_modules/.bin/tsc'), ['lib/companion-face.ts', 'lib/robot-body.ts', 'lib/shells.ts', '--ignoreConfig',
+  '--target', 'es2020', '--module', 'es2020', '--moduleResolution', 'bundler', '--outDir', 'tools/assets/.gen', '--skipLibCheck'], { cwd: ROOT })
 const { SHELLS } = await import('./.gen/shells.js')
 const SHELL = Object.fromEntries(SHELLS.map((s) => [s.id, s]))
 
-/** Front-left three-quarter, a touch above: the product's best side. */
-const HERO = [-0.55, 0.2, -0.82]
+/** The live hero's own camera (lib/live-robot.ts VIEW): front three-quarter from the speaker side. */
+const az = 26 * Math.PI / 180, el = 10 * Math.PI / 180
+const HERO = [Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)]
 
 const SHOTS = [
-  // The hero and the colour picker: one per shell, floating.
+  // The hero's stand-in and the colour picker: one per shell, on the page's
+  // own background, framed exactly as the live robot is.
   ...Object.keys(SHELL).map((id) => ({
-    out: `public/media/shots/float-shell-${id}.webp`, ground: 'float', w: 1600, h: 1200,
-    dir: HERO, fill: 0.95, units: [{ shell: SHELL[id], mood: 'awake', pan: -10, tilt: 4 }],
+    out: `public/media/shots/float-shell-${id}.webp`, ground: 'float', w: 1400, h: 1400,
+    dir: HERO, fill: 1.08, aim: [0, -2, 0], units: [{ shell: SHELL[id], mood: 'awake', pan: 8, tilt: 4 }],
     alt: `PebbleRobo in ${SHELL[id].name}`,
   })),
-  // Talk to it: low, looking up at you, listening. Lit for the dark stage.
+  // Talk to it: low, looking up at you, listening.
   {
-    out: 'public/media/render/role-answers', sizes: [1600, 800], ground: 'stage', w: 1600, h: 1200,
-    dir: [-0.5, 0.12, -0.86], fill: 0.95, look: 'stage',
-    units: [{ shell: SHELL.signal, mood: 'listening', pan: -4, tilt: -10 }],
+    out: 'public/media/render/role-answers', widths: [1600, 800], ground: 'stage', w: 1600, h: 1200,
+    dir: [0.5, 0.12, 0.86], fill: 0.95,
+    units: [{ shell: SHELL.signal, mood: 'listening', pan: -4, tilt: 10, gaze: { x: 0.5, y: -0.5 } }],
     alt: 'PebbleRobo in Signal, looking up, listening',
   },
   // A performer: head turned mid-line, pleased with itself.
   {
-    out: 'public/media/render/role-performer', sizes: [1600, 800], ground: 'stage', w: 1600, h: 1000,
-    dir: [0.6, 0.16, -0.78], fill: 1.0, look: 'stage',
-    units: [{ shell: SHELL.ember, mood: 'pleased', pan: -30, tilt: -6 }],
+    out: 'public/media/render/role-performer', widths: [1600, 800], ground: 'stage', w: 1600, h: 1000,
+    dir: [-0.6, 0.16, 0.78], fill: 1.0,
+    units: [{ shell: SHELL.ember, mood: 'pleased', pan: -30, tilt: 6 }],
     alt: 'PebbleRobo in Ember, head turned, smiling',
   },
   // A puppet: turned to follow someone off to the side.
   {
-    out: 'public/media/render/role-puppet', sizes: [1600, 800], ground: 'stage', w: 1600, h: 1000,
-    dir: [-0.9, 0.1, -0.42], fill: 1.0, look: 'stage',
-    units: [{ shell: SHELL.moss, mood: 'awake', pan: 36, tilt: 8 }],
+    out: 'public/media/render/role-puppet', widths: [1600, 800], ground: 'stage', w: 1600, h: 1000,
+    dir: [0.9, 0.1, 0.42], fill: 1.0,
+    units: [{ shell: SHELL.moss, mood: 'awake', pan: 36, tilt: 2, gaze: { x: 1, y: 0 } }],
     alt: 'PebbleRobo in Moss, turning its head',
   },
   // A pet: from above, dozing.
   {
-    out: 'public/media/render/role-pet', sizes: [1600, 800], ground: 'studio', w: 1600, h: 1200,
-    dir: [-0.4, 0.62, -0.68], fill: 1.0,
-    units: [{ shell: SHELL.moss, mood: 'resting', pan: -6, tilt: 10 }],
+    out: 'public/media/render/role-pet', widths: [1600, 800], ground: 'studio', w: 1600, h: 1200,
+    dir: [0.4, 0.62, 0.68], fill: 1.0,
+    units: [{ shell: SHELL.moss, mood: 'resting', pan: -6, tilt: 0 }],
     alt: 'PebbleRobo in Moss, seen from above, resting',
   },
-  // What's inside: the stack pulled apart.
+  // What's inside: the stack pulled apart, servos out to the sides.
   {
-    out: 'public/media/render/role-yours', sizes: [1600, 800], ground: 'studio', w: 1200, h: 1500,
-    dir: [-0.62, 0.3, -0.72], fill: 0.95,
-    units: [{ shell: SHELL.graphite, mood: 'thinking', pan: -8, tilt: 0, explode: 0.6 }],
-    alt: 'PebbleRobo pulled apart: base, neck, head and controller',
+    out: 'public/media/render/role-yours', widths: [1600, 800], ground: 'studio', w: 1200, h: 1500,
+    dir: [0.62, 0.3, 0.72], fill: 0.95,
+    units: [{ shell: SHELL.ember, mood: 'thinking', pan: -8, tilt: 0, explode: 0.6 }],
+    alt: 'PebbleRobo pulled apart: base, neck with both servos, head and controller',
   },
-  // Meet it: the face, close, pleased to see you.
+  // Meet it: the live turntable's first frame (lib/live-turntable.ts), its stand-in.
   {
     out: 'public/media/render/meet-face.webp', ground: 'studio', w: 1080, h: 1350,
-    dir: [-0.3, 0.08, -1], fill: 0.62, aim: [0, 14, 0],
-    units: [{ shell: SHELL.graphite, mood: 'pleased', pan: -6, tilt: 2 }],
-    alt: 'PebbleRobo in Graphite, close up, smiling',
+    dir: [0, Math.sin(12 * Math.PI / 180), Math.cos(12 * Math.PI / 180)], fit: 'sweep', margin: 0.9,
+    units: [{ shell: SHELL.ember, mood: 'pleased', yaw: 28, pan: 0, tilt: 4 }],
+    alt: 'PebbleRobo in Ember, smiling, on a turntable',
   },
   // The buy gallery: five angles on one robot.
   ...[
-    ['hero', [-0.55, 0.2, -0.82], 'awake', -10, 4],
-    ['front', [0, 0.1, -1], 'pleased', 0, 0],
-    ['right', [0.62, 0.14, -0.8], 'pleased', 14, 2],
-    ['profile', [-1, 0.1, -0.12], 'awake', 26, 0],
-    ['high', [-0.4, 0.55, -0.72], 'listening', -6, -8],
+    ['hero', [0.55, 0.2, 0.82], 'awake', 8, 4],
+    ['front', [0, 0.1, 1], 'pleased', 0, 2],
+    ['right', [-0.62, 0.14, 0.8], 'pleased', -14, 2],
+    ['profile', [1, 0.1, 0.12], 'awake', 26, 0],
+    ['high', [0.4, 0.55, 0.72], 'listening', 6, 8],
   ].map(([name, dir, mood, pan, tilt]) => ({
     out: `public/media/render/gallery-${name}.webp`, ground: 'studio', w: 1080, h: 1350,
-    dir, fill: 0.9, units: [{ shell: SHELL.graphite, mood, pan, tilt }],
-    alt: `PebbleRobo in Graphite, ${{ hero: 'three-quarter', front: 'front', right: 'from the right', profile: 'in profile', high: 'from above' }[name]} view`,
+    dir, fill: 0.9, units: [{ shell: SHELL.ember, mood, pan, tilt }],
+    alt: `PebbleRobo in Ember, ${{ hero: 'three-quarter', front: 'front', right: 'from the right', profile: 'in profile', high: 'from above' }[name]} view`,
   })),
-  // All five, side by side.
+  // All five in a shallow arc, each facing the middle: the live lineup's
+  // stand-in (lib/live-lineup.ts ARC and VIEW), so the two match.
   {
-    out: 'public/media/render/lineup', sizes: [2400, 1200], ground: 'studio', w: 2400, h: 1000,
-    dir: [-0.12, 0.14, -1], fill: 0.46,
-    // Seen from the front, world +X is screen left, so the row is listed
-    // right to left to read Graphite to Moss.
-    units: ['moss', 'signal', 'ember', 'bone', 'graphite'].map((id, i) => ({
-      shell: SHELL[id], mood: ['awake', 'pleased', 'listening', 'awake', 'pleased'][i],
-      pan: [18, 8, 0, -8, -18][i], tilt: [4, 0, -4, 0, 4][i], z: [10, 4, 0, 4, 10][i],
-    })),
-    alt: 'Five PebbleRobos in a row, one in each shell colour',
+    out: 'public/media/render/lineup', widths: [2400, 1200], ground: 'studio', w: 2400, h: 1000,
+    dir: [Math.sin(6 * Math.PI / 180) * Math.cos(15 * Math.PI / 180), Math.sin(15 * Math.PI / 180), Math.cos(6 * Math.PI / 180) * Math.cos(15 * Math.PI / 180)],
+    fit: 'box', margin: 0.96,
+    units: ['graphite', 'bone', 'ember', 'signal', 'moss'].map((id, i) => {
+      const a = (i - 2) * 16.5 * Math.PI / 180
+      return {
+        shell: SHELL[id], mood: ['pleased', 'awake', 'listening', 'pleased', 'awake'][i],
+        x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
+      }
+    }),
+    alt: 'Five PebbleRobos standing in an arc, one in each shell colour, all looking the same way',
   },
 ]
 
 /**
- * Short loops for the personality section: the same robot, doing the three
- * things the section talks about. Rendered frame by frame from the rig, so
- * each movement is the real range of the real servos, eased the same way.
- * `pose(p)` gets the loop's progress, 0 to 1, and must end where it started.
+ * Loops: the same robot doing what each section talks about, rendered frame
+ * by frame from the rig, inside the real range of the real servos. `pose(p)`
+ * gets the loop's progress, 0 to 1, and must end where it started.
  */
 const ease = (x) => 0.5 - 0.5 * Math.cos(Math.PI * 2 * x)
 /** Speech, as a mouth: syllables inside words, words inside a phrase. */
@@ -125,25 +136,26 @@ const between = (p, t0, t1, a, b) => {
   const x = Math.min(1, Math.max(0, (p - t0) / (t1 - t0)))
   return a + (b - a) * x * x * (3 - 2 * x)
 }
+const up = (t) => Math.max(0, t)
 
 const LOOPS = [
   {
-    // What's inside: assembled, then apart — base, neck, head, face module —
-    // held long enough to see each part, then back together.
-    out: 'public/media/render/loop-inside', w: 896, h: 1120, frames: 168, dir: [-0.6, 0.26, -0.76], fill: 0.98,
+    // What's inside: assembled, then apart — base, neck and its servos, head,
+    // the Lite — held long enough to see each part, then back together.
+    out: 'public/media/render/loop-inside', w: 896, h: 1120, frames: 168, dir: [0.6, 0.26, 0.76], fill: 0.98,
     // Framed on the fully exploded pose, so nothing leaves the frame.
-    frameAt: { shell: SHELL.graphite, mood: 'thinking', explode: 1, pan: -10 },
+    frameAt: { shell: SHELL.ember, mood: 'thinking', explode: 1, pan: -10 },
     pose: (p) => {
       const e = between(p, 0.14, 0.38, 0, 1) - between(p, 0.72, 0.94, 0, 1)
-      return { shell: SHELL.graphite, mood: e > 0.5 ? 'thinking' : 'awake', clock: p * 7000,
+      return { shell: SHELL.ember, mood: e > 0.5 ? 'thinking' : 'awake', clock: p * 7000,
         explode: e, pan: -10 + 8 * Math.sin(Math.PI * 2 * p), tilt: 0 }
     },
   },
   {
-    // Say its name: it is looking elsewhere, notices you, looks up and
-    // listens, then answers — mouth moving, small nods — and drifts back.
-    out: 'public/media/render/loop-talk', w: 1200, h: 900, frames: 168, ground: 'stage', look: 'stage',
-    dir: [-0.5, 0.12, -0.86], fill: 0.95,
+    // Say its name: looking elsewhere, it notices you, looks up and listens,
+    // then answers — mouth moving, small nods — and drifts back.
+    out: 'public/media/render/loop-talk', w: 1200, h: 900, frames: 168, ground: 'stage',
+    dir: [0.5, 0.12, 0.86], fill: 0.95,
     pose: (p) => {
       const turn = between(p, 0.12, 0.24, 0, 1) - between(p, 0.86, 0.98, 0, 1)
       const talking = p > 0.42 && p < 0.84
@@ -151,48 +163,53 @@ const LOOPS = [
         shell: SHELL.signal, clock: 1000 + p * 7000,
         mood: p < 0.12 || p > 0.9 ? 'awake' : talking ? 'awake' : 'listening',
         // From this camera, negative pan looks away and positive turns to you.
-        pan: -24 * (1 - turn) + 14 * turn, tilt: 4 - 14 * turn + (talking ? 3 * Math.sin(Math.PI * 2 * 3 * p) : 0),
+        pan: -24 * (1 - turn) + 14 * turn,
+        tilt: up(2 + 10 * turn + (talking ? 3 * Math.sin(Math.PI * 2 * 3 * p) : 0)),
+        gaze: { x: -1 * (1 - turn) + 0.5 * turn, y: -0.5 * turn },
         speak: talking ? speech((p - 0.42) * 7) : 0,
       }
     },
   },
   {
     // A performer: swaying through a line, bobbing on the beat.
-    out: 'public/media/render/loop-performer', w: 1280, h: 800, frames: 120, ground: 'stage', look: 'stage',
-    dir: [0.6, 0.16, -0.78], fill: 1.0,
+    out: 'public/media/render/loop-performer', w: 1280, h: 800, frames: 120, ground: 'stage',
+    dir: [-0.6, 0.16, 0.78], fill: 1.0,
     pose: (p) => ({
       shell: SHELL.ember, mood: 'pleased', clock: 900 + p * 3200,
-      pan: -24 * Math.sin(Math.PI * 2 * p), tilt: -2 + 7 * Math.sin(Math.PI * 2 * 4 * p),
+      pan: -24 * Math.sin(Math.PI * 2 * p), tilt: up(4 + 5 * Math.sin(Math.PI * 2 * 4 * p)),
       speak: p < 0.8 ? speech(p * 5) : 0,
     }),
   },
   {
     // A puppet: holding still, then turning and tilting the way you do.
-    out: 'public/media/render/loop-puppet', w: 1280, h: 800, frames: 120, ground: 'stage', look: 'stage',
-    dir: [-0.9, 0.1, -0.42], fill: 1.0,
+    out: 'public/media/render/loop-puppet', w: 1280, h: 800, frames: 120, ground: 'stage',
+    dir: [0.9, 0.1, 0.42], fill: 1.0,
     pose: (p) => ({
       shell: SHELL.moss, mood: 'awake', clock: 2000 + p * 5000,
       pan: 36 + between(p, 0.1, 0.25, 0, -30) + between(p, 0.45, 0.6, 0, 52) + between(p, 0.8, 0.95, 0, -22),
-      tilt: 8 + between(p, 0.1, 0.25, 0, 8) + between(p, 0.45, 0.6, 0, -18) + between(p, 0.8, 0.95, 0, 10),
+      tilt: 2 + between(p, 0.1, 0.25, 0, 8) + between(p, 0.45, 0.6, 0, 10) - between(p, 0.8, 0.95, 0, 18),
+      gaze: { x: 1 + between(p, 0.1, 0.25, 0, -1) + between(p, 0.45, 0.6, 0, 1) - between(p, 0.8, 0.95, 0, 1), y: 0 },
     }),
   },
   {
-    out: 'public/media/render/loop-alive', w: 720, h: 900, frames: 120, dir: [-0.42, 0.12, -0.9], fill: 0.86,
+    out: 'public/media/render/loop-alive', w: 720, h: 900, frames: 120, dir: [0.42, 0.12, 0.9], fill: 0.86,
     // Breathing, a blink, and the smallest sway: alive while doing nothing.
     pose: (p) => ({ shell: SHELL.ember, mood: 'awake', clock: 2600 + p * 5000,
-      pan: -6 + Math.sin(Math.PI * 2 * p) * 3, tilt: 2 + Math.sin(Math.PI * 4 * p) * 1.2 }),
+      pan: 6 + Math.sin(Math.PI * 2 * p) * 3, tilt: 3 + Math.sin(Math.PI * 4 * p) * 1.2 }),
   },
   {
-    out: 'public/media/render/loop-look', w: 720, h: 900, frames: 144, dir: [-0.2, 0.12, -1], fill: 0.86,
-    // A glance one way, then the other.
+    out: 'public/media/render/loop-look', w: 720, h: 900, frames: 144, dir: [0.2, 0.12, 1], fill: 0.86,
+    // A glance one way, then the other; the eyes lead the head.
     pose: (p) => ({ shell: SHELL.ember, mood: 'awake', clock: p * 6000,
-      pan: Math.sin(Math.PI * 2 * p) * 38, tilt: 2 + Math.sin(Math.PI * 4 * p) * 3 }),
+      pan: Math.sin(Math.PI * 2 * p) * 38, tilt: 3 + Math.sin(Math.PI * 4 * p) * 3,
+      gaze: { x: Math.sin(Math.PI * 2 * p + 0.5) * 1, y: 0 } }),
   },
   {
-    out: 'public/media/render/loop-nod', w: 720, h: 900, frames: 120, dir: [-0.5, 0.1, -0.86], fill: 0.86,
-    // Two nods, a pause, and back.
+    out: 'public/media/render/loop-nod', w: 720, h: 900, frames: 120, dir: [0.5, 0.1, 0.86], fill: 0.86,
+    // Two nods, a pause, and back. It rests looking a little up, so a nod
+    // comes down to level, which is as far as the hinge goes.
     pose: (p) => ({ shell: SHELL.ember, mood: 'pleased', clock: 900 + p * 3000,
-      pan: -8, tilt: p < 0.7 ? 12 * Math.sin(Math.PI * 2 * (p / 0.35)) * (1 - ease(p / 0.7) * 0.2) : 0 }),
+      pan: 8, tilt: 10 - (p < 0.7 ? 10 * up(Math.sin(Math.PI * 2 * (p / 0.35))) * (1 - ease(p / 0.7) * 0.2) : 0) }),
   },
 ]
 
@@ -206,134 +223,81 @@ function serve() {
     res.writeHead(200, { 'content-type': TYPES[extname(path)] ?? 'application/octet-stream' })
     res.end(await readFile(path))
   })
-  return new Promise((r) => server.listen(0, () => r({ server, port: server.address().port })))
+  // localhost, not an IP: WebCodecs needs a secure context.
+  return new Promise((r) => server.listen(0, 'localhost', () => r({ server, port: server.address().port })))
 }
 
-/** Put the robot on its ground: background, then shadow, then the robot. */
-async function compose(src, out, { w, h, ground, foot }) {
-  if (ground === 'float') {
-    await run('magick', [src, '-quality', '90', out])
-    return
-  }
-  const bg = join(TMP, 'bg.png')
-  const shadow = join(TMP, 'shadow.png')
-
-  if (ground === 'studio') {
-    // A sweep: a touch lighter at the top, a soft lift behind the product.
-    // A sweep: lighter at the top, settling to the table at the bottom, with
-    // one broad soft lift behind the product.
-    await run('magick', ['-size', `${w}x${h}`, 'gradient:#f8f8f6-#e8e8e5',
-      '(', '-size', `${w}x${h}`, 'xc:none', '-fill', 'rgba(255,255,255,0.55)',
-      '-draw', `ellipse ${w / 2},${h * 0.45} ${w * 0.42},${h * 0.4} 0,360`, '-blur', '0x120', ')',
-      '-compose', 'over', '-composite', bg])
-  } else {
-    // The stage: near-black with a low warm pool where it stands.
-    await run('magick', ['-size', `${w}x${h}`, 'xc:#0e0e0e',
-      '(', '-size', `${Math.round(w * 0.9)}x${Math.round(h * 0.7)}`, 'radial-gradient:#2a2420-#0e0e0e', ')',
-      '-gravity', 'south', '-geometry', `+0+${Math.round(-h * 0.08)}`, '-compose', 'over', '-composite', bg])
-  }
-
-  // Contact shadow: a tight dark ellipse where it touches, inside a wide soft
-  // one — which is what a matte table under soft light actually shows.
-  const cx = (foot.left + foot.right) / 2
-  const cy = foot.bottom - (foot.bottom - foot.top) * 0.35
-  const fw = (foot.right - foot.left)
-  const fh = Math.max(12, (foot.bottom - foot.top) * 0.55)
-  const ink = ground === 'stage' ? 'rgba(0,0,0,0.85)' : 'rgba(17,17,17,0.30)'
-  const soft = ground === 'stage' ? 'rgba(0,0,0,0.55)' : 'rgba(17,17,17,0.12)'
-  await run('magick', ['-size', `${w}x${h}`, 'xc:none',
-    '-fill', soft, '-draw', `ellipse ${cx},${cy} ${fw * 0.75},${fh * 1.1} 0,360`, '-blur', '0x40',
-    '(', '-size', `${w}x${h}`, 'xc:none', '-fill', ink,
-    '-draw', `ellipse ${cx},${cy} ${fw * 0.48},${fh * 0.45} 0,360`, '-blur', '0x12', ')',
-    '-compose', 'over', '-composite', shadow])
-
-  if (!src) {
-    await run('magick', [bg, shadow, '-compose', 'over', '-composite', out])
-    return
-  }
-  await run('magick', [bg, shadow, '-compose', 'over', '-composite',
-    src, '-compose', 'over', '-composite', '-quality', '90', out])
-}
+const dataUrl = (s) => Buffer.from(s.split(',')[1], 'base64')
 
 async function main() {
-  await mkdir(TMP, { recursive: true })
   const { server, port } = await serve()
   const browser = await chromium.launch({
+    channel: 'chrome',
     args: ['--use-gl=angle', '--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'],
   })
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
   page.on('pageerror', (e) => console.error('  page error:', String(e).slice(0, 300)))
+  page.on('console', (m) => { if (m.type() === 'error') console.error('  console:', m.text().slice(0, 300)) })
   await page.goto(`http://localhost:${port}/tools/assets/stage-site.html`)
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 90000 })
 
-  const manifest = []
-  for (const shot of SHOTS) {
-    const { png, foot } = await page.evaluate((s) => window.__render(s), {
-      w: shot.w, h: shot.h, look: shot.look ?? 'studio', dir: shot.dir, fill: shot.fill, units: shot.units,
-      aim: shot.aim ?? [0, 0, 0],
+  const manifestFile = join(ROOT, 'public/media/render/manifest.json')
+  const previous = existsSync(manifestFile) ? JSON.parse(await readFile(manifestFile, 'utf8')).assets : []
+  const manifest = new Map(previous.map((a) => [a.file, a]))
+
+  const stills = !process.argv.includes('--loops')
+  const loops = !process.argv.includes('--stills')
+
+  for (const shot of stills ? SHOTS : []) {
+    const { out, alt, ...spec } = shot
+    const urls = await page.evaluate((s) => window.__still(s), spec)
+    const files = shot.widths ? shot.widths.map((wd) => `${out}@${wd}.webp`) : [out]
+    for (let i = 0; i < files.length; i++) {
+      await writeFile(join(ROOT, files[i]), dataUrl(urls[i]))
+      manifest.set(files[i].replace(/^public/, ''), { file: files[i].replace(/^public/, ''), alt, render: true })
+    }
+    console.log(`  ${out}`)
+  }
+
+  for (const loop of loops ? LOOPS : []) {
+    const { out, pose, frameAt, frames, ...spec } = loop
+    const list = Array.from({ length: frames }, (_, i) => [pose(i / frames)])
+    // frameAt: frame the camera on the widest pose, then hold it for every frame.
+    const r = await page.evaluate((l) => window.__loop(l), {
+      ...spec, ground: spec.ground ?? 'studio', frames: list, frameAt: frameAt ? [frameAt] : null,
     })
-    const raw = join(TMP, 'raw.png')
-    await writeFile(raw, Buffer.from(png.split(',')[1], 'base64'))
-
-    const targets = shot.sizes
-      ? shot.sizes.map((s) => [`${shot.out}@${s}.webp`, s])
-      : [[shot.out, shot.w]]
-    const full = join(TMP, 'full.webp')
-    await compose(raw, full, { w: shot.w, h: shot.h, ground: shot.ground, foot })
-    for (const [file, width] of targets) {
-      await run('magick', [full, '-resize', `${width}x`, '-quality', '88', join(ROOT, file)])
-      manifest.push({ file: file.replace(/^public/, ''), alt: shot.alt, render: true })
-    }
-    console.log(`  ${shot.out}`)
+    await writeFile(join(ROOT, `${out}.webm`), Buffer.from(r.webm, 'base64'))
+    await writeFile(join(ROOT, `${out}.mp4`), Buffer.from(r.mp4, 'base64'))
+    await writeFile(join(ROOT, `${out}.webp`), dataUrl(r.poster))
+    const key = `${out.replace(/^public/, '')}.webm`
+    manifest.set(key, { file: key, alt: out, render: true })
+    console.log(`  ${out} (${frames} frames, webm ${(r.webm.length * 0.75 / 1024).toFixed(0)} KB, mp4 ${(r.mp4.length * 0.75 / 1024).toFixed(0)} KB)`)
   }
 
-  const only = process.argv.includes('--loops') || !process.argv.includes('--stills')
-  for (const loop of only ? LOOPS : []) {
-    const dir = join(TMP, 'frames')
-    await rm(dir, { recursive: true, force: true })
-    await mkdir(dir, { recursive: true })
-    let foot
-    if (loop.frameAt) {
-      const r = await page.evaluate((a) => window.__render(a), {
-        w: loop.w, h: loop.h, look: loop.look ?? 'studio', dir: loop.dir, fill: loop.fill, units: [loop.frameAt],
-      })
-      foot = r.foot
-    }
-    for (let i = 0; i < loop.frames; i++) {
-      const r = await page.evaluate((a) => window.__render(a), {
-        w: loop.w, h: loop.h, look: loop.look ?? 'studio', dir: loop.dir, fill: loop.fill,
-        units: [loop.pose(i / loop.frames)], keepCamera: i > 0 || Boolean(loop.frameAt),
-      })
-      if (i === 0 && !foot) foot = r.foot
-      await writeFile(join(dir, `f${String(i).padStart(4, '0')}.png`), Buffer.from(r.png.split(',')[1], 'base64'))
-    }
-    // The ground is the same for every frame — only the head moves — so it is
-    // composed once and the frames are laid over it.
-    const ground = join(TMP, 'ground.png')
-    await compose(null, ground, { w: loop.w, h: loop.h, ground: loop.ground ?? 'studio', foot })
-    const seq = join(dir, 'f%04d.png')
-    const graph = '[0][1]overlay=format=auto,format=yuv420p'
-    await run('ffmpeg', ['-y', '-loop', '1', '-i', ground, '-framerate', '24', '-i', seq,
-      '-filter_complex', graph, '-frames:v', String(loop.frames), '-an',
-      '-c:v', 'libvpx-vp9', '-crf', '36', '-b:v', '0', '-row-mt', '1', join(ROOT, `${loop.out}.webm`)])
-    await run('ffmpeg', ['-y', '-loop', '1', '-i', ground, '-framerate', '24', '-i', seq,
-      '-filter_complex', graph, '-frames:v', String(loop.frames), '-an',
-      '-c:v', 'libx264', '-crf', '25', '-preset', 'slow', '-movflags', '+faststart', join(ROOT, `${loop.out}.mp4`)])
-    await compose(join(dir, 'f0000.png'), join(ROOT, `${loop.out}.webp`), { w: loop.w, h: loop.h, ground: loop.ground ?? 'studio', foot })
-    manifest.push({ file: `${loop.out.replace(/^public/, '')}.webm`, alt: loop.out, render: true })
-    console.log(`  ${loop.out} (${loop.frames} frames)`)
-  }
-
-  await writeFile(join(ROOT, 'public/media/render/manifest.json'), JSON.stringify({
+  await writeFile(manifestFile, JSON.stringify({
     generated: new Date().toISOString().slice(0, 10),
-    source: 'public/models/pebble-v3.glb — the rig the live robot uses',
+    source: 'public/models/stackchan-body.glb + lib/robot-body.ts — the robot the live hero uses',
     note: 'Every entry is a render and is labelled as one on the page.',
-    assets: manifest,
+    assets: [...manifest.values()],
   }, null, 2) + '\n')
+
+  // The version stamp: a hash of every render, so a page that shows one
+  // through next/image asks for a new URL exactly when it changed
+  // (lib/renders.ts, next.config.ts).
+  const hash = createHash('sha1')
+  for (const dir of ['public/media/render', 'public/media/shots']) {
+    for (const name of (await readdir(join(ROOT, dir))).sort()) hash.update(name).update(await readFile(join(ROOT, dir, name)))
+  }
+  const v = hash.digest('hex').slice(0, 10)
+  await writeFile(join(ROOT, 'lib/render-version.json'), JSON.stringify({ v }) + '\n')
+  console.log(`  render version ${v}`)
+  // next.config.ts allows exactly this stamp and reads it at startup; touching
+  // it makes a running `next dev` reload, so the new URLs are accepted.
+  const now = new Date()
+  await utimes(join(ROOT, 'next.config.ts'), now, now)
 
   await browser.close()
   server.close()
-  await rm(TMP, { recursive: true, force: true })
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
