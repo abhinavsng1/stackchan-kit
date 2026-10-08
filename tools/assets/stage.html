@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>asset stage</title>
+<style>html,body{margin:0;background:#050505}canvas{display:block}</style>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/": "/node_modules/three/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { buildRobot, SCREEN } from './scene.js'
+import { FACES, faceSvg } from './.gen/faces.js'
+
+const scene = new THREE.Scene()
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+renderer.setPixelRatio(2)
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.05
+document.body.appendChild(renderer.domElement)
+
+const pmrem = new THREE.PMREMGenerator(renderer)
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+
+// Soft key, rim and fill — a studio, not a sun.
+const key = new THREE.DirectionalLight(0xffffff, 2.6)
+key.position.set(90, 140, 120); key.castShadow = true
+key.shadow.mapSize.set(2048, 2048)
+key.shadow.camera.near = 1; key.shadow.camera.far = 600
+for (const k of ['left','right','top','bottom']) key.shadow.camera[k] = (k==='left'||k==='bottom'?-1:1)*160
+scene.add(key)
+const rim = new THREE.DirectionalLight(0x9ec5ff, 1.1); rim.position.set(-120, 60, -90); scene.add(rim)
+const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-40, 20, 110); scene.add(fill)
+scene.add(new THREE.AmbientLight(0xffffff, 0.35))
+
+const { root, screen } = await buildRobot(THREE, STLLoader, {})
+root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+scene.add(root)
+
+// A seamless ground that takes the shadow without drawing a horizon.
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(1400, 1400),
+  new THREE.ShadowMaterial({ opacity: 0.42 }))
+ground.rotation.x = -Math.PI / 2
+ground.receiveShadow = true
+scene.add(ground)
+
+const camera = new THREE.PerspectiveCamera(32, 4/3, 1, 3000)
+
+/** Draw one face from the atlas onto the screen mesh. */
+function setFace(id) {
+  if (!id) return
+  const face = FACES.find((f) => f.id === id) ?? FACES[0]
+  const svg = faceSvg(face)
+  const img = new Image()
+  const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)))
+  return new Promise((res) => {
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = SCREEN.px[0]; c.height = SCREEN.px[1]
+      const ctx = c.getContext('2d')
+      ctx.drawImage(img, 0, 0, c.width, c.height)
+      const tex = new THREE.CanvasTexture(c)
+      tex.colorSpace = THREE.SRGBColorSpace
+      screen.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
+      res()
+    }
+    img.onerror = () => res()
+    img.src = url
+  })
+}
+
+/* Direction only — the distance is computed from the model's own bounds, so
+   framing cannot drift when the geometry changes. */
+const ANGLES = {
+  hero:          { dir: [0.52, 0.42, 0.74] },
+  three_quarter: { dir: [0.70, 0.34, 0.62] },
+  front:         { dir: [0.00, 0.22, 1.00] },
+}
+
+const bounds = new THREE.Box3().setFromObject(root)
+const centre = bounds.getCenter(new THREE.Vector3())
+const radius = bounds.getSize(new THREE.Vector3()).length() / 2
+
+function frame(angleName, aspect) {
+  const a = ANGLES[angleName] ?? ANGLES.hero
+  const dir = new THREE.Vector3(...a.dir).normalize()
+  const vFov = THREE.MathUtils.degToRad(camera.fov)
+  // Fit by whichever dimension is tighter, with room to breathe.
+  const fitH = radius / Math.sin(vFov / 2)
+  const fitW = radius / Math.sin(2 * Math.atan(Math.tan(vFov / 2) * aspect) / 2)
+  const dist = Math.max(fitH, fitW) * 1.22
+  camera.position.copy(centre).addScaledVector(dir, dist)
+  camera.lookAt(centre)
+  camera.updateProjectionMatrix()
+}
+
+window.__render = async (angleName, faceId, width) => {
+  await setFace(faceId)
+  const h = Math.round(width * 0.75)
+  renderer.setSize(width / 2, h / 2, false)
+  camera.aspect = width / h
+  frame(angleName, camera.aspect)
+  renderer.render(scene, camera)
+  const blob = await new Promise((r) => renderer.domElement.toBlob(r, 'image/webp', 0.9))
+  return Array.from(new Uint8Array(await blob.arrayBuffer()))
+}
+
+window.__exportGLB = () => new Promise((res, rej) => {
+  new GLTFExporter().parse(root, (buf) => res(Array.from(new Uint8Array(buf))),
+    (e) => rej(e), { binary: true, onlyVisible: true })
+})
+
+window.__ready = true
+</script>

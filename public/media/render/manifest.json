@@ -1,0 +1,90 @@
+{
+  "generated": "2026-10-08",
+  "note": "Every entry is a render. Real photography lives in public/media/robot/.",
+  "assets": [
+    {
+      "file": "hero-still@800.webp",
+      "width": 800,
+      "height": 600,
+      "alt": "The assembled robot, three-quarter view",
+      "render": true
+    },
+    {
+      "file": "hero-still@1600.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "The assembled robot, three-quarter view",
+      "render": true
+    },
+    {
+      "file": "role-pet@800.webp",
+      "width": 800,
+      "height": 600,
+      "alt": "The robot with a happy face",
+      "render": true
+    },
+    {
+      "file": "role-pet@1600.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "The robot with a happy face",
+      "render": true
+    },
+    {
+      "file": "role-answers@800.webp",
+      "width": 800,
+      "height": 600,
+      "alt": "The robot facing forward, listening",
+      "render": true
+    },
+    {
+      "file": "role-answers@1600.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "The robot facing forward, listening",
+      "render": true
+    },
+    {
+      "file": "role-performer@800.webp",
+      "width": 800,
+      "height": 600,
+      "alt": "The robot mid-performance",
+      "render": true
+    },
+    {
+      "file": "role-performer@1600.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "The robot mid-performance",
+      "render": true
+    },
+    {
+      "file": "role-puppet@800.webp",
+      "width": 800,
+      "height": 600,
+      "alt": "The robot copying a face",
+      "render": true
+    },
+    {
+      "file": "role-puppet@1600.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "The robot copying a face",
+      "render": true
+    },
+    {
+      "file": "role-yours@800.webp",
+      "width": 800,
+      "height": 600,
+      "alt": "The robot with a blank face",
+      "render": true
+    },
+    {
+      "file": "role-yours@1600.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "The robot with a blank face",
+      "render": true
+    }
+  ]
+}
