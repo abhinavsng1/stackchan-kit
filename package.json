@@ -9,7 +9,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "assets": "tsc lib/faces.ts --ignoreConfig --target es2020 --module es2020 --outDir tools/assets/.gen --skipLibCheck && node tools/assets/build.mjs"
+    "assets": "tsc lib/faces.ts --ignoreConfig --target es2020 --module es2020 --outDir tools/assets/.gen --skipLibCheck && node tools/assets/build.mjs",
+    "shots": "tsc lib/faces.ts --ignoreConfig --target es2020 --module es2020 --outDir tools/assets/.gen --skipLibCheck && node tools/assets/build-v3.mjs",
+    "grade": "node tools/assets/grade.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

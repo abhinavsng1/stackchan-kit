@@ -1,0 +1,97 @@
+<!doctype html>
+<meta charset="utf-8"><title>v3 product stage</title>
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">
+{"imports":{"three":"/node_modules/three/build/three.module.js","three/":"/node_modules/three/"}}
+</script>
+<script type="module">
+import * as THREE from 'three'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { buildV3, SCREEN } from './scene-v3.js'
+import { FACES, faceSvg } from './.gen/faces.js'
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+renderer.setPixelRatio(2)
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 0.95
+document.body.appendChild(renderer.domElement)
+
+const scene = new THREE.Scene()
+const pmrem = new THREE.PMREMGenerator(renderer)
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+scene.environmentIntensity = 0.55
+
+/* Studio: one soft key high and front-left, two rims to draw both edges of
+   the silhouette out of a black ground, and almost no ambient. On black the
+   rims are what make the object readable at all. */
+const key = new THREE.DirectionalLight(0xfff6ec, 2.0)
+key.position.set(-90, 150, 130); scene.add(key)
+const rimL = new THREE.DirectionalLight(0x9ecfff, 2.2); rimL.position.set(-160, 55, -120); scene.add(rimL)
+const rimR = new THREE.DirectionalLight(0xffd0a0, 1.6); rimR.position.set(170, 75, -90); scene.add(rimR)
+scene.add(new THREE.AmbientLight(0xffffff, 0.12))
+
+const { root, screen, shellMaterial } = await buildV3(THREE, STLLoader, { mergeVertices })
+scene.add(root)
+
+const box = new THREE.Box3().setFromObject(root)
+const centre = box.getCenter(new THREE.Vector3())
+const radius = box.getSize(new THREE.Vector3()).length() / 2
+const camera = new THREE.PerspectiveCamera(30, 1, 1, 4000)
+
+const ANGLES = {
+  hero:  [-0.62, 0.30, -0.72],
+  front: [0, 0.14, -1],
+  three: [-0.80, 0.26, -0.54],
+  high:  [-0.40, 0.62, -0.68],
+}
+
+function frame(name, aspect) {
+  const dir = new THREE.Vector3(...(ANGLES[name] ?? ANGLES.hero)).normalize()
+  const vFov = THREE.MathUtils.degToRad(camera.fov)
+  const fitH = radius / Math.sin(vFov / 2)
+  const fitW = radius / Math.sin(Math.atan(Math.tan(vFov / 2) * aspect))
+  camera.aspect = aspect
+  camera.position.copy(centre).addScaledVector(dir, Math.max(fitH, fitW) * 0.92)
+  camera.lookAt(centre)
+  camera.updateProjectionMatrix()
+}
+
+function setFace(id) {
+  const face = FACES.find((f) => f.id === id) ?? FACES[0]
+  return new Promise((res) => {
+    const img = new Image()
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = SCREEN.px[0]; c.height = SCREEN.px[1]
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+      const tex = new THREE.CanvasTexture(c)
+      tex.colorSpace = THREE.SRGBColorSpace
+      screen.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
+      res(face.acc)
+    }
+    img.onerror = () => res('#ffffff')
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(faceSvg(face))))
+  })
+}
+
+window.__setShell = (hex) => { shellMaterial.color = new THREE.Color(hex) }
+
+window.__render = async (angle, faceId, w, h) => {
+  const accent = await setFace(faceId)
+  renderer.setSize(w / 2, h / 2, false)
+  frame(angle, w / h)
+  renderer.render(scene, camera)
+  const blob = await new Promise((r) => renderer.domElement.toBlob(r, 'image/png'))
+  return { png: Array.from(new Uint8Array(await blob.arrayBuffer())), accent }
+}
+
+window.__exportGLB = () => new Promise((res, rej) => {
+  new GLTFExporter().parse(root, (b) => res(Array.from(new Uint8Array(b))), rej,
+    { binary: true, onlyVisible: true })
+})
+
+window.__ready = true
+</script>

@@ -1,0 +1,98 @@
+{
+  "generated": "2026-10-08",
+  "source": "assets-src/stl/assembled_v3.stl — the real printed body",
+  "note": "Every entry is a render and is labelled as one on the page.",
+  "shells": [
+    {
+      "id": "graphite",
+      "name": "Graphite",
+      "hex": "#2b2d31"
+    },
+    {
+      "id": "bone",
+      "name": "Bone",
+      "hex": "#e9e6df"
+    },
+    {
+      "id": "signal",
+      "name": "Signal",
+      "hex": "#5ce1e6"
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "hex": "#d2552f"
+    },
+    {
+      "id": "moss",
+      "name": "Moss",
+      "hex": "#7f9b55"
+    }
+  ],
+  "assets": [
+    {
+      "file": "shell-graphite.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan in Graphite",
+      "shell": "Graphite",
+      "render": true
+    },
+    {
+      "file": "shell-bone.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan in Bone",
+      "shell": "Bone",
+      "render": true
+    },
+    {
+      "file": "shell-signal.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan in Signal",
+      "shell": "Signal",
+      "render": true
+    },
+    {
+      "file": "shell-ember.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan in Ember",
+      "shell": "Ember",
+      "render": true
+    },
+    {
+      "file": "shell-moss.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan in Moss",
+      "shell": "Moss",
+      "render": true
+    },
+    {
+      "file": "hero.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan, three-quarter view",
+      "shell": "Graphite",
+      "render": true
+    },
+    {
+      "file": "front.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan facing forward",
+      "shell": "Graphite",
+      "render": true
+    },
+    {
+      "file": "high.webp",
+      "width": 1600,
+      "height": 1200,
+      "alt": "Pebble-chan from above",
+      "shell": "Graphite",
+      "render": true
+    }
+  ]
+}

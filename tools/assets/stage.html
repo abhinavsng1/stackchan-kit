@@ -58,8 +58,6 @@ scene.add(new THREE.AmbientLight(0xffffff, 0.16))
    screen is the only saturated thing this product has — the shell is grey
    printed plastic and always will be. Driving the glow from the face is the
    honest version of a brand colour. */
-scene.background = new THREE.Color(0x050505)
-
 /** A soft radial, so the halo fades instead of ending. */
 function radialFalloff() {
   const c = document.createElement('canvas')
@@ -82,19 +80,19 @@ const haloMat = new THREE.SpriteMaterial({
 const halo = new THREE.Sprite(haloMat)
 halo.scale.set(190, 190, 1)
 halo.position.set(-18, 40, -90)
+halo.visible = false
 scene.add(halo)
 
-const { root, screen } = await buildRobot(THREE, STLLoader, { mergeVertices })
+const { root, screen, shellMaterial } = await buildRobot(THREE, STLLoader, { mergeVertices })
+window.__setShell = (hex) => { shellMaterial.color = new THREE.Color(hex) }
 root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
 scene.add(root)
 
 // A seamless ground that takes the shadow without drawing a horizon.
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(1400, 1400),
-  new THREE.ShadowMaterial({ opacity: 0.42 }))
-ground.rotation.x = -Math.PI / 2
-ground.receiveShadow = true
-scene.add(ground)
+/* No ground plane. A product shot floats; a shadow on a floor puts it in a
+   room, which is the opposite of what a catalogue image wants. The
+   reflection underneath is composited afterwards, where its falloff can be
+   controlled exactly. */
 
 const camera = new THREE.PerspectiveCamera(32, 4/3, 1, 3000)
 

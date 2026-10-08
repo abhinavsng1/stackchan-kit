@@ -183,7 +183,7 @@ export async function buildRobot(THREE, STLLoader, {
   tilt.add(screen)
 
   root.add(pan)
-  return { root, base, pan, tilt, screen }
+  return { root, base, pan, tilt, screen, shellMaterial: printed }
 }
 
 /** A box with rounded vertical edges, which is what a printed part looks like. */
