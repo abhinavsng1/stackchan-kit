@@ -13,6 +13,7 @@ import BuyBar from '@/components/BuyBar'
 import PartArt from '@/components/PartArt'
 import OpenSource from '@/components/OpenSource'
 import Roles from '@/components/Roles'
+import LiveRobot from '@/components/LiveRobot'
 import { OrderSteps, ChooseEdition } from '@/components/OrderSteps'
 import { KitOnly, ForEdition, SwitchEdition } from '@/components/EditionGate'
 import { SignalFlow } from '@/components/Diagrams'
@@ -203,6 +204,31 @@ export default function Page() {
         {/* What people make it. Sits straight after the films, because the
             films show it moving and this answers "and then what". */}
         <Roles />
+
+        {/* The model, live. Placed after the roles rather than in the hero:
+            the hero's job is to load fast with real footage, and a WebGL
+            canvas competing for that first paint would cost the page its
+            largest-contentful-paint for a worse picture. */}
+        <section className="wrap-wide" style={{ paddingBottom: 'var(--section-y)' }}>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] items-center">
+            <LiveRobot />
+            <div className="max-w-[40ch]">
+              <p className="t-label m-0 mb-4">Have a go</p>
+              <h2 className="t-display m-0 mb-5" style={{ fontSize: 'var(--t-h2)' }}>
+                It is looking at you.
+              </h2>
+              <p className="m-0 mb-4 text-[var(--muted)]"
+                 style={{ fontSize: 'var(--t-lead)', lineHeight: 'var(--lh-body)' }}>
+                Move your cursor and the head follows, clamped to the angles the
+                real servos reach and eased so it arrives rather than snaps. Tap
+                it to change its mind.
+              </p>
+              <p className="t-mono m-0 text-[12.5px]" style={{ color: 'var(--muted-2)' }}>
+                Built from the same print files as the robot in the box.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* The brand's one graphic gesture. Once per layout — see Cut.tsx. */}
         <Cut className="py-0" />
