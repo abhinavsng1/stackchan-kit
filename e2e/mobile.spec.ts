@@ -72,7 +72,12 @@ test('the whole page stays under a sane scroll length', async ({ page }) => {
   // assembled robot: three films and a hardware section were added, and the
   // kit kept its parts and build steps as a section of its own. Measured 22.5,
   // after the films, the clips and the capability cards became swipe rails.
-  expect(screens).toBeLessThan(23.5)
+  //
+  // Raised to 26 in October 2026 when the roles section and the live model
+  // were added — two screens of genuinely new content, not slack. The number
+  // is a guard against the page quietly becoming an endless scroll, so it is
+  // raised deliberately and with a reason, never nudged to make a run green.
+  expect(screens).toBeLessThan(26)
 })
 
 test('tap targets in the buy bar are big enough', async ({ page }) => {
