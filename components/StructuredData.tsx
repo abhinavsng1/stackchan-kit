@@ -50,7 +50,7 @@ export default function StructuredData() {
       brand: { '@type': 'Brand', name: 'Pebble Robo' },
       category: 'Desktop robot',
       image: [
-        `${SITE}/og.jpg`, `${SITE}/media/robot/robot-front.webp`, `${SITE}/media/robot/robot-face.webp`,
+        `${SITE}/og.jpg`, `${SITE}/media/robot/robot-desk.webp`, `${SITE}/media/robot/robot-happy.webp`,
       ],
       url: SITE,
       // Component-level facts, straight from the specification tables. This is

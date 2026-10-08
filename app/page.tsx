@@ -265,9 +265,8 @@ export default function Page() {
             <figure className="m-0">
               <div className="relative overflow-hidden aspect-[4/3] md:aspect-[4/5]"
                    style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
-                <Image src="/media/robot/robot-full.webp" alt="An assembled Pebble-chan standing on a desk, head, neck and legs in view"
-                       fill sizes="(max-width: 768px) 94vw, 420px" className="object-cover"
-                       style={{ objectPosition: '50% 62%' }} />
+                <Image src="/media/robot/robot-ports.webp" alt="An assembled Pebble-chan up close, its side ports and two-servo neck in view"
+                       fill quality={90} sizes="(max-width: 768px) 94vw, 420px" className="object-cover" />
               </div>
               <figcaption className="t-mono text-[11px] text-[var(--muted)] mt-3">
                 The CoreS3 head on its two-servo neck

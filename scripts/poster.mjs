@@ -38,8 +38,8 @@ const SHIP = pick(/ship: '([^']+)'/, 'dispatch time')
 const dataUri = (p, mime) =>
   `data:${mime};base64,${readFileSync(join(ROOT, 'public', p)).toString('base64')}`
 
-// A frame from the making-of film: a batch 01 unit, front-on, standing upright.
-const SHOT = dataUri('media/robot/robot-front.webp', 'image/webp')
+// A frame from the 1080p original of the desk film: upright, sharp, smiling.
+const SHOT = dataUri('media/robot/robot-desk.webp', 'image/webp')
 const LOGO = dataUri('brand/logo-horizontal-white.svg', 'image/svg+xml')
 
 /** Shared page. Layout differs only by aspect, so one template covers all three. */

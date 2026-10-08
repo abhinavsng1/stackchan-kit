@@ -9,19 +9,21 @@ import { EV, track } from '@/lib/analytics'
  * down the page. Nothing here is a render or a retouched product shot — the
  * caption says so, and it has to stay true.
  *
- * Only angles where it stands upright with its legs in shot. From low down
- * and tilted, the body reads as a lump, so those frames are left out.
+ * Only angles where it stands upright with its legs in shot — from low down
+ * and tilted, the body reads as a lump — and only frames from the 1080p phone
+ * original, each picked for having no motion blur. The WhatsApp copies of the
+ * other films are 576 px wide and too soft for a picture this size.
  *
- * The source footage is portrait phone video, so every still is 9:16 and is
- * shown in a 4:5 frame: enough height for the whole robot, standing, without
- * the frame dwarfing the buy box beside it.
+ * The footage is portrait phone video; each still is cut to 4:5 at the full
+ * 1080 px width, so the frame shows it pixel for pixel with nothing upscaled:
+ * enough height for the whole robot, standing, without dwarfing the buy box.
  */
 const SHOTS = [
-  { src: '/media/robot/robot-front.webp', alt: 'Pebble-chan on a desk, facing the camera', label: 'Front' },
-  { src: '/media/robot/robot-face.webp', alt: 'Pebble-chan with a blue, wide-eyed face', label: 'Face' },
-  { src: '/media/robot/robot-side.webp', alt: 'Pebble-chan from three-quarters, showing the side ports', label: 'Side' },
-  { src: '/media/robot/robot-desk.webp', alt: 'Pebble-chan at rest on a desk beside a figure', label: 'Desk' },
-  { src: '/media/robot/robot-full.webp', alt: 'Pebble-chan standing on its legs, the whole robot in view', label: 'Full' },
+  { src: '/media/robot/robot-desk.webp', alt: 'Pebble-chan on a desk beside a plant, smiling', label: 'Desk' },
+  { src: '/media/robot/robot-happy.webp', alt: 'Pebble-chan from three-quarters, a happy face on its screen', label: 'Happy' },
+  { src: '/media/robot/robot-curious.webp', alt: 'Pebble-chan with wide, curious eyes', label: 'Curious' },
+  { src: '/media/robot/robot-close.webp', alt: 'Pebble-chan up close, the side ports and the printed shell in view', label: 'Close' },
+  { src: '/media/robot/robot-wide.webp', alt: 'Pebble-chan on the desk it was filmed on', label: 'Wide' },
 ] as const
 
 export default function Gallery() {
@@ -39,7 +41,7 @@ export default function Gallery() {
            style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
         {SHOTS.map((s, n) => (
           <Image key={s.src} src={s.src} alt={s.alt}
-                 fill priority={n === 0}
+                 fill priority={n === 0} quality={90}
                  sizes="(max-width: 1024px) 94vw, 720px"
                  className="object-cover transition-opacity duration-300"
                  style={{ opacity: n === i ? 1 : 0 }}

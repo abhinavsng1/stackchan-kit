@@ -123,9 +123,14 @@ Each falls back to the authored SVG robot and fetches none of the 3D code
 
 Every photograph and clip of the robot is real footage of a batch 01 unit,
 shot on a phone, in `public/media/robot/`. Stills are single frames from the
-films, not separate photographs. All of it is portrait (9:16) and 576 px wide —
-WhatsApp-compressed — so supplying the original phone files and re-encoding
-would sharpen every image on the page. Films are H.264 + AAC and VP9 + Opus;
+films, not separate photographs.
+
+The product photographs (`robot-*.webp`), the desk film and its face clip come
+from the 1080 × 1920 phone original of that film, each still chosen for an
+upright body and no motion blur, cut to 4:5 at full width and served at
+quality 90 (`images.qualities` in `next.config.ts`). Everything else — the hero
+loop, the making-of and look-around films, the other clips — exists only as a
+576 px WhatsApp copy; the phone originals of those would sharpen them too. Films are H.264 + AAC and VP9 + Opus;
 loops are silent; the hero loop must stay under 800 KB (asserted in
 `e2e/video.spec.ts`).
 
