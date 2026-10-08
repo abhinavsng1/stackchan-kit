@@ -662,3 +662,46 @@ h3, .t-sub {
 @media (min-width: 640px) {
   .rail-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ---------- marquee ---------- */
+
+/* The track holds two copies of the list and travels exactly half its width,
+   so the moment it resets the second copy is where the first began and the
+   seam is invisible. */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 42s linear infinite;
+}
+
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  padding-block: 10px;
+  padding-inline-end: 18px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+
+.marquee-star { color: var(--signal); font-size: 10px; }
+
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* A marquee is horizontal motion nobody asked for, which is the thing this
+   setting exists to switch off. It stops rather than slows. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  .marquee { overflow-x: auto; }
+}

@@ -14,6 +14,7 @@ import PartArt from '@/components/PartArt'
 import OpenSource from '@/components/OpenSource'
 import Roles from '@/components/Roles'
 import LiveRobot from '@/components/LiveRobot'
+import Marquee from '@/components/Marquee'
 import { OrderSteps, ChooseEdition } from '@/components/OrderSteps'
 import { KitOnly, ForEdition, SwitchEdition } from '@/components/EditionGate'
 import { SignalFlow } from '@/components/Diagrams'
@@ -138,20 +139,7 @@ export default function Page() {
   return (
     <>
       <StructuredData />
-      <div className="text-center text-[12.5px] sm:text-[13px] py-2.5 px-4 whitespace-nowrap overflow-hidden"
-           style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
-        <span className="t-pixel text-[10.5px] mr-2.5 opacity-70">Batch 01</span>
-        <ForEdition
-          assembled={<>
-            <span className="sm:hidden">Fully assembled · </span>
-            <span className="hidden sm:inline">Fully assembled and tested, ready out of the box · </span>
-          </>}
-          kit={<>
-            <span className="sm:hidden">Build kit · </span>
-            <span className="hidden sm:inline">Build-it-yourself kit, shell printed, no soldering · </span>
-          </>} />
-        {PRICE.deposit} to book · {PRICE.now} total
-      </div>
+      <Marquee />
 
       <Nav />
 
