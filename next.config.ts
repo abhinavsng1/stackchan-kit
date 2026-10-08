@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
     // the printed shell's texture and the screen's edges are the detail that
     // matters, and 75 visibly softens both. Next 16 serves only listed values.
     qualities: [75, 90],
+    // The default is WebP alone, so AVIF was never served however the
+    // browser asked. Order matters: the first match in this array wins, so
+    // AVIF is preferred and WebP is the fallback for anything that cannot
+    // take it. On this page the product photographs are the payload, and
+    // AVIF is meaningfully smaller on exactly that kind of image.
+    formats: ['image/avif', 'image/webp'],
   },
 }
 

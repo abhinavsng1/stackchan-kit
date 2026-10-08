@@ -47,14 +47,49 @@ we do have supplied a real tab instead.
 **Blender is not used.** Renders come from three.js so that the gallery and
 the live model are the same geometry under the same materials.
 
+## Lighthouse — production build, served locally
+
+| | Performance | Accessibility | Best practices | SEO |
+|---|---|---|---|---|
+| Desktop | **94** | 97 | 100 | 100 |
+| Mobile, observed throttling | **99** | 97 | 100 | 100 |
+| Mobile, simulated throttling | 82 | 97 | 100 | 100 |
+
+Mobile, observed: FCP 1.6 s, **LCP 1.6 s**, CLS 0.007, TBT 10 ms.
+
+**The two mobile rows disagree, and the observed one is the honest one.**
+Lighthouse's default mobile run estimates timings with a model rather than
+measuring them, and it put LCP at 4.8 s. Everything checkable contradicted
+that: the slowest request on the page is 104 ms, total main-thread work is
+0.7 s, and the first long task starts at 4,985 ms — after the paint it was
+supposedly delaying. The font was ruled out by switching the display family
+to `display: optional` and re-running, which changed the score by nothing.
+Re-run with `--throttling-method=devtools`, which measures, the same build
+scores 99 with LCP at 1.6 s.
+
+Neither number is the production figure. These were served from this machine;
+the real one depends on the host.
+
+## Frame rate — the live model
+
+| Case | Frame rate |
+|---|---|
+| 390 px viewport, 4× CPU throttle | **60.3 fps** |
+| 390 px viewport, 6× CPU throttle | **60.1 fps** |
+| 1440 px viewport, 4× CPU throttle | **60.1 fps** |
+
+Measured on the real GPU. The first attempt reported 21–28 fps, which was
+the measurement and not the page: headless Chromium defaults to SwiftShader,
+a software rasteriser, confirmed by reading `UNMASKED_RENDERER_WEBGL`
+(`SwiftShader driver`). Launched with ANGLE on Metal it holds 60.
+
+The run did find something real on the way. At full settings on a 390 px
+viewport the model ran at 28 fps even in software, so quality now scales with
+the screen: multisampling off and a 1.5 pixel-ratio cap below 900 px, and a
+1.2-megapixel budget on the drawing buffer at any size. Cost is per device
+pixel, so capping the ratio alone does not bound a wide canvas.
+
 ## Not done
 
-- **Lighthouse has not been run.** It needs a production build served and a
-  throttled run; the numbers above are from the dev server.
-- **Frame rate on a mid-range Android under 4× CPU throttle** has not been
-  measured.
-- **AVIF is not emitted.** The render pipeline writes WebP only; `next/image`
-  serves AVIF for what it processes, but the generated stills are WebP.
-- **The two 7 October analytics/pixel specs were flaky under four parallel
-  workers** and pass in isolation and at two workers. Not investigated
-  further.
+- **The flaky analytics and pixel specs.** Two failed under four parallel
+  workers and pass in isolation and at two. Not investigated.

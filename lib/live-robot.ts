@@ -31,10 +31,16 @@ export async function start(
   host: HTMLElement,
   { onFace }: { onFace?: (index: number) => void } = {},
 ): Promise<Started> {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  // Capping at 2 is the difference between a smooth model and a hot phone on
-  // a 3x display, for no visible gain at this size.
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  // Quality scales with the screen it is drawn on.
+  //
+  // Measured at 4x CPU throttle on a 390px viewport, full-fat settings gave
+  // 28 fps. Multisampling and a 2x pixel ratio are both quadratic in pixels
+  // and neither is visible on a palm-sized canvas: dropping them is most of
+  // the frame budget back for no difference anyone can see. A desktop keeps
+  // both, where there is headroom and the canvas is large enough to show it.
+  const small = window.innerWidth < 900
+  const renderer = new THREE.WebGLRenderer({ antialias: !small, alpha: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, small ? 1.5 : 2))
   renderer.setSize(host.clientWidth, host.clientHeight)
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%'
@@ -42,7 +48,7 @@ export async function start(
 
   const scene = new THREE.Scene()
   const pmrem = new THREE.PMREMGenerator(renderer)
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), small ? 0.12 : 0.04).texture
 
   const key = new THREE.DirectionalLight(0xffffff, 2.2)
   key.position.set(90, 140, 120)
@@ -74,8 +80,22 @@ export async function start(
   const radius = box.getSize(new THREE.Vector3()).length() / 2
   const camera = new THREE.PerspectiveCamera(32, 4 / 3, 1, 3000)
 
+  /**
+   * Keep the drawing buffer inside a fixed pixel budget.
+   *
+   * Cost here is per device pixel, not per CSS pixel, so a wide canvas on a
+   * 2x display is four times the work of the same canvas on a phone. Capping
+   * the ratio alone does not bound that — a 1600px-wide card still asks for
+   * three million pixels a frame. This holds the total instead, which is what
+   * the GPU actually cares about, and lets the ratio fall where it must.
+   */
+  const PIXEL_BUDGET = 1_200_000
+
   function frame() {
     const w = host.clientWidth, h = host.clientHeight
+    const want = Math.min(window.devicePixelRatio, small ? 1.5 : 2)
+    const fit = Math.sqrt(PIXEL_BUDGET / Math.max(1, w * h))
+    renderer.setPixelRatio(Math.max(1, Math.min(want, fit)))
     renderer.setSize(w, h)
     camera.aspect = w / h
     const vFov = THREE.MathUtils.degToRad(camera.fov)
