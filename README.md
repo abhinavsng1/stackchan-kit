@@ -1,6 +1,6 @@
-# Pebble-chan — sales site
+# PebbleRobo — sales site
 
-Single-page site for Pebble-chan, a desktop robot based on the open-source
+Single-page site for PebbleRobo, a desktop robot based on the open-source
 Stack-chan project, sold fully assembled (the default) or as a build kit at the
 same price. Next.js App Router, TypeScript, Tailwind v4, Zod, Neon Postgres,
 deployed on Vercel.
@@ -190,14 +190,14 @@ credentials cleared, so they do not create real reservations or send email.
 ## Content rule
 
 The page states what is in the box. It never states component costs, supplier
-names, or sourcing. The only price on the site is the price of Pebble-chan,
+names, or sourcing. The only price on the site is the price of PebbleRobo,
 which is the same for the robot and the kit.
 
 ## Attribution
 
-Pebble-chan is based on [Stack-chan](https://github.com/meganetaaan/stack-chan)
+PebbleRobo is based on [Stack-chan](https://github.com/meganetaaan/stack-chan)
 by Shinya Ishikawa and contributors, used under the Apache License 2.0. It is
-not an official Stack-chan or M5Stack product. The name Pebble-chan refers only
+not an official Stack-chan or M5Stack product. The name PebbleRobo refers only
 to this robot and kit; the software is Stack-chan and the credit is theirs.
 
 ## X conversion tracking

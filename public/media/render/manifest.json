@@ -1,89 +1,156 @@
 {
   "generated": "2026-10-08",
-  "note": "Every entry is a render. Real photography lives in public/media/robot/.",
+  "source": "public/models/pebble-v3.glb — the rig the live robot uses",
+  "note": "Every entry is a render and is labelled as one on the page.",
   "assets": [
     {
-      "file": "hero-still@800.webp",
-      "width": 800,
-      "height": 600,
-      "alt": "The assembled robot, three-quarter view",
+      "file": "/media/shots/float-shell-graphite.webp",
+      "alt": "PebbleRobo in Graphite",
       "render": true
     },
     {
-      "file": "hero-still@1600.webp",
-      "width": 1600,
-      "height": 1200,
-      "alt": "The assembled robot, three-quarter view",
+      "file": "/media/shots/float-shell-bone.webp",
+      "alt": "PebbleRobo in Bone",
       "render": true
     },
     {
-      "file": "role-pet@800.webp",
-      "width": 800,
-      "height": 600,
-      "alt": "The robot with a happy face",
+      "file": "/media/shots/float-shell-ember.webp",
+      "alt": "PebbleRobo in Ember",
       "render": true
     },
     {
-      "file": "role-pet@1600.webp",
-      "width": 1600,
-      "height": 1200,
-      "alt": "The robot with a happy face",
+      "file": "/media/shots/float-shell-signal.webp",
+      "alt": "PebbleRobo in Signal",
       "render": true
     },
     {
-      "file": "role-answers@800.webp",
-      "width": 800,
-      "height": 600,
-      "alt": "The robot facing forward, listening",
+      "file": "/media/shots/float-shell-moss.webp",
+      "alt": "PebbleRobo in Moss",
       "render": true
     },
     {
-      "file": "role-answers@1600.webp",
-      "width": 1600,
-      "height": 1200,
-      "alt": "The robot facing forward, listening",
+      "file": "/media/render/role-answers@1600.webp",
+      "alt": "PebbleRobo in Signal, looking up, listening",
       "render": true
     },
     {
-      "file": "role-performer@800.webp",
-      "width": 800,
-      "height": 600,
-      "alt": "The robot mid-performance",
+      "file": "/media/render/role-answers@800.webp",
+      "alt": "PebbleRobo in Signal, looking up, listening",
       "render": true
     },
     {
-      "file": "role-performer@1600.webp",
-      "width": 1600,
-      "height": 1200,
-      "alt": "The robot mid-performance",
+      "file": "/media/render/role-performer@1600.webp",
+      "alt": "PebbleRobo in Ember, head turned, smiling",
       "render": true
     },
     {
-      "file": "role-puppet@800.webp",
-      "width": 800,
-      "height": 600,
-      "alt": "The robot copying a face",
+      "file": "/media/render/role-performer@800.webp",
+      "alt": "PebbleRobo in Ember, head turned, smiling",
       "render": true
     },
     {
-      "file": "role-puppet@1600.webp",
-      "width": 1600,
-      "height": 1200,
-      "alt": "The robot copying a face",
+      "file": "/media/render/role-puppet@1600.webp",
+      "alt": "PebbleRobo in Moss, turning its head",
       "render": true
     },
     {
-      "file": "role-yours@800.webp",
-      "width": 800,
-      "height": 600,
-      "alt": "The robot with a blank face",
+      "file": "/media/render/role-puppet@800.webp",
+      "alt": "PebbleRobo in Moss, turning its head",
       "render": true
     },
     {
-      "file": "role-yours@1600.webp",
-      "width": 1600,
-      "height": 1200,
-      "alt": "The robot with a blank face",
+      "file": "/media/render/role-pet@1600.webp",
+      "alt": "PebbleRobo in Moss, seen from above, resting",
+      "render": true
+    },
+    {
+      "file": "/media/render/role-pet@800.webp",
+      "alt": "PebbleRobo in Moss, seen from above, resting",
+      "render": true
+    },
+    {
+      "file": "/media/render/role-yours@1600.webp",
+      "alt": "PebbleRobo pulled apart: base, neck, head and controller",
+      "render": true
+    },
+    {
+      "file": "/media/render/role-yours@800.webp",
+      "alt": "PebbleRobo pulled apart: base, neck, head and controller",
+      "render": true
+    },
+    {
+      "file": "/media/render/meet-face.webp",
+      "alt": "PebbleRobo in Graphite, close up, smiling",
+      "render": true
+    },
+    {
+      "file": "/media/render/gallery-hero.webp",
+      "alt": "PebbleRobo in Graphite, three-quarter view",
+      "render": true
+    },
+    {
+      "file": "/media/render/gallery-front.webp",
+      "alt": "PebbleRobo in Graphite, front view",
+      "render": true
+    },
+    {
+      "file": "/media/render/gallery-right.webp",
+      "alt": "PebbleRobo in Graphite, from the right view",
+      "render": true
+    },
+    {
+      "file": "/media/render/gallery-profile.webp",
+      "alt": "PebbleRobo in Graphite, in profile view",
+      "render": true
+    },
+    {
+      "file": "/media/render/gallery-high.webp",
+      "alt": "PebbleRobo in Graphite, from above view",
+      "render": true
+    },
+    {
+      "file": "/media/render/lineup@2400.webp",
+      "alt": "Five PebbleRobos in a row, one in each shell colour",
+      "render": true
+    },
+    {
+      "file": "/media/render/lineup@1200.webp",
+      "alt": "Five PebbleRobos in a row, one in each shell colour",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-inside.webm",
+      "alt": "public/media/render/loop-inside",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-talk.webm",
+      "alt": "public/media/render/loop-talk",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-performer.webm",
+      "alt": "public/media/render/loop-performer",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-puppet.webm",
+      "alt": "public/media/render/loop-puppet",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-alive.webm",
+      "alt": "public/media/render/loop-alive",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-look.webm",
+      "alt": "public/media/render/loop-look",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-nod.webm",
+      "alt": "public/media/render/loop-nod",
       "render": true
     }
   ]

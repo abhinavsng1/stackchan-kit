@@ -5,25 +5,17 @@ import { useState } from 'react'
 import { EV, track } from '@/lib/analytics'
 
 /**
- * Stills of one assembled unit, pulled frame-for-frame from the films further
- * down the page. Nothing here is a render or a retouched product shot — the
- * caption says so, and it has to stay true.
- *
- * Only angles where it stands upright with its legs in shot — from low down
- * and tilted, the body reads as a lump — and only frames from the 1080p phone
- * original, each picked for having no motion blur. The WhatsApp copies of the
- * other films are 576 px wide and too soft for a picture this size.
- *
- * The footage is portrait phone video; each still is cut to 4:5 at the full
- * 1080 px width, so the frame shows it pixel for pixel with nothing upscaled:
- * enough height for the whole robot, standing, without dwarfing the buy box.
+ * Five angles on one robot, rendered from the same rigged model as the live
+ * robot at the top of the page, so every picture of it agrees — the frame,
+ * the glass, the base. Labelled as renders; the real footage is the film in
+ * the Meet section.
  */
 const SHOTS = [
-  { src: '/media/robot/robot-desk.webp', alt: 'Pebble-chan on a desk beside a plant, smiling', label: 'Desk' },
-  { src: '/media/robot/robot-happy.webp', alt: 'Pebble-chan from three-quarters, a happy face on its screen', label: 'Happy' },
-  { src: '/media/robot/robot-curious.webp', alt: 'Pebble-chan with wide, curious eyes', label: 'Curious' },
-  { src: '/media/robot/robot-close.webp', alt: 'Pebble-chan up close, the side ports and the printed shell in view', label: 'Close' },
-  { src: '/media/robot/robot-wide.webp', alt: 'Pebble-chan on the desk it was filmed on', label: 'Wide' },
+  { src: '/media/render/gallery-hero.webp', alt: 'PebbleRobo in Graphite, three-quarter view', label: 'Three-quarter' },
+  { src: '/media/render/gallery-front.webp', alt: 'PebbleRobo in Graphite, front view, smiling', label: 'Front' },
+  { src: '/media/render/gallery-right.webp', alt: 'PebbleRobo in Graphite, from the right', label: 'Right' },
+  { src: '/media/render/gallery-profile.webp', alt: 'PebbleRobo in Graphite, in profile', label: 'Profile' },
+  { src: '/media/render/gallery-high.webp', alt: 'PebbleRobo in Graphite, from above', label: 'Above' },
 ] as const
 
 export default function Gallery() {
@@ -38,7 +30,7 @@ export default function Gallery() {
   return (
     <figure className="m-0">
       <div className="relative overflow-hidden aspect-[4/5]"
-           style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+           style={{ borderRadius: 'var(--radius-tile)', background: 'var(--surface-2)' }}>
         {SHOTS.map((s, n) => (
           <Image key={s.src} src={s.src} alt={s.alt}
                  fill priority={n === 0} quality={90}
@@ -65,7 +57,7 @@ export default function Gallery() {
       </div>
 
       <figcaption className="t-mono text-[11.5px] text-[var(--muted)] mt-3">
-        {shot.label} · one batch 01 unit, frames from the films below. Not rendered.
+        {shot.label} · rendered from the 3D model of the robot you receive.
       </figcaption>
     </figure>
   )

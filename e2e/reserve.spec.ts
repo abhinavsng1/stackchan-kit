@@ -53,12 +53,12 @@ test('takes an order, collects payment, and confirms', async ({ page }) => {
   await stubCheckout(page, 'paid')
 
   await page.goto('/')
-  await page.getByRole('button', { name: /^Book/ }).first().click()
+  await page.locator('#buybox').getByRole('button', { name: /^Buy PebbleRobo/ }).click()
   await fill(page)
   await page.getByRole('button', { name: /^Book for / }).click()
 
   const panel = page.locator('#reserve')
-  await expect(panel.getByText('Your Pebble-chan is booked.')).toBeVisible()
+  await expect(panel.getByText('Your PebbleRobo is booked.')).toBeVisible()
   // COD: the one thing they must know before the courier turns up.
   await expect(panel.getByText(/in cash/).first()).toBeVisible()
 })
@@ -208,7 +208,7 @@ test('an order goes through without a profession', async ({ page }) => {
   await page.getByLabel(/^Profession/).selectOption('')
   await page.getByRole('button', { name: /^Book for / }).click()
 
-  await expect(page.getByText('Your Pebble-chan is booked.')).toBeVisible()
+  await expect(page.getByText('Your PebbleRobo is booked.')).toBeVisible()
   expect(sent!.profession, 'an unanswered profession must not block the sale').toBe('')
 })
 
@@ -267,7 +267,7 @@ test.describe('robot or kit', () => {
     await page.goto('/')
     await fill(page)
     await page.getByRole('button', { name: /^Book for / }).click()
-    await expect(page.getByText('Your Pebble-chan is booked.')).toBeVisible()
+    await expect(page.getByText('Your PebbleRobo is booked.')).toBeVisible()
     expect(sent[0].edition).toBe('assembled')
   })
 
@@ -275,11 +275,12 @@ test.describe('robot or kit', () => {
     // The choice is made in one place and paid for in another; the two must agree.
     const sent = await capture(page)
     await page.goto('/')
-    await page.getByTestId('edition-buybox-kit').click()
+    // The buy box offers the kit as a quiet alternative, not an equal choice.
+    await page.locator('#buybox').getByRole('button', { name: 'The kit is the same price' }).click()
     await expect(page.locator('form input[name="edition"]:checked')).toHaveValue('kit')
     await fill(page)
     await page.getByRole('button', { name: /^Book for / }).click()
-    await expect(page.getByText('Your Pebble-chan is booked.')).toBeVisible()
+    await expect(page.getByText('Your PebbleRobo is booked.')).toBeVisible()
     expect(sent[0].edition).toBe('kit')
   })
 
@@ -290,7 +291,7 @@ test.describe('robot or kit', () => {
     await expect(page.getByTestId('kit-banner')).toHaveCount(0)
     await expect(page.locator('header a[href="#kit"]')).toHaveCount(0)
 
-    await page.getByTestId('edition-buybox-kit').click()
+    await page.locator('#buybox').getByRole('button', { name: 'The kit is the same price' }).click()
     await expect(page.locator('#kit')).toBeVisible()
     await expect(page.getByTestId('kit-banner')).toContainText('kit selected')
 
@@ -302,7 +303,7 @@ test.describe('robot or kit', () => {
 
   test('a link to ?edition=kit lands on the kit', async ({ page }) => {
     await page.goto('/?edition=kit')
-    await expect(page.locator('#buybox input:checked')).toHaveValue('kit')
-    await expect(page.locator('#buybox')).toContainText('PBL-KIT-01')
+    await expect(page.locator('#buybox')).toContainText('Build-it-yourself kit')
+    await expect(page.locator('form input[name="edition"]:checked')).toHaveValue('kit')
   })
 })

@@ -4,7 +4,7 @@ import { CONTACT } from '@/lib/kit'
 
 export const metadata: Metadata = {
   title: 'Contact · Pebble Robo',
-  description: 'How to reach Pebble Robo about Pebble-chan or an order.',
+  description: 'How to reach Pebble Robo about PebbleRobo or an order.',
   alternates: { canonical: '/contact' },
 }
 
@@ -21,7 +21,7 @@ export default function Contact() {
       <h2>Who we are</h2>
       <p>
         {CONTACT.entity} is a small operation in Bengaluru, Karnataka, India, building and
-        shipping Pebble-chan, assembled or as a build kit. There is no support queue and no phone tree:
+        shipping PebbleRobo, assembled or as a build kit. There is no support queue and no phone tree:
         email reaches the people who pack the boxes.
       </p>
 

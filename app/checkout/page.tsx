@@ -9,7 +9,7 @@ import { CONTACT, PRICE } from '@/lib/kit'
  * this is the page the confirmation email points at once a batch is ready.
  */
 export const metadata: Metadata = {
-  title: 'Complete your reservation · Pebble-chan',
+  title: 'Complete your reservation · PebbleRobo',
   robots: { index: false, follow: false },
 }
 
@@ -47,14 +47,14 @@ export default async function CheckoutPage(
           Complete your reservation
         </h1>
         <p className="text-[var(--muted)] mt-0 mb-8">
-          Your Pebble-chan is boxed and ready to ship. Paying here confirms it and starts
+          Your PebbleRobo is boxed and ready to ship. Paying here confirms it and starts
           dispatch — {PRICE.ship.toLowerCase()}.
         </p>
 
         <div className="card p-6 mb-6">
           <div className="flex items-baseline justify-between gap-4 pb-4 mb-4"
                style={{ borderBottom: '1px solid var(--line)' }}>
-            <span className="text-[15px]">Pebble-chan × 1</span>
+            <span className="text-[15px]">PebbleRobo × 1</span>
             <span className="t-display text-[26px] leading-none">{PRICE.now}</span>
           </div>
           <CheckoutButton token={t} />

@@ -5,7 +5,7 @@ import { CONTACT, PRICE } from '@/lib/kit'
 export const metadata: Metadata = {
   title: 'Returns and refunds · Pebble Robo',
   description:
-    'Pebble-chan returns: 7 days from delivery for a robot or kit that does not work. ' +
+    'PebbleRobo returns: 7 days from delivery for a robot or kit that does not work. ' +
     'Refunds within 7 working days of the item reaching us.',
   alternates: { canonical: '/returns' },
 }
@@ -75,7 +75,7 @@ export default function Returns() {
       <p>
         If the fault does not hold up — the part works here, or the damage is post-delivery —
         we will tell you what we found and send it back to you at our cost. We will not
-        keep both your Pebble-chan and your money.
+        keep both your PebbleRobo and your money.
       </p>
 
       <h2>Replacements instead</h2>

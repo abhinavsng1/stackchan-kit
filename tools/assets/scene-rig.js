@@ -159,6 +159,16 @@ export async function buildRig(THREE, STLLoader, {
   tilt.position.copy(hinge).sub(panAxis)
   pan.add(tilt)
 
+  /* The base faces the other way on a real unit.
+     The solver places it to match assembled_v3.stl, and that preview has the
+     base turned round: its feet point backwards and the open electronics
+     pocket faces the front. Every photograph of a built robot has the feet
+     forward, under the screen. Turning the base half a turn about the pan
+     axis puts it where the hardware has it without moving the neck, which
+     sits on that axis and is unaffected by the turn. */
+  base.position.set(2 * panAxis.x, 2 * panAxis.y, 0)
+  base.rotation.z = Math.PI
+
   root.add(base)
   root.add(pan)
 

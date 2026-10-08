@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { MOODS, drawCompanion, PANEL } from '@/lib/companion-face'
+import { MOODS, drawCompanion } from '@/lib/companion-face'
+import { dressRobot, type Colourway } from '@/lib/robot-look'
 
 /**
  * The live model's actual machinery, kept out of the component so none of
@@ -34,13 +35,25 @@ const IDLE_AFTER_MS = 5000
 
 export type Started = {
   setFace: (id: string) => void
-  setShell: (hex: string) => void
+  setShell: (way: Colourway) => void
   dispose: () => void
 }
 
 export async function start(
   host: HTMLElement,
-  { onFace }: { onFace?: (index: number) => void } = {},
+  {
+    onFace,
+    pointerArea,
+  }: {
+    onFace?: (index: number) => void
+    /**
+     * Where the pointer is watched. Defaults to the canvas itself. The hero
+     * passes the whole first screen, so the robot notices the cursor wherever
+     * it is rather than only when it is over the robot. Angles are still
+     * measured from the robot and clamped to what the servos reach.
+     */
+    pointerArea?: HTMLElement
+  } = {},
 ): Promise<Started> {
   // Quality scales with the screen it is drawn on.
   //
@@ -127,25 +140,10 @@ export async function start(
 
   /* ------------------------------ the face ------------------------------ */
 
-  const canvas = document.createElement('canvas')
-  canvas.width = PANEL.w
-  canvas.height = PANEL.h
-  const ctx = canvas.getContext('2d')!
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  // The panel's UVs come out of the rig's rotation 180 degrees round, which
-  // shows as the mouth above the eyes and the status line mirrored. Turning
-  // the texture fixes it without re-exporting the model, and keeps the
-  // correction next to the thing that draws it.
-  texture.center.set(0.5, 0.5)
-  texture.rotation = Math.PI
-  // Double-sided on purpose. The panel is a plane whose normal depends on how
-  // the rig was rotated on export, and a single-sided screen that happens to
-  // face inward is invisible with no error anywhere — the head just reads as
-  // a blank slab, which is the least debuggable failure on the page.
-  screen.material = new THREE.MeshBasicMaterial({
-    map: texture, toneMapped: false, side: THREE.DoubleSide,
-  })
+  // The screen, the frame and the shell all come from one definition shared
+  // with the renders, so the live robot and the pictures of it cannot drift.
+  const look = dressRobot(THREE, root)
+  const ctx = look.ctx
 
   let faceIndex = 0
 
@@ -158,7 +156,7 @@ export async function start(
    */
   function paint(t: number) {
     drawCompanion(ctx, MOODS[faceIndex % MOODS.length], t)
-    texture.needsUpdate = true
+    look.update()
   }
 
   function drawFace(index: number) {
@@ -190,8 +188,9 @@ export async function start(
   const onLeave = () => { pointerInside = false }
   const onTap = () => drawFace(faceIndex + 1)
 
-  host.addEventListener('pointermove', onMove, { passive: true })
-  host.addEventListener('pointerleave', onLeave)
+  const area = pointerArea ?? host
+  area.addEventListener('pointermove', onMove, { passive: true })
+  area.addEventListener('pointerleave', onLeave)
   host.addEventListener('pointerdown', onTap)
 
   /* ------------------------------ the loop ------------------------------ */
@@ -239,31 +238,17 @@ export async function start(
   window.addEventListener('resize', onResize)
   run(true)
 
-  // Every printed part shares one material in the export, but the CoreS3,
-  // the bezel and the screen must not follow the shell colour — recolouring
-  // those would paint the electronics to match the plastic.
-  const NOT_PRINTED = new Set(['CoreS3', 'Screen_Bezel', 'Screen'])
-  const shellMaterials = new Set<THREE.MeshStandardMaterial>()
-  root.traverse((o) => {
-    const mesh = o as THREE.Mesh
-    if (!mesh.isMesh || NOT_PRINTED.has(mesh.name)) return
-    const mat = mesh.material as THREE.MeshStandardMaterial
-    if (mat?.color) shellMaterials.add(mat)
-  })
-
   // A probe for the asset build and for debugging in a console. The screen
   // being invisible is a silent failure, so make it inspectable.
   ;(window as unknown as { __rig?: unknown }).__rig = {
     screenWorld: screen.getWorldPosition(new THREE.Vector3()).toArray(),
     screenVisible: screen.visible,
-    hasMap: () => Boolean((screen.material as THREE.MeshBasicMaterial).map),
+    hasMap: () => Boolean((screen.material as THREE.MeshPhysicalMaterial).emissiveMap),
     nodes: (() => { const n: string[] = []; root.traverse((o) => n.push(o.name)); return n })(),
   }
 
   return {
-    setShell: (hex: string) => {
-      for (const m of shellMaterials) m.color = new THREE.Color(hex)
-    },
+    setShell: look.setShell,
     setFace: (id: string) => {
       const i = MOODS.findIndex((m) => m.id === id)
       if (i >= 0) drawFace(i)
@@ -273,8 +258,8 @@ export async function start(
       io.disconnect()
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('resize', onResize)
-      host.removeEventListener('pointermove', onMove)
-      host.removeEventListener('pointerleave', onLeave)
+      area.removeEventListener('pointermove', onMove)
+      area.removeEventListener('pointerleave', onLeave)
       host.removeEventListener('pointerdown', onTap)
       renderer.dispose()
       pmrem.dispose()

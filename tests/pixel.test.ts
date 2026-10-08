@@ -62,7 +62,8 @@ describe('pixel runtime', () => {
 
 describe('collection now starts on load', () => {
   const provider = readFileSync(new URL('../components/Analytics.tsx', import.meta.url), 'utf8')
-  const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8')
+  // The disclosure lives in the footer, which every visitor reaches.
+  const page = readFileSync(new URL('../components/site/Footer.tsx', import.meta.url), 'utf8')
 
   it('has no consent gate left in the provider', () => {
     expect(provider).not.toMatch(/Analytics choice/)

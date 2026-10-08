@@ -46,7 +46,7 @@ test('reports content, checkout, lead and purchase under their Events Manager id
   await expect.poll(async () => (await eventsFor(page, 'tw-rfx4u-rgpxm')).length).toBe(1)
 
   // Checkout initiated: the buy box's Book button.
-  await page.locator('#buybox').getByRole('button', { name: /^Book/ }).click()
+  await page.locator('#buybox').getByRole('button', { name: /^Buy PebbleRobo/ }).click()
   await expect.poll(async () => (await eventsFor(page, 'tw-rfx4u-rgpxi')).length).toBe(1)
 
   // Lead and Purchase: a whole order, paid.
@@ -57,7 +57,7 @@ test('reports content, checkout, lead and purchase under their Events Manager id
   await page.getByLabel('City', { exact: true }).fill('Bengaluru')
   await page.getByLabel('PIN code').fill('560078')
   await page.getByRole('button', { name: /^Book for / }).click()
-  await expect(page.getByText('Your Pebble-chan is booked.')).toBeVisible()
+  await expect(page.getByText('Your PebbleRobo is booked.')).toBeVisible()
 
   const lead = await eventsFor(page, 'tw-rfx4u-rgpxh')
   expect(lead).toHaveLength(1)

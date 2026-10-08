@@ -279,7 +279,7 @@ export default function Playground() {
 
         {ready === 'photo' && (
           <>
-            <Image src="/media/unit.webp" alt="An assembled Pebble-chan on a desk"
+            <Image src="/media/unit.webp" alt="An assembled PebbleRobo on a desk"
                    width={1100} height={1100} sizes="100vw"
                    className="w-full h-full object-contain" />
             <p className="absolute inset-x-5 bottom-5 t-mono text-[11.5px] text-[var(--muted)] m-0">

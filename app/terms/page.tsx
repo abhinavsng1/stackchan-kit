@@ -4,7 +4,7 @@ import { CONTACT, PRICE } from '@/lib/kit'
 
 export const metadata: Metadata = {
   title: 'Terms of sale · Pebble Robo',
-  description: 'The terms on which Pebble Robo sells Pebble-chan, assembled or as a build kit.',
+  description: 'The terms on which Pebble Robo sells PebbleRobo, assembled or as a build kit.',
   alternates: { canonical: '/terms' },
 }
 
@@ -12,7 +12,7 @@ export default function Terms() {
   return (
     <LegalPage title="Terms of sale" updated="7 October 2026">
       <p>
-        These terms apply when you buy a Pebble-chan, assembled or as a kit, from {CONTACT.entity}. They are
+        These terms apply when you buy a PebbleRobo, assembled or as a kit, from {CONTACT.entity}. They are
         written to be read, not to be survived.
       </p>
 
@@ -31,7 +31,7 @@ export default function Terms() {
         tools beyond a small screwdriver, but it is work you do.
       </p>
       <p>
-        Pebble-chan is built around the open-source{' '}
+        PebbleRobo is built around the open-source{' '}
         <a href="https://github.com/meganetaaan/stack-chan" target="_blank" rel="noreferrer noopener">
           Stack-chan</a>{' '}
         project by Shinya Ishikawa and contributors, used under the Apache License 2.0. It is{' '}

@@ -6,8 +6,8 @@ import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
 
 /**
- * Phone-only buy bar. Appears once the buy box has scrolled away, and retreats
- * over the reserve section so it never covers the form it points at.
+ * Phone-only buy bar. Appears once the hero has scrolled away, and retreats
+ * over the buy and order sections so it never covers the thing it points at.
  *
  * Deliberately a scroll handler rather than IntersectionObserver: IO only fires
  * when intersection *changes*, so jumping straight from the top of the page to
@@ -23,15 +23,18 @@ export default function BuyBar() {
 
     const measure = () => {
       frame = 0
-      const box = document.getElementById('buybox')
+      const hero = document.getElementById('hero')
+      const buy = document.getElementById('buy')
       const reserve = document.getElementById('reserve')
-      if (!box || !reserve) return
+      if (!hero || !buy || !reserve) return
 
-      const boxGone = box.getBoundingClientRect().bottom < 0
-      const r = reserve.getBoundingClientRect()
-      const atForm = r.top < window.innerHeight * 0.9 && r.bottom > 0
+      const heroGone = hero.getBoundingClientRect().bottom < 0
+      const over = (el: HTMLElement) => {
+        const r = el.getBoundingClientRect()
+        return r.top < window.innerHeight * 0.9 && r.bottom > 0
+      }
 
-      setShow(boxGone && !atForm)
+      setShow(heroGone && !over(buy) && !over(reserve))
     }
 
     const onScroll = () => {
@@ -66,16 +69,15 @@ export default function BuyBar() {
     <div className="buybar" data-show={show} aria-hidden={!show}>
       <div className="flex items-center gap-3">
         <div className="min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className="t-display text-[19px] leading-none">{PRICE.now}</span>
-            <span className="t-mono text-[12px] text-[var(--muted)] line-through">{PRICE.mrp}</span>
+          <div className="text-[15px] font-medium leading-tight">PebbleRobo · {PRICE.now}</div>
+          <div className="t-mono text-[11.5px] text-[var(--muted)] mt-0.5 truncate">
+            {EDITION[edition].label} · {PRICE.deposit} to book
           </div>
-          <div className="t-label mt-1 truncate">{EDITION[edition].label} · {PRICE.ship}</div>
         </div>
-        <a href="#reserve" className="btn btn-brand ml-auto shrink-0 !py-3"
+        <a href="#buy" className="btn btn-brand ml-auto shrink-0"
            onClick={() => track(EV.reserveCtaClicked, { location: 'buybar', edition })}
            tabIndex={show ? undefined : -1}>
-          Book — {PRICE.deposit}
+          Buy <span className="arrow" aria-hidden="true">→</span>
         </a>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { CONTACT, PRICE } from '@/lib/kit'
 export const metadata: Metadata = {
   title: 'Shipping and delivery · Pebble Robo',
   description:
-    'Pebble-chan ships anywhere in India, free, within 1–2 weeks of the batch closing.',
+    'PebbleRobo ships anywhere in India, free, within 1–2 weeks of the batch closing.',
   alternates: { canonical: '/shipping' },
 }
 
@@ -20,7 +20,7 @@ export default function Shipping() {
       <h2>Where we ship</h2>
       <p>
         Anywhere in India, to any address the courier serves. We do not ship
-        internationally — Pebble-chan is priced and supported for India only, and we would
+        internationally — PebbleRobo is priced and supported for India only, and we would
         rather not take an order we cannot support.
       </p>
 

@@ -93,7 +93,7 @@ export default function ReserveForm() {
             ? `${state.detail} Your details are saved, so you can try the payment again without filling anything in.`
             : state.why === 'returning'
               ? `We have your details from earlier. The ${PRICE.deposit} booking payment did not go through, so nothing is held for you yet.`
-              : `The payment window closed before anything went through. Your Pebble-chan is not booked until the ${PRICE.deposit} is paid.`}
+              : `The payment window closed before anything went through. Your PebbleRobo is not booked until the ${PRICE.deposit} is paid.`}
         </p>
 
         <div className="flex flex-wrap items-center gap-4 mt-7">
@@ -126,7 +126,7 @@ export default function ReserveForm() {
 
         <p className="t-display text-[30px] mt-4 mb-3">
           {state.kind === 'paid'
-            ? 'Your Pebble-chan is booked.'
+            ? 'Your PebbleRobo is booked.'
             : byPhone
               ? 'That number has already ordered.'
               : 'That email has already ordered.'}

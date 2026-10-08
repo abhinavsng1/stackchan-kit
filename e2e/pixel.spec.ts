@@ -34,7 +34,7 @@ test('only a confirmed reservation sends Lead and CompleteRegistration', async (
   await page.route('**/api/create-order', (r) => r.fulfill({ status: 503, json: { error: 'stub' } }))
   await page.goto('/')
   await expect.poll(() => calls(page)).toContain('init test-pixel')
-  await page.getByRole('button', { name: /^Book/ }).first().click()
+  await page.locator('#buybox').getByRole('button', { name: /^Buy PebbleRobo/ }).click()
   await fillOrder(page)
   await page.locator('form button[type="submit"]').click()
   await expect.poll(() => calls(page)).toContain('trackCustom ReserveSubmitted')

@@ -14,7 +14,7 @@ const val = (v: string | string[]) => (Array.isArray(v) ? v.join('; ') : v)
 export const dynamic = 'force-static'
 
 export function GET() {
-  const body = `# Pebble-chan desktop robot
+  const body = `# PebbleRobo desktop robot
 
 > A small desktop robot with a face and a head that pans and tilts, built around
 > the open-source Stack-chan project. Sold fully assembled and tested, or as a
@@ -26,7 +26,7 @@ Site: https://pebblerobo.com
 
 ## What it is
 
-Pebble-chan is a small desktop robot with a face on a 2-inch screen, a head
+PebbleRobo is a small desktop robot with a face on a 2-inch screen, a head
 that pans and tilts on two serial bus servos, a camera, microphones and a
 speaker. It is sold two ways, at the same price:
 

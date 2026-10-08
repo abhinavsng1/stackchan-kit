@@ -99,7 +99,7 @@ export const CAPABILITIES: Capability[] = [
   {
     key: 'net', tone: 'brand',
     title: 'It gets online',
-    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like — Pebble-chan takes no view on that.',
+    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like — PebbleRobo takes no view on that.',
     source: 'U1 · ESP32-S3',
   },
   {
@@ -238,20 +238,26 @@ export const BUILDS: Build[] = [
 export type Faq = { q: string; a: string }
 
 export const FAQS: Faq[] = [
-  { q: 'Does it arrive assembled?',
-    a: 'Yes, unless you choose otherwise. Pebble-chan ships built, flashed and tested: plug in the supplied power adapter and the face comes up. If you would rather build it yourself, choose the kit — same price, same parts.' },
-  { q: 'What is the difference between the robot and the kit?',
-    a: 'Only who puts it together. Both have the same CoreS3 Lite, the same two bus servos, the same printed shell and the same power supply, and both cost ₹4,999. The robot is assembled and tested by us; the kit arrives as eight parts and takes an evening, with no soldering.' },
+  { q: 'What is PebbleRobo?',
+    a: 'A small robot for your desk with a face, a neck that turns and a voice. It blinks, looks around and reacts to you from the moment it is plugged in, and answers out loud when you say its name. It is built around the open-source Stack-chan project and an M5Stack CoreS3 Lite. It is not the official M5Stack product — that is a different device with its own hardware. The software is Stack-chan and we take no credit for it.' },
+  { q: 'What can it actually do?',
+    a: 'Out of the box it keeps you company: it blinks, breathes, fidgets, turns to look, nods and changes its face, and gets dizzy if you shake it. Say "Hi, Stack-chan" and it wakes, turns to you and answers out loud, and it can take a photo to work out what you are showing it. It can also copy your head movements from your phone, and speak and move to a script you write.' },
   { q: 'Do I need to know how to code?',
-    a: 'Not to enjoy it. It runs the Stack-chan firmware out of the box. When you want to change what it does, the behaviour is JavaScript on the Moddable SDK, and the controller is a stock CoreS3 Lite, so the Arduino core and M5Unified work as well.' },
-  { q: 'What is Pebble-chan, exactly?',
-    a: 'It is our desktop robot, built around the open-source Stack-chan project and an M5Stack CoreS3 Lite. It is not the official M5Stack product — that is a different device with its own hardware. The software is Stack-chan and we take no credit for it.' },
-  { q: 'Does it need the internet to work?',
-    a: 'No. The face, the motion and the sensors all run on the device. Wi-Fi is there for when you want to reach a speech or language API, and that choice is yours.' },
+    a: 'No. It runs the Stack-chan firmware out of the box. When you want to change what it does, the behaviour is JavaScript on the Moddable SDK, and the controller is a stock CoreS3 Lite, so the Arduino core and M5Unified work as well.' },
+  { q: 'Does it need the internet?',
+    a: 'No. The face, the movement and the sensors all run on the robot, and so does listening for its wake word. Wi-Fi and Bluetooth are there for when you want it to answer questions out loud, which uses a speech or language service you connect — that choice is yours. There is no account with us and no subscription.' },
+  { q: 'How is it powered?',
+    a: 'From the 5 V power adapter in the box. It lives plugged in on your desk, the way a lamp does.' },
+  { q: 'When does it ship and when do I pay?',
+    a: 'You pay ₹499 now to book — card, UPI, netbanking or EMI. The remaining ₹4,500 is collected in cash when it is delivered. Delivery anywhere in India is free, and orders dispatch within 1–2 weeks of the batch closing.' },
+  { q: 'What if it arrives broken or stops working?',
+    a: 'Write to us within 7 days of delivery. We accept returns for a robot or kit that does not work — dead on arrival, damaged in transit, missing a part, or failing in normal use — and refund within 7 working days of it reaching us. Often a photo or a short video lets us fix it with you in a reply. The full terms are on the returns page.' },
+  { q: 'Can I return it if I change my mind?',
+    a: 'No. Once a box is opened we cannot sell it to someone else as new, so we only take back a robot or kit that does not work. We would rather say that plainly than write a policy we quietly decline to honour.' },
+  { q: 'What is the difference between the robot and the kit?',
+    a: 'Only who puts it together. Both have the same CoreS3 Lite, the same two motors, the same printed shell and the same power supply, and both cost ₹4,999. The robot is assembled and tested by us; the kit arrives as eight parts and takes an evening, with no soldering.' },
   { q: 'What do I need that is not in the box?',
     a: 'For the robot, nothing: the power supply is included. For the kit, a USB-C cable and a computer to flash it. You never need a 3D printer — the shell is printed here and ships with both.' },
-  { q: 'When does it ship and when do I pay?',
-    a: 'You pay ₹499 now to book your kit — card, UPI, netbanking or EMI. The remaining ₹4,500 is collected in cash when the kit is delivered. Kits dispatch within 1–2 weeks of the batch closing.' },
 ]
 
 /* ---------------------------------------------------------------- */
@@ -293,7 +299,7 @@ export const EDITION: Record<Edition, {
   prep: string
 }> = {
   assembled: {
-    name: 'Pebble-chan robot, fully assembled',
+    name: 'PebbleRobo robot, fully assembled',
     label: 'Fully assembled',
     pitch: 'Built, flashed and tested. Plug it in and it wakes up.',
     sku: SKU,
@@ -301,7 +307,7 @@ export const EDITION: Record<Edition, {
     prep: 'We build it, flash the firmware, and test the face and both servos before it is boxed.',
   },
   kit: {
-    name: 'Pebble-chan build kit',
+    name: 'PebbleRobo build kit',
     label: 'Build-it-yourself kit',
     pitch: 'The same robot as eight parts. One evening, no soldering.',
     sku: KIT_SKU,

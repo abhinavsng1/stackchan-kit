@@ -37,7 +37,7 @@ export function emailConfigured(): boolean {
 const firstName = (full: string) => full.trim().split(/\s+/)[0]
 
 export function reservationSubject() {
-  return 'Your Pebble-chan is reserved'
+  return 'Your PebbleRobo is reserved'
 }
 
 function deliveryDetails(r: PreorderRecord) {
@@ -60,7 +60,7 @@ export function reservationText(r: PreorderRecord) {
   const delivery = deliveryDetails(r)
   return `Hi ${firstName(r.name)},
 
-Your Pebble-chan is reserved. Nothing has been charged, and nothing will be
+Your PebbleRobo is reserved. Nothing has been charged, and nothing will be
 until we write to you again.
 
 WHAT YOU RESERVED
@@ -82,7 +82,7 @@ Questions, changes, second thoughts: reply to this message. A person reads it.
 - Pebble Robo
   ${CONTACT.email}
 
-Pebble-chan is based on the open-source Stack-chan project by Shinya Ishikawa
+PebbleRobo is based on the open-source Stack-chan project by Shinya Ishikawa
 and contributors, used under the Apache License 2.0.`
 }
 
@@ -103,7 +103,7 @@ export function reservationHtml(r: PreorderRecord) {
   <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">You're on the list, ${esc(firstName(r.name))}.</h1>
 
   <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
-    Your Pebble-chan is reserved. Nothing has been charged, and nothing will be
+    Your PebbleRobo is reserved. Nothing has been charged, and nothing will be
     until we write to you again.
   </p>
 
@@ -139,7 +139,7 @@ export function reservationHtml(r: PreorderRecord) {
   <hr style="border:0;border-top:1px solid #e2e7ec;margin:0 0 16px">
   <p style="margin:0;font-size:12px;line-height:1.6;color:#5a6672">
     Pebble Robo &middot; <a href="mailto:${CONTACT.email}" style="color:#2f6bff">${CONTACT.email}</a><br>
-    Pebble-chan is based on the open-source
+    PebbleRobo is based on the open-source
     <a href="https://github.com/meganetaaan/stack-chan" style="color:#5a6672">Stack-chan</a>
     project by Shinya Ishikawa and contributors, used under the Apache License 2.0.
   </p>
@@ -218,7 +218,7 @@ const rupees = (paise: number) =>
   '₹' + (paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })
 
 export function receiptSubject() {
-  return 'Booking confirmed — your Pebble-chan is reserved'
+  return 'Booking confirmed — your PebbleRobo is reserved'
 }
 
 /** The address as it will be printed on the label, or nothing if absent. */
@@ -235,7 +235,7 @@ export function receiptText(r: Receipt) {
   const to = shipsTo(r)
   return `Hi ${firstName(r.name)},
 
-Your booking has gone through and your Pebble-chan is reserved.
+Your booking has gone through and your PebbleRobo is reserved.
 
 WHAT YOU ORDERED
   ${editionOf(r.edition).name}  x${r.qty}
@@ -280,7 +280,7 @@ export function receiptHtml(r: Receipt) {
 <html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
   <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Booking confirmed</p>
-  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your Pebble-chan is reserved, ${esc(firstName(r.name))}.</h1>
+  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your PebbleRobo is reserved, ${esc(firstName(r.name))}.</h1>
 
   <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
     Your booking deposit has gone through. The rest is paid in cash when it

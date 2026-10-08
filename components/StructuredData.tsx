@@ -41,7 +41,7 @@ export default function StructuredData() {
     {
       '@type': 'Product',
       '@id': `${SITE}/#product`,
-      name: 'Pebble-chan desktop robot',
+      name: 'PebbleRobo desktop robot',
       description:
         'A desktop robot with a face, based on the open-source Stack-chan project, sold fully ' +
         'assembled and tested or as a build kit at the same price. An M5Stack CoreS3 Lite on two ' +

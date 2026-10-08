@@ -26,7 +26,7 @@ afterEach(() => { process.env = { ...env } })
 
 describe('confirmation content', () => {
   it('says what it is about', () => {
-    expect(reservationSubject()).toBe('Your Pebble-chan is reserved')
+    expect(reservationSubject()).toBe('Your PebbleRobo is reserved')
   })
 
   it.each([['text', reservationText], ['html', reservationHtml]])(
@@ -128,21 +128,21 @@ describe('the receipt names what is coming', () => {
   it('says robot for the robot, and says it is built for them', async () => {
     const { receiptText, receiptHtml } = await import('@/lib/email')
     const text = receiptText({ ...paid, edition: 'assembled' })
-    expect(text).toContain('Pebble-chan robot, fully assembled')
+    expect(text).toContain('PebbleRobo robot, fully assembled')
     expect(text).toMatch(/We build it/)
     expect(text).not.toMatch(/build kit/)
-    expect(receiptHtml({ ...paid, edition: 'assembled' })).toContain('Pebble-chan robot, fully assembled')
+    expect(receiptHtml({ ...paid, edition: 'assembled' })).toContain('PebbleRobo robot, fully assembled')
   })
 
   it('says kit for the kit', async () => {
     const { receiptText } = await import('@/lib/email')
     const text = receiptText({ ...paid, edition: 'kit' })
-    expect(text).toContain('Pebble-chan build kit')
+    expect(text).toContain('PebbleRobo build kit')
     expect(text).toMatch(/We match the parts/)
   })
 
   it('treats a receipt with no edition as a kit, the only thing sold before', async () => {
     const { receiptText } = await import('@/lib/email')
-    expect(receiptText(paid)).toContain('Pebble-chan build kit')
+    expect(receiptText(paid)).toContain('PebbleRobo build kit')
   })
 })

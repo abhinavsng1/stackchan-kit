@@ -5,7 +5,7 @@ import { CONTACT } from '@/lib/kit'
 export const metadata: Metadata = {
   title: 'Privacy · Pebble Robo',
   description:
-    'What Pebble Robo stores when you order a Pebble-chan, what is measured on the site, and how to have it deleted.',
+    'What Pebble Robo stores when you order a PebbleRobo, what is measured on the site, and how to have it deleted.',
   alternates: { canonical: '/privacy' },
 }
 
@@ -23,7 +23,7 @@ export default function Privacy() {
       <ul>
         <li><strong>Name, email, phone</strong> — to identify the order and tell you when it ships.</li>
         <li><strong>Shipping address, city, PIN code</strong> — to put on the parcel.</li>
-        <li><strong>Profession</strong> — optional, and only so we know who Pebble-chan is reaching. Leave it blank.</li>
+        <li><strong>Profession</strong> — optional, and only so we know who PebbleRobo is reaching. Leave it blank.</li>
         <li><strong>Quantity, amount paid, and the payment id</strong> — the record of the sale.</li>
       </ul>
       <p>
@@ -120,7 +120,7 @@ export default function Privacy() {
 
       <h2>Children</h2>
       <p>
-        Pebble-chan is sold to adults. We do not knowingly collect details from anyone under 18.
+        PebbleRobo is sold to adults. We do not knowingly collect details from anyone under 18.
       </p>
 
       <h2>Changes</h2>

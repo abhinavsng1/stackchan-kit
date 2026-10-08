@@ -1,0 +1,152 @@
+<!doctype html>
+<meta charset="utf-8"><title>site renders</title>
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">
+{"imports":{"three":"/node_modules/three/build/three.module.js","three/":"/node_modules/three/"}}
+</script>
+<script type="module">
+/**
+ * The site's product renders, from the same rigged model the live robot uses
+ * (public/models/pebble-v3.glb), so a render and the robot on the page cannot
+ * disagree about which way the base faces or how the head turns.
+ *
+ * Renders on a transparent ground; build-site.mjs composites the studio
+ * sweep, the contact shadow and the stage behind it.
+ */
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { MOODS, drawCompanion } from './.gen/companion-face.js'
+import { dressRobot } from './.gen/robot-look.js'
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+renderer.setPixelRatio(1)
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.0
+renderer.setClearColor(0x000000, 0)
+document.body.appendChild(renderer.domElement)
+
+const scene = new THREE.Scene()
+const pmrem = new THREE.PMREMGenerator(renderer)
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+
+// Two lighting set-ups: 'studio' is a big soft key and a white fill, the way
+// a product is shot on a sweep; 'stage' is low ambient with a warm key and a
+// cool rim, for the one dark section.
+/** A directional light, placed. (position is read-only on Object3D, so it is set, not assigned.) */
+function dl(color, intensity, x, y, z) { const l = new THREE.DirectionalLight(color, intensity); l.position.set(x, y, z); return l }
+
+const lights = {
+  studio: [
+    dl(0xffffff, 2.0, -110, 170, -150),
+    dl(0xffffff, 0.8, 160, 90, -60),
+    dl(0xffffff, 0.6, 0, 120, 180),
+    new THREE.AmbientLight(0xffffff, 0.75),
+  ],
+  stage: [
+    dl(0xfff0e0, 2.4, -90, 140, -150),
+    dl(0xd2552f, 1.6, 170, 60, 110),
+    dl(0xbcd6ff, 1.1, -170, 60, 110),
+    new THREE.AmbientLight(0xffffff, 0.22),
+  ],
+}
+for (const set of Object.values(lights)) for (const l of set) { l.visible = false; scene.add(l) }
+function light(name) { for (const [k, set] of Object.entries(lights)) for (const l of set) l.visible = k === name }
+
+const draco = new DRACOLoader()
+draco.setDecoderPath('/node_modules/three/examples/jsm/libs/draco/gltf/')
+const loader = new GLTFLoader(); loader.setDRACOLoader(draco)
+const gltf = await loader.loadAsync('/public/models/pebble-v3.glb')
+const template = gltf.scene
+
+/** One robot: its own materials, its own face, its own pose. */
+function makeRobot() {
+  const root = template.clone(true)
+  // The same look the live robot wears: glass display, grey frame, matte shell.
+  const look = dressRobot(THREE, root)
+  const pan = root.getObjectByName('Neck_Pan')
+  const tilt = root.getObjectByName('Head_Tilt')
+  const rest = {
+    pan: pan.position.clone(), tilt: tilt.position.clone(),
+    parts: ['CoreS3', 'Screen_Bezel', 'Screen'].map((n) => {
+      const o = root.getObjectByName(n); return [o, o.position.clone()]
+    }),
+  }
+  return {
+    root,
+    set({ shell: way, mood, pan: p = 0, tilt: t = 0, explode = 0, clock = 0, speak = 0 }) {
+      look.setShell(way)
+      // clock is the face's own time in ms: 0 is eyes open, mid-breath.
+      drawCompanion(look.ctx, MOODS.find((m) => m.id === mood) ?? MOODS[0], clock, speak)
+      look.update()
+      pan.rotation.z = THREE.MathUtils.degToRad(p)
+      tilt.rotation.x = THREE.MathUtils.degToRad(t)
+      // Exploded: each stage lifts off the one below along the CAD up axis
+      // (Z), and the controller slides out of the head towards the front (+Y).
+      // Gaps are generous on purpose: a part half out of place reads as
+      // broken; one clearly apart reads as an exploded view.
+      pan.position.copy(rest.pan).add(new THREE.Vector3(0, 0, 18 * explode))
+      tilt.position.copy(rest.tilt).add(new THREE.Vector3(0, 0, 18 * explode))
+      for (const [o, pos] of rest.parts) o.position.copy(pos).add(new THREE.Vector3(0, 34 * explode, 0))
+    },
+  }
+}
+
+const robots = []
+const camera = new THREE.PerspectiveCamera(26, 1, 1, 6000)
+
+/**
+ * Render one shot. `robots` is a list of per-robot settings; more than one
+ * lines them up along X. Returns the PNG and the robots' footprint in pixels,
+ * so the compositor knows where to put the shadow.
+ */
+window.__render = ({ w, h, look = 'studio', dir = [-0.55, 0.18, -0.82], fill = 0.92, units, keepCamera = false, aim = [0, 0, 0] }) => {
+  while (robots.length < units.length) { const r = makeRobot(); robots.push(r); scene.add(r.root) }
+  robots.forEach((r, i) => { r.root.visible = i < units.length })
+  const spacing = 78
+  units.forEach((u, i) => {
+    robots[i].set(u)
+    robots[i].root.position.set((i - (units.length - 1) / 2) * spacing, 0, u.z ?? 0)
+  })
+  light(look)
+  renderer.setSize(w, h, false)
+
+  scene.updateMatrixWorld(true)
+  if (keepCamera && window.__last) {
+    renderer.render(scene, camera)
+    return { png: renderer.domElement.toDataURL('image/png'), foot: window.__last }
+  }
+  const box = new THREE.Box3()
+  robots.forEach((r, i) => { if (i < units.length) box.expandByObject(r.root) })
+  const centre = box.getCenter(new THREE.Vector3())
+  const radius = box.getSize(new THREE.Vector3()).length() / 2
+
+  camera.aspect = w / h
+  const vFov = THREE.MathUtils.degToRad(camera.fov)
+  const fitH = radius / Math.sin(vFov / 2)
+  const fitW = radius / Math.sin(Math.atan(Math.tan(vFov / 2) * camera.aspect))
+  const d = new THREE.Vector3(...dir).normalize()
+  // aim nudges the point the camera looks at, in model millimetres, for
+  // close-ups that should centre on the face rather than the whole body.
+  const target = centre.clone().add(new THREE.Vector3(...aim))
+  camera.position.copy(target).addScaledVector(d, Math.max(fitH, fitW) * fill)
+  camera.lookAt(target)
+  camera.updateProjectionMatrix()
+  renderer.render(scene, camera)
+
+  // The footprint: where the bottom of the bounding box lands on screen.
+  const pts = []
+  for (const x of [box.min.x, box.max.x]) for (const z of [box.min.z, box.max.z]) {
+    const p = new THREE.Vector3(x, box.min.y, z).project(camera)
+    pts.push([(p.x + 1) / 2 * w, (1 - p.y) / 2 * h])
+  }
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
+  window.__last = { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) }
+  return {
+    png: renderer.domElement.toDataURL('image/png'),
+    foot: { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) },
+  }
+}
+window.__ready = true
+</script>

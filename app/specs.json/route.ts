@@ -13,7 +13,7 @@ export const dynamic = 'force-static'
 
 export function GET() {
   const body = {
-    product: 'Pebble-chan',
+    product: 'PebbleRobo',
     sku: { assembled: 'PBL-BOT-01', kit: 'PBL-KIT-01' },
     price_inr: { total: 4999, booking: 499, on_delivery: 4500 },
     firmware: { project: 'Stack-chan', licence: 'Apache-2.0' },

@@ -57,6 +57,8 @@ function blinkAmount(t: number): number {
  */
 export function drawCompanion(
   ctx: CanvasRenderingContext2D, mood: FaceMood, t: number,
+  /** How far the mouth is open while it speaks, 0 to 1. 0 draws the mood's own mouth. */
+  speak = 0,
 ): void {
   const { w, h } = PANEL
   ctx.clearRect(0, 0, w, h)
@@ -105,6 +107,37 @@ export function drawCompanion(
     }
   }
 
+  if (speak > 0.02) drawSpeech(ctx, mood, speak, y)
+  else drawMouth(ctx, mood, blink, y)
+
+  // The glass. A soft diagonal sheen from the top left and a bright hairline
+  // along the top edge — what a glossy panel shows under a window, and what
+  // makes it read as glass rather than as a picture of a face.
+  const sheen = ctx.createLinearGradient(0, 0, w * 0.75, h)
+  sheen.addColorStop(0, 'rgba(255,255,255,0.13)')
+  sheen.addColorStop(0.32, 'rgba(255,255,255,0.04)')
+  sheen.addColorStop(0.33, 'rgba(255,255,255,0)')
+  ctx.fillStyle = sheen
+  ctx.fillRect(0, 0, w, h)
+  const edge = ctx.createLinearGradient(0, 0, 0, 10)
+  edge.addColorStop(0, 'rgba(255,255,255,0.18)')
+  edge.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = edge
+  ctx.fillRect(0, 0, w, 10)
+}
+
+/** A mouth mid-word: a rounded opening that grows with the sound. */
+function drawSpeech(ctx: CanvasRenderingContext2D, mood: FaceMood, open: number, y: number) {
+  const { w } = PANEL
+  const mw = 22 + open * 14
+  const mh = 6 + open * 20
+  ctx.fillStyle = `${mood.glow}dd`
+  roundRect(ctx, w / 2 - mw / 2, y + 62 - mh / 2, mw, mh, Math.min(mw, mh) / 2)
+  ctx.fill()
+}
+
+function drawMouth(ctx: CanvasRenderingContext2D, mood: FaceMood, blink: number, y: number) {
+  const { w } = PANEL
   if (mood.mouth === 'smile' && blink < 0.5) {
     ctx.strokeStyle = `${mood.glow}cc`
     ctx.lineWidth = 7
