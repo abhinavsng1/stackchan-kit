@@ -164,26 +164,38 @@ function rrPath(w: number, h: number, r: number): THREE.Path {
  */
 function glassGeometry(w: number, h: number, r: number, { K = 14, N = 30, roll = 2.6, height = 0.95, dome = 0.45 } = {}) {
   const dmax = Math.min(w, h) / 2 - 0.6
-  const rings: number[][] = []
+  const pos: number[] = [], nrm: number[] = [], uv: number[] = [], idx: number[] = []
+  let M = 0
   for (let i = 0; i <= N; i++) {
     const d = dmax * Math.pow(i / N, 1.9)
     const a = w / 2 - d, b = h / 2 - d, rr = Math.max(r - d, 0.0001)
+    // The edge rolls off over `roll` mm: a quarter circle in profile.
     const tr = Math.min(d / roll, 1)
-    const z = height * Math.sqrt(Math.max(0, 1 - (1 - tr) * (1 - tr))) + dome * (1 - Math.pow(1 - d / dmax, 2))
-    const ring: number[] = []
+    const edge = height * Math.sqrt(Math.max(0, 1 - (1 - tr) * (1 - tr)))
+    const slope = tr < 1 ? Math.min(8, height * (1 - tr) / (roll * Math.max(1e-3, Math.sqrt(1 - (1 - tr) * (1 - tr))))) : 0
     const corners: [number, number, number][] = [[a - rr, b - rr, 0], [-(a - rr), b - rr, Math.PI / 2], [-(a - rr), -(b - rr), Math.PI], [a - rr, -(b - rr), Math.PI * 1.5]]
+    M = 0
     for (const [cx, cy, a0] of corners) {
-      for (let k = 0; k <= K; k++) { const t = a0 + k / K * Math.PI / 2; ring.push(cx + rr * Math.cos(t), cy + rr * Math.sin(t), z) }
+      for (let k = 0; k <= K; k++, M++) {
+        const t = a0 + k / K * Math.PI / 2
+        const ox = Math.cos(t), oy = Math.sin(t)
+        const x = cx + rr * ox, y = cy + rr * oy
+        // The dome is a smooth function of position, and the normals are its
+        // exact gradient rather than an average of the triangles: the rings
+        // collapse to points at the corners, and averaged normals broke
+        // along the diagonals into a pyramid of reflections across the screen.
+        const u = x / (w / 2), v = y / (h / 2)
+        const fu = Math.max(0, 1 - u * u), fv = Math.max(0, 1 - v * v)
+        const z = edge + dome * fu * fv
+        const gx = -slope * ox + dome * (-2 * u / (w / 2)) * fv
+        const gy = -slope * oy + dome * (-2 * v / (h / 2)) * fu
+        const n = new THREE.Vector3(-gx, -gy, 1).normalize()
+        pos.push(x, y, z); nrm.push(n.x, n.y, n.z); uv.push(x / w + 0.5, y / h + 0.5)
+      }
     }
-    rings.push(ring)
-  }
-  const M = rings[0].length / 3, pos: number[] = [], uv: number[] = [], idx: number[] = []
-  for (const ring of rings) for (let j = 0; j < M; j++) {
-    const x = ring[j * 3], y = ring[j * 3 + 1]
-    pos.push(x, y, ring[j * 3 + 2]); uv.push(x / w + 0.5, y / h + 0.5)
   }
   const c = pos.length / 3
-  pos.push(0, 0, height + dome); uv.push(0.5, 0.5)
+  pos.push(0, 0, height + dome); nrm.push(0, 0, 1); uv.push(0.5, 0.5)
   for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) {
     const j2 = (j + 1) % M, a = i * M + j, b = i * M + j2, cc = (i + 1) * M + j, d = (i + 1) * M + j2
     idx.push(a, b, d, a, d, cc)
@@ -191,9 +203,9 @@ function glassGeometry(w: number, h: number, r: number, { K = 14, N = 30, roll =
   for (let j = 0; j < M; j++) idx.push(N * M + j, N * M + (j + 1) % M, c)
   const g = new THREE.BufferGeometry()
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3))
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
   g.setIndex(idx)
-  g.computeVertexNormals()
   return g
 }
 
@@ -401,13 +413,17 @@ export function buildRobot(parts: Template, way: Colourway): Robot {
     pose: ({ pan: p = 0, tilt: t = 0, explode: e = 0 }) => {
       pan.rotation.y = THREE.MathUtils.degToRad(p)
       tilt.rotation.x = -THREE.MathUtils.degToRad(t)
-      // Exploded: each stage lifts off the one below, the Lite slides out of
-      // the head to the front, and the servos slide out to either side.
-      pan.position.y = 18 * e
-      tilt.position.y = TILT_Y + 18 * e
-      lite.position.copy(rest.lite).add(new THREE.Vector3(0, 0, 34 * e))
-      tiltServo.position.copy(rest.tiltServo).add(new THREE.Vector3(30 * e, 0, 0))
-      panServo.position.copy(rest.panServo).add(new THREE.Vector3(-30 * e, 0, 0))
+      // Exploded, along the axes the parts actually go together on: the
+      // neck lifts off the base, the head lifts clear of the neck (it is
+      // slid on over it), the tilt servo rises out of the top of the neck
+      // where it lies, and the Lite comes forward off the head's front
+      // frame. Nothing moves sideways through a wall; the pan servo stays
+      // seated in the neck, shaft down, as it is assembled.
+      pan.position.y = 14 * e
+      tilt.position.y = TILT_Y + 44 * e
+      lite.position.copy(rest.lite).add(new THREE.Vector3(0, 0, 30 * e))
+      tiltServo.position.copy(rest.tiltServo).add(new THREE.Vector3(0, 12 * e, 0))
+      panServo.position.copy(rest.panServo)
     },
     dispose: () => {
       faceTex.dispose(); glassMat.dispose()
@@ -423,6 +439,8 @@ export function buildRobot(parts: Template, way: Colourway): Robot {
 export type Studio = {
   /** Fit the key light's shadow to what is in frame; `at` is where each robot stands. */
   fitShadow: (box: THREE.Box3, at?: { x: number; z: number }[]) => void
+  /** Give a robot's display the dark room to reflect. Call once per robot added. */
+  adopt: (root: THREE.Object3D) => void
   /** Turn the room a little, so the reflections slide as the pointer moves. */
   turn: (radians: number) => void
   dispose: () => void
@@ -433,7 +451,7 @@ export function configureRenderer(renderer: THREE.WebGLRenderer) {
   renderer.toneMapping = THREE.NeutralToneMapping
   renderer.toneMappingExposure = 1.0
   renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  renderer.shadowMap.type = THREE.PCFShadowMap
 }
 
 /**
@@ -448,14 +466,29 @@ export function makeStudio(renderer: THREE.WebGLRenderer, scene: THREE.Scene, {
 }: { ground?: 'clear' | 'dark'; shadow?: number; reflectionSize?: [number, number] } = {}): Studio {
   const disposables: { dispose: () => void }[] = []
 
-  // The room: dark, with feathered softboxes, so the clear coat and the glass
-  // show soft gradients instead of hard-edged reflections.
+  // The room: dark above, with feathered softboxes, so the clear coat and
+  // the glass show soft gradients instead of hard-edged reflections.
+  //
+  // Below the horizon is the surface it stands on. On a light page that is a
+  // white table, and it matters: the base is all flat vertical walls, and a
+  // flat glossy wall seen from above reflects what is below the horizon. A
+  // black floor left the feet looking matte while the rounded head caught
+  // the softboxes; a white one gives the whole shell the same gloss, top to
+  // bottom. The dark stage keeps its dark floor.
+  //
+  // The display's glass always sees the dark room, white table or not: a
+  // black panel that mirrored the table showed a grey pyramid across its
+  // curved edges instead of the deep black and the softbox glints it should.
+  const buildRoom = (darkFloor: boolean) => {
   const room = new THREE.Scene()
-  const sphere = new THREE.SphereGeometry(100, 48, 24)
+  const sphere = new THREE.SphereGeometry(100, 64, 32)
   const col: number[] = [], p = sphere.attributes.position
+  const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t) }
   for (let i = 0; i < p.count; i++) {
     const y = p.getY(i) / 100
-    const v = y > 0 ? 0.03 + 0.05 * y : 0.018 + 0.01 * (1 + y)
+    const ceiling = 0.03 + 0.05 * Math.max(0, y)
+    const floor = darkFloor ? 0.018 + 0.01 * (1 + Math.min(0, y)) : 0.46 - 0.16 * Math.abs(Math.min(0, y))
+    const v = floor + (ceiling - floor) * smooth(-0.1, 0.22, y)
     col.push(v, v, v * 1.03)
   }
   sphere.setAttribute('color', new THREE.Float32BufferAttribute(col, 3))
@@ -485,9 +518,14 @@ export function makeStudio(renderer: THREE.WebGLRenderer, scene: THREE.Scene, {
   box(50, 18, [24, 30, 82], 1.8, [1, 1, 1], 0.35, 0.4)    // front panel: the glint on the glass
   box(4, 64, [-30, 30, 80], 2.6, [1, 1, 1], 0.25, 0.3)    // thin vertical glint line
   box(70, 12, [0, 36, -86], 3.0, [1, 1, 1], 0.3, 0.35)    // back rim
+  return room
+  }
   const pmrem = new THREE.PMREMGenerator(renderer)
-  const env = pmrem.fromScene(room, 0.02)
+  const env = pmrem.fromScene(buildRoom(ground === 'dark'), 0.02)
+  const glassEnv = ground === 'dark' ? env : pmrem.fromScene(buildRoom(true), 0.02)
   pmrem.dispose()
+  if (glassEnv !== env) disposables.push(glassEnv)
+  const glasses: THREE.MeshPhysicalMaterial[] = []
   scene.environment = env.texture
   scene.environmentIntensity = 1
   disposables.push(env)
@@ -600,7 +638,16 @@ export function makeStudio(renderer: THREE.WebGLRenderer, scene: THREE.Scene, {
       })
       if (reflector) reflector.position.x = c.x
     },
-    turn: (r) => { scene.environmentRotation.y = r },
+    adopt: (root) => {
+      root.traverse((o) => {
+        const m = (o as THREE.Mesh).material as THREE.MeshPhysicalMaterial | undefined
+        if (o.name === 'Screen' && m && !glasses.includes(m)) { m.envMap = glassEnv.texture; m.needsUpdate = true; glasses.push(m) }
+      })
+    },
+    turn: (r) => {
+      scene.environmentRotation.y = r
+      for (const m of glasses) m.envMapRotation.y = r
+    },
     dispose: () => {
       for (const d of disposables) d.dispose()
       scene.remove(key, key.target, rim, catcher, ...blobs)

@@ -136,31 +136,41 @@ function rrPath(w, h, r) {
  */
 function glassGeometry(w, h, r, { K = 14, N = 30, roll = 2.6, height = 0.95, dome = 0.45 } = {}) {
     const dmax = Math.min(w, h) / 2 - 0.6;
-    const rings = [];
+    const pos = [], nrm = [], uv = [], idx = [];
+    let M = 0;
     for (let i = 0; i <= N; i++) {
         const d = dmax * Math.pow(i / N, 1.9);
         const a = w / 2 - d, b = h / 2 - d, rr = Math.max(r - d, 0.0001);
+        // The edge rolls off over `roll` mm: a quarter circle in profile.
         const tr = Math.min(d / roll, 1);
-        const z = height * Math.sqrt(Math.max(0, 1 - (1 - tr) * (1 - tr))) + dome * (1 - Math.pow(1 - d / dmax, 2));
-        const ring = [];
+        const edge = height * Math.sqrt(Math.max(0, 1 - (1 - tr) * (1 - tr)));
+        const slope = tr < 1 ? Math.min(8, height * (1 - tr) / (roll * Math.max(1e-3, Math.sqrt(1 - (1 - tr) * (1 - tr))))) : 0;
         const corners = [[a - rr, b - rr, 0], [-(a - rr), b - rr, Math.PI / 2], [-(a - rr), -(b - rr), Math.PI], [a - rr, -(b - rr), Math.PI * 1.5]];
+        M = 0;
         for (const [cx, cy, a0] of corners) {
-            for (let k = 0; k <= K; k++) {
+            for (let k = 0; k <= K; k++, M++) {
                 const t = a0 + k / K * Math.PI / 2;
-                ring.push(cx + rr * Math.cos(t), cy + rr * Math.sin(t), z);
+                const ox = Math.cos(t), oy = Math.sin(t);
+                const x = cx + rr * ox, y = cy + rr * oy;
+                // The dome is a smooth function of position, and the normals are its
+                // exact gradient rather than an average of the triangles: the rings
+                // collapse to points at the corners, and averaged normals broke
+                // along the diagonals into a pyramid of reflections across the screen.
+                const u = x / (w / 2), v = y / (h / 2);
+                const fu = Math.max(0, 1 - u * u), fv = Math.max(0, 1 - v * v);
+                const z = edge + dome * fu * fv;
+                const gx = -slope * ox + dome * (-2 * u / (w / 2)) * fv;
+                const gy = -slope * oy + dome * (-2 * v / (h / 2)) * fu;
+                const n = new THREE.Vector3(-gx, -gy, 1).normalize();
+                pos.push(x, y, z);
+                nrm.push(n.x, n.y, n.z);
+                uv.push(x / w + 0.5, y / h + 0.5);
             }
         }
-        rings.push(ring);
     }
-    const M = rings[0].length / 3, pos = [], uv = [], idx = [];
-    for (const ring of rings)
-        for (let j = 0; j < M; j++) {
-            const x = ring[j * 3], y = ring[j * 3 + 1];
-            pos.push(x, y, ring[j * 3 + 2]);
-            uv.push(x / w + 0.5, y / h + 0.5);
-        }
     const c = pos.length / 3;
     pos.push(0, 0, height + dome);
+    nrm.push(0, 0, 1);
     uv.push(0.5, 0.5);
     for (let i = 0; i < N; i++)
         for (let j = 0; j < M; j++) {
@@ -171,9 +181,9 @@ function glassGeometry(w, h, r, { K = 14, N = 30, roll = 2.6, height = 0.95, dom
         idx.push(N * M + j, N * M + (j + 1) % M, c);
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     g.setIndex(idx);
-    g.computeVertexNormals();
     return g;
 }
 function canvasTexture(w, h, paint) {
@@ -416,13 +426,17 @@ export function buildRobot(parts, way) {
         pose: ({ pan: p = 0, tilt: t = 0, explode: e = 0 }) => {
             pan.rotation.y = THREE.MathUtils.degToRad(p);
             tilt.rotation.x = -THREE.MathUtils.degToRad(t);
-            // Exploded: each stage lifts off the one below, the Lite slides out of
-            // the head to the front, and the servos slide out to either side.
-            pan.position.y = 18 * e;
-            tilt.position.y = TILT_Y + 18 * e;
-            lite.position.copy(rest.lite).add(new THREE.Vector3(0, 0, 34 * e));
-            tiltServo.position.copy(rest.tiltServo).add(new THREE.Vector3(30 * e, 0, 0));
-            panServo.position.copy(rest.panServo).add(new THREE.Vector3(-30 * e, 0, 0));
+            // Exploded, along the axes the parts actually go together on: the
+            // neck lifts off the base, the head lifts clear of the neck (it is
+            // slid on over it), the tilt servo rises out of the top of the neck
+            // where it lies, and the Lite comes forward off the head's front
+            // frame. Nothing moves sideways through a wall; the pan servo stays
+            // seated in the neck, shaft down, as it is assembled.
+            pan.position.y = 14 * e;
+            tilt.position.y = TILT_Y + 44 * e;
+            lite.position.copy(rest.lite).add(new THREE.Vector3(0, 0, 30 * e));
+            tiltServo.position.copy(rest.tiltServo).add(new THREE.Vector3(0, 12 * e, 0));
+            panServo.position.copy(rest.panServo);
         },
         dispose: () => {
             faceTex.dispose();
@@ -448,55 +462,76 @@ export function configureRenderer(renderer) {
  */
 export function makeStudio(renderer, scene, { ground = 'clear', shadow = 0.38, reflectionSize = [1024, 1024], } = {}) {
     const disposables = [];
-    // The room: dark, with feathered softboxes, so the clear coat and the glass
-    // show soft gradients instead of hard-edged reflections.
-    const room = new THREE.Scene();
-    const sphere = new THREE.SphereGeometry(100, 48, 24);
-    const col = [], p = sphere.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-        const y = p.getY(i) / 100;
-        const v = y > 0 ? 0.03 + 0.05 * y : 0.018 + 0.01 * (1 + y);
-        col.push(v, v, v * 1.03);
-    }
-    sphere.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    room.add(new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ side: THREE.BackSide, vertexColors: true })));
-    const soft = (fx, fy) => {
-        const c = document.createElement('canvas');
-        c.width = c.height = 256;
-        const g = c.getContext('2d');
-        const lin = (horiz, f) => {
-            const gr = horiz ? g.createLinearGradient(0, 0, 256, 0) : g.createLinearGradient(0, 0, 0, 256);
-            gr.addColorStop(0, 'rgba(255,255,255,0)');
-            gr.addColorStop(f, '#fff');
-            gr.addColorStop(1 - f, '#fff');
-            gr.addColorStop(1, 'rgba(255,255,255,0)');
-            return gr;
+    // The room: dark above, with feathered softboxes, so the clear coat and
+    // the glass show soft gradients instead of hard-edged reflections.
+    //
+    // Below the horizon is the surface it stands on. On a light page that is a
+    // white table, and it matters: the base is all flat vertical walls, and a
+    // flat glossy wall seen from above reflects what is below the horizon. A
+    // black floor left the feet looking matte while the rounded head caught
+    // the softboxes; a white one gives the whole shell the same gloss, top to
+    // bottom. The dark stage keeps its dark floor.
+    //
+    // The display's glass always sees the dark room, white table or not: a
+    // black panel that mirrored the table showed a grey pyramid across its
+    // curved edges instead of the deep black and the softbox glints it should.
+    const buildRoom = (darkFloor) => {
+        const room = new THREE.Scene();
+        const sphere = new THREE.SphereGeometry(100, 64, 32);
+        const col = [], p = sphere.attributes.position;
+        const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+        for (let i = 0; i < p.count; i++) {
+            const y = p.getY(i) / 100;
+            const ceiling = 0.03 + 0.05 * Math.max(0, y);
+            const floor = darkFloor ? 0.018 + 0.01 * (1 + Math.min(0, y)) : 0.46 - 0.16 * Math.abs(Math.min(0, y));
+            const v = floor + (ceiling - floor) * smooth(-0.1, 0.22, y);
+            col.push(v, v, v * 1.03);
+        }
+        sphere.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+        room.add(new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ side: THREE.BackSide, vertexColors: true })));
+        const soft = (fx, fy) => {
+            const c = document.createElement('canvas');
+            c.width = c.height = 256;
+            const g = c.getContext('2d');
+            const lin = (horiz, f) => {
+                const gr = horiz ? g.createLinearGradient(0, 0, 256, 0) : g.createLinearGradient(0, 0, 0, 256);
+                gr.addColorStop(0, 'rgba(255,255,255,0)');
+                gr.addColorStop(f, '#fff');
+                gr.addColorStop(1 - f, '#fff');
+                gr.addColorStop(1, 'rgba(255,255,255,0)');
+                return gr;
+            };
+            g.fillStyle = lin(true, fx);
+            g.fillRect(0, 0, 256, 256);
+            g.globalCompositeOperation = 'destination-in';
+            g.fillStyle = lin(false, fy);
+            g.fillRect(0, 0, 256, 256);
+            return new THREE.CanvasTexture(c);
         };
-        g.fillStyle = lin(true, fx);
-        g.fillRect(0, 0, 256, 256);
-        g.globalCompositeOperation = 'destination-in';
-        g.fillStyle = lin(false, fy);
-        g.fillRect(0, 0, 256, 256);
-        return new THREE.CanvasTexture(c);
+        const box = (w, h, pos, k, tint = [1, 1, 1], fx = 0.3, fy = 0.2) => {
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({
+                color: new THREE.Color(tint[0] * k, tint[1] * k, tint[2] * k), map: soft(fx, fy), side: THREE.DoubleSide,
+                transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+            }));
+            mesh.position.set(...pos);
+            mesh.lookAt(0, 0, 0);
+            room.add(mesh);
+        };
+        box(90, 70, [0, 90, 10], 1.6, [1, 1, 1], 0.35, 0.35); // overhead
+        box(18, 90, [-70, 12, 38], 4.6, [1, 0.95, 0.88], 0.42); // key strip, front-left
+        box(14, 90, [76, 8, -12], 2.6, [0.88, 0.94, 1], 0.42); // cool strip, right
+        box(50, 18, [24, 30, 82], 1.8, [1, 1, 1], 0.35, 0.4); // front panel: the glint on the glass
+        box(4, 64, [-30, 30, 80], 2.6, [1, 1, 1], 0.25, 0.3); // thin vertical glint line
+        box(70, 12, [0, 36, -86], 3.0, [1, 1, 1], 0.3, 0.35); // back rim
+        return room;
     };
-    const box = (w, h, pos, k, tint = [1, 1, 1], fx = 0.3, fy = 0.2) => {
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({
-            color: new THREE.Color(tint[0] * k, tint[1] * k, tint[2] * k), map: soft(fx, fy), side: THREE.DoubleSide,
-            transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
-        }));
-        mesh.position.set(...pos);
-        mesh.lookAt(0, 0, 0);
-        room.add(mesh);
-    };
-    box(90, 70, [0, 90, 10], 1.6, [1, 1, 1], 0.35, 0.35); // overhead
-    box(18, 90, [-70, 12, 38], 4.6, [1, 0.95, 0.88], 0.42); // key strip, front-left
-    box(14, 90, [76, 8, -12], 2.6, [0.88, 0.94, 1], 0.42); // cool strip, right
-    box(50, 18, [24, 30, 82], 1.8, [1, 1, 1], 0.35, 0.4); // front panel: the glint on the glass
-    box(4, 64, [-30, 30, 80], 2.6, [1, 1, 1], 0.25, 0.3); // thin vertical glint line
-    box(70, 12, [0, 36, -86], 3.0, [1, 1, 1], 0.3, 0.35); // back rim
     const pmrem = new THREE.PMREMGenerator(renderer);
-    const env = pmrem.fromScene(room, 0.02);
+    const env = pmrem.fromScene(buildRoom(ground === 'dark'), 0.02);
+    const glassEnv = ground === 'dark' ? env : pmrem.fromScene(buildRoom(true), 0.02);
     pmrem.dispose();
+    if (glassEnv !== env)
+        disposables.push(glassEnv);
+    const glasses = [];
     scene.environment = env.texture;
     scene.environmentIntensity = 1;
     disposables.push(env);
@@ -624,7 +659,21 @@ export function makeStudio(renderer, scene, { ground = 'clear', shadow = 0.38, r
             if (reflector)
                 reflector.position.x = c.x;
         },
-        turn: (r) => { scene.environmentRotation.y = r; },
+        adopt: (root) => {
+            root.traverse((o) => {
+                const m = o.material;
+                if (o.name === 'Screen' && m && !glasses.includes(m)) {
+                    m.envMap = glassEnv.texture;
+                    m.needsUpdate = true;
+                    glasses.push(m);
+                }
+            });
+        },
+        turn: (r) => {
+            scene.environmentRotation.y = r;
+            for (const m of glasses)
+                m.envMapRotation.y = r;
+        },
         dispose: () => {
             for (const d of disposables)
                 d.dispose();

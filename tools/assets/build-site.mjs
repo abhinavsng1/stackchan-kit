@@ -24,7 +24,8 @@ import { chromium } from '@playwright/test'
 import { createServer } from 'node:http'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, writeFile, readdir, utimes } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join, extname, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -279,6 +280,21 @@ async function main() {
     note: 'Every entry is a render and is labelled as one on the page.',
     assets: [...manifest.values()],
   }, null, 2) + '\n')
+
+  // The version stamp: a hash of every render, so a page that shows one
+  // through next/image asks for a new URL exactly when it changed
+  // (lib/renders.ts, next.config.ts).
+  const hash = createHash('sha1')
+  for (const dir of ['public/media/render', 'public/media/shots']) {
+    for (const name of (await readdir(join(ROOT, dir))).sort()) hash.update(name).update(await readFile(join(ROOT, dir, name)))
+  }
+  const v = hash.digest('hex').slice(0, 10)
+  await writeFile(join(ROOT, 'lib/render-version.json'), JSON.stringify({ v }) + '\n')
+  console.log(`  render version ${v}`)
+  // next.config.ts allows exactly this stamp and reads it at startup; touching
+  // it makes a running `next dev` reload, so the new URLs are accepted.
+  const now = new Date()
+  await utimes(join(ROOT, 'next.config.ts'), now, now)
 
   await browser.close()
   server.close()

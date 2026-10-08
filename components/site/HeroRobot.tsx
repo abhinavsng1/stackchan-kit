@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { AnimatePresence, motion } from 'motion/react'
 import { SHELLS, type Shell } from '@/lib/shells'
 import Swatch from '@/components/site/Swatch'
+import { rendered } from '@/lib/renders'
 import { MOODS } from '@/lib/companion-face'
 import { EASE } from '@/components/site/motion'
 
@@ -91,7 +92,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
           {SHELLS.map((s, i) => (
             <Image
               key={s.id}
-              src={`/media/shots/float-shell-${s.id}.webp`}
+              src={rendered(`/media/shots/float-shell-${s.id}.webp`)}
               alt={i === LEAD ? 'PebbleRobo, the assembled desk robot' : ''}
               aria-hidden={i !== LEAD}
               width={1400} height={1400} priority={i === LEAD}

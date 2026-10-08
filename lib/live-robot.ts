@@ -46,6 +46,7 @@ export async function start(
   const { scene, camera, studio } = stage
   const robot = buildRobot(parts, shell)
   scene.add(robot.root)
+  studio.adopt(robot.root)
   const screen = robot.root.getObjectByName('Screen') as THREE.Mesh
 
   // Framed from the model's own bounds, exactly as the render pipeline frames

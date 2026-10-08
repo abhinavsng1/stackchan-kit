@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import Image from 'next/image'
 import { SHELLS } from '@/lib/shells'
 import { useLiveScene } from '@/components/site/useLiveScene'
+import { rendered } from '@/lib/renders'
 
 const EMBER = SHELLS.find((s) => s.id === 'ember') ?? SHELLS[0]
 
@@ -22,7 +23,7 @@ export default function LiveTurntable() {
 
   return (
     <div className="media" style={{ aspectRatio: '4 / 5' }}>
-      <Image src="/media/render/meet-face.webp" fill quality={90}
+      <Image src={rendered('/media/render/meet-face.webp')} fill quality={90}
              sizes="(max-width: 768px) 40vw, 420px"
              alt="PebbleRobo in Ember, smiling, on a turntable" className="object-cover"
              style={{ opacity: live ? 0 : 1, transition: 'opacity 600ms var(--ease)' }} />

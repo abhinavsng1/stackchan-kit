@@ -39,6 +39,7 @@ export async function startLineup(host: HTMLElement, {
     robot.root.position.set(at.x, 0, at.z)
     robot.root.rotation.y = THREE.MathUtils.degToRad(at.yaw)
     scene.add(robot.root)
+    studio.adopt(robot.root)
     return {
       robot, at,
       mood: Math.max(0, MOODS.findIndex((m) => m.id === moods[i % moods.length])),

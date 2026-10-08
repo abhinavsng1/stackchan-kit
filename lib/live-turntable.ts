@@ -29,6 +29,7 @@ export async function startTurntable(host: HTMLElement, {
   const { scene, camera, studio } = stage
   const robot = buildRobot(parts, shell)
   scene.add(robot.root)
+  studio.adopt(robot.root)
 
   // Frame the space the robot sweeps as it turns, not just where it stands,
   // so no angle of the turn is cropped.

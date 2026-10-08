@@ -38,6 +38,16 @@ WebCodecs into WebM (VP9) and MP4 (H.264). It rewrites
 `public/media/render/manifest.json`; every entry is a render and the page
 labels it as one.
 
+## Cache-busting
+
+Every run ends by writing `lib/render-version.json`, a hash of all the
+renders. Pages show renders through `rendered()` (`lib/renders.ts`), which
+appends it as `?v=`, and `next.config.ts` allows exactly that query on
+`/media/render` and `/media/shots`. next/image caches optimised copies for
+hours by URL, so without this a re-render showed the old picture until the
+cache ran out. The script touches `next.config.ts` at the end so a running
+`next dev` reloads and accepts the new stamp.
+
 ## Coordinates
 
 The robot faces +Z with Y up, in millimetres. In a shot, `dir` is where the

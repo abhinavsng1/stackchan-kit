@@ -81,7 +81,11 @@ function frameBox(box, dir, target, margin) {
 
 function draw({ w, h, ground = 'studio', dir = [0.55, 0.2, 0.82], fill = 0.92, units, aim = [0, 0, 0], keepCamera = false, spacing = 82, fit = 'sphere', margin = 0.9 }) {
   const room = ground === 'stage' ? rooms.dark : rooms.clear
-  while (robots.length < units.length) robots.push(buildRobot(parts, units[0].shell))
+  while (robots.length < units.length) {
+    const r = buildRobot(parts, units[0].shell)
+    rooms.clear.studio.adopt(r.root)
+    robots.push(r)
+  }
   robots.forEach((r, i) => {
     if (i < units.length) room.scene.add(r.root)
     else r.root.removeFromParent()
