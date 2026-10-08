@@ -15,7 +15,7 @@ export default function OpenSource() {
                     p-6 sm:p-10 lg:p-14 on-dark"
          style={{ background: 'var(--pebble-ink)', borderRadius: 'var(--radius-tile)' }}>
       <div>
-        <p className="t-label m-0 mb-4" style={{ color: 'rgba(243,241,237,.55)' }}>
+        <p className="t-label m-0 mb-4" style={{ color: 'var(--dark-muted)' }}>
           The software
         </p>
         <h2 className="t-display m-0 mb-4"
@@ -23,7 +23,7 @@ export default function OpenSource() {
           Open it up when you are ready.
         </h2>
         <p className="text-[16px] leading-[26px] m-0 mb-7 max-w-[42ch]"
-           style={{ color: 'rgba(243,241,237,.66)' }}>
+           style={{ color: 'var(--muted)' }}>
           It runs Stack-chan the day it arrives. Underneath, the behaviour is
           JavaScript on the Moddable SDK, and the controller is a stock CoreS3,
           so Arduino and M5Unified work too. Nothing here is ours to lock.
@@ -33,7 +33,7 @@ export default function OpenSource() {
             <span key={t} className="t-mono text-[11px] px-2.5 py-1.5"
                   style={{
                     borderRadius: 999,
-                    border: '1px solid rgba(243,241,237,.22)',
+                    border: '1px solid var(--line)',
                     color: 'rgba(243,241,237,.78)',
                   }}>
               {t}

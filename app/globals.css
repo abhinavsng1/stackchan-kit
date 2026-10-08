@@ -16,61 +16,68 @@
 :root {
   /* Dark by default now, so native controls, scrollbars and form fields
      should render dark too. */
-  color-scheme: dark;
+  color-scheme: light;
 
   /* ---- palette ----
-   Near-black ground, two greys of text, one accent. The accent appears
-   only as a tinted pill — an 8% fill under a 35% border — and never as a
-   solid block, which is what stops one bright green taking over the page. */
-  --pebble-ink:      #050505;
-  --pebble-black:    #0d0d0f;
-  --pebble-graphite: #1a1a1d;
-  --pebble-stone:    #8e939b;
-  --pebble-mist:     #c9ccd1;
-  --pebble-sand:     #2a2a2e;
-  --pebble-paper:    #f6f6f4;
+   Warm paper, not a dark console.
+
+   The dark-and-cyan direction was a developer's palette: it reads as a tool
+   you configure rather than as something you would want on a desk at home.
+   A companion wants the opposite — light, warm, low contrast between the
+   ground and the surfaces, and an accent closer to a plant than to a
+   terminal.
+
+   Deliberately not cream-and-terracotta, which is its own exhausted cluster.
+   The ground has a little blush in it and the accent is a sage green, so the
+   page reads domestic rather than editorial. */
+  --pebble-ink:      #2b2420;
+  --pebble-black:    #3a312c;
+  --pebble-graphite: #efe6e0;
+  --pebble-stone:    #938680;
+  --pebble-mist:     #6e615a;
+  --pebble-sand:     #e7dcd5;
+  --pebble-paper:    #f7f1ed;
   --pebble-white:    #ffffff;
 
-  /* ---- roles ----
-   The ground is the dark. This page sells one object with a lit screen on
-   it, and paper flattens the only thing worth looking at. */
-  --bg:        var(--pebble-ink);
-  --surface:   rgba(13, 13, 15, .78);
-  --surface-2: var(--pebble-graphite);
-  --ink:       var(--pebble-paper);
-  --muted:     var(--pebble-mist);
-  --muted-2:   var(--pebble-stone);
-  --line:      rgba(255, 255, 255, .16);
-  --line-soft: rgba(255, 255, 255, .09);
-  --well:      #000000;
+  --bg:        var(--pebble-paper);
+  --surface:   #ffffff;
+  --surface-2: #f1e9e4;
+  --ink:       var(--pebble-ink);
+  --muted:     #6e615a;
+  --muted-2:   #938680;
+  --line:      rgba(43, 36, 32, .14);
+  --line-soft: rgba(43, 36, 32, .07);
+  --well:      var(--pebble-ink);
 
-  /* Light sections, used sparingly as counterweight. */
-  --dark:       var(--pebble-paper);
-  --dark-ink:   var(--pebble-ink);
-  --dark-muted: var(--pebble-stone);
-  --dark-line:  rgba(0, 0, 0, .12);
+  /* Dark sections, as counterweight rather than as the ground. */
+  --dark:       #2b2420;
+  --dark-ink:   #f7f1ed;
+  --dark-muted: #bcaea6;
+  --dark-line:  rgba(247, 241, 237, .16);
 
-  /* One accent. Never a fill on its own. */
-  /* Ours, not borrowed: the cyan the firmware already shows while the robot
-     is talking. One accent, and never a solid field — a tinted wash under a
-     brighter hairline is what keeps it from taking over a near-black page. */
-  --signal:      #5ce1e6;
-  --signal-dk:   #37c3c9;
-  --signal-wash: rgba(92, 225, 230, .08);
-  --signal-line: rgba(92, 225, 230, .38);
-  --signal-glow: rgba(92, 225, 230, .22);
+  /* One accent. A sage, which sits quietly on warm paper and never shouts
+     the way a saturated hue does on black. */
+  --signal:      #6f9468;
+  --signal-dk:   #5a7c54;
+  --signal-wash: rgba(111, 148, 104, .11);
+  --signal-line: rgba(111, 148, 104, .36);
+  --signal-glow: rgba(111, 148, 104, .18);
+  /* The same hue, dark enough for small text. The display accent is set for
+     60px headlines and measures 3.1:1 at 10px, which fails. Glyphs, ticks
+     and eyebrow squares use this instead. */
+  --signal-ink:  #44663e;
 
-  --brand:     var(--pebble-paper);
-  --brand-dk:  var(--pebble-mist);
-  --mint:      var(--pebble-stone);
-  --amber:     var(--pebble-stone);
-  --violet:    var(--pebble-stone);
-  --glow:      var(--pebble-stone);
+  --brand:     var(--pebble-ink);
+  --brand-dk:  var(--pebble-black);
+  --mint:      var(--muted);
+  --amber:     var(--muted);
+  --violet:    var(--muted);
+  --glow:      var(--pebble-sand);
   --screen:    var(--pebble-ink);
-  --flatlay:   var(--pebble-graphite);
+  --flatlay:   var(--surface-2);
 
-  --danger:    #e0614f;
-  --positive:  #5ce1e6;
+  --danger:    #b4493a;
+  --positive:  #5a7c54;
 
   /* ---- type scale, measured ---- */
   --t-h1:      clamp(44px, 6.4vw, 92px);
@@ -695,11 +702,11 @@ h3, .t-sub {
   font-size: 10.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--muted-2) 70%, transparent);
+  color: var(--muted);
   white-space: nowrap;
 }
 
-.marquee-star { color: var(--signal); font-size: 7px; opacity: .65; }
+.marquee-star { color: var(--signal-ink); font-size: 7px; opacity: .8; }
 
 @keyframes marquee-scroll {
   from { transform: translate3d(0, 0, 0); }

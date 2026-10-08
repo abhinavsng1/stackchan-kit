@@ -57,8 +57,8 @@ export default function AnnotatedShot({
         style={inset ? {
           borderRadius: 'var(--radius-tile)',
           background:
-            'radial-gradient(90% 70% at 30% 45%, rgba(255,140,60,.10) 0%, transparent 62%),'
-            + ' linear-gradient(160deg, #101013 0%, #060607 60%)',
+            'radial-gradient(90% 70% at 30% 45%, var(--signal-wash) 0%, transparent 62%),'
+            + ' linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 72%)',
           border: '1px solid var(--line-soft)',
           padding: 'clamp(20px, 4vw, 56px)',
         } : undefined}
@@ -79,7 +79,7 @@ export default function AnnotatedShot({
         {/* A vignette, drawn rather than baked, so the photograph underneath
             is untouched and the chips always have something to sit on. */}
         <div aria-hidden="true" className="absolute inset-0 pointer-events-none"
-             style={{ background: 'radial-gradient(120% 90% at 50% 45%, transparent 38%, rgba(5,5,5,.55) 100%)' }} />
+             style={{ background: 'radial-gradient(120% 90% at 50% 45%, transparent 42%, color-mix(in srgb, var(--ink) 22%, transparent) 100%)' }} />
         </div>
 
         {chips.map((c) => (
@@ -105,11 +105,12 @@ export default function AnnotatedShot({
             <span className="px-3 py-2 backdrop-blur-md whitespace-nowrap"
                   style={{
                     borderRadius: 10,
-                    background: 'rgba(5,5,5,.72)',
-                    border: '1px solid rgba(246,246,244,.16)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--line)',
+                    boxShadow: 'var(--sh-md)',
                   }}>
               <span className="t-mono block text-[10px] uppercase"
-                    style={{ letterSpacing: '.14em', color: 'var(--muted-2)' }}>
+                    style={{ letterSpacing: '.14em', color: 'var(--muted)' }}>
                 {c.label}
               </span>
               <span className="t-mono block text-[12.5px] mt-0.5" style={{ color: 'var(--ink)' }}>
@@ -126,7 +127,7 @@ export default function AnnotatedShot({
         {chips.map((c) => (
           <li key={c.label}>
             <span className="t-mono block text-[10px] uppercase"
-                  style={{ letterSpacing: '.14em', color: 'var(--muted-2)' }}>
+                  style={{ letterSpacing: '.14em', color: 'var(--muted)' }}>
               {c.label}
             </span>
             <span className="t-mono block text-[12.5px] mt-0.5">{c.value}</span>
@@ -135,7 +136,7 @@ export default function AnnotatedShot({
       </ul>
 
       {caption && (
-        <figcaption className="t-mono text-[11px] mt-3" style={{ color: 'var(--muted-2)' }}>
+        <figcaption className="t-mono text-[11px] mt-3" style={{ color: 'var(--muted)' }}>
           {caption}
         </figcaption>
       )}

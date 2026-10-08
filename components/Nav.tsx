@@ -47,7 +47,7 @@ export default function Nav() {
           {/* Supplied artwork, never retyped. Full opacity: the wordmark was
               being drawn at the same weight as the links beside it, which made
               the one fixed thing on the page read as the least important. */}
-          <Image src="/brand/logo-horizontal-white.svg" alt="Pebble Robotics"
+          <Image src="/brand/logo-horizontal.svg" alt="Pebble Robotics"
                  width={160} height={17} priority className="w-[158px] h-auto block" />
         </a>
 

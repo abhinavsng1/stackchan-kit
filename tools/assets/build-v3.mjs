@@ -58,25 +58,23 @@ async function compose(src, out, { w, h, accent, tmp }) {
   const refl = join(tmp, 'refl.png')
   const alpha = join(tmp, 'alpha.png')
 
-  /* The ground: near-black with one soft bloom of the face's accent behind
-     where the robot will stand. Built small and blurred up rather than drawn
-     large — a full-frame gradient lifts every pixel and the whole shot goes
-     grey, which is exactly what happened the first time. */
-  await run('magick', ['-size', `${w}x${h}`, 'xc:#050505',
-    '(', '-size', '400x400', `radial-gradient:${accent}-black`,
-    '-blur', '0x40',
-    '-resize', `${Math.round(w * 0.62)}x${Math.round(h * 0.62)}!`, ')',
-    '-gravity', 'center', '-geometry', `-${Math.round(w * 0.04)}-${Math.round(h * 0.06)}`,
-    '-compose', 'screen', '-composite',
-    '-channel', 'RGB', '-evaluate', 'multiply', '0.42', '+channel',
-    bg])
+  /* The ground: warm paper with one soft pool of light where the robot
+     stands. On a light ground a coloured bloom reads as a stain, so this is
+     a near-white lift rather than a tint, and the accent is left to the page
+     around it. */
+  void accent
+  // Drawn at full frame. Resizing a smaller gradient and placing it leaves a
+  // hard rectangle where the pool stops, which on paper is immediately
+  // visible as a box around the product.
+  await run('magick', ['-size', `${w}x${h}`,
+    'radial-gradient:#ffffff-#f1e8e2', '-blur', '0x24', bg])
 
   /* The reflection. The robot's own alpha is multiplied by a vertical ramp,
      so the silhouette survives and only its opacity falls away — copying the
      ramp into alpha outright would reflect a rectangle. */
   const rh = Math.round(h * 0.40)
   await run('magick', [src, '-flip', '-resize', `${w}x${rh}!`, '-alpha', 'extract',
-    '(', '-size', `${w}x${rh}`, 'gradient:gray55-black', ')',
+    '(', '-size', `${w}x${rh}`, 'gradient:gray38-black', ')',
     '-compose', 'multiply', '-composite', alpha])
   await run('magick', [src, '-flip', '-resize', `${w}x${rh}!`, alpha,
     '-alpha', 'off', '-compose', 'copyopacity', '-composite', refl])

@@ -16,22 +16,24 @@ import { FACES, faceSvg } from './.gen/faces.js'
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
 renderer.setPixelRatio(2)
 renderer.toneMapping = THREE.ACESFilmicToneMapping
-renderer.toneMappingExposure = 0.95
+renderer.toneMappingExposure = 1.06
 document.body.appendChild(renderer.domElement)
 
 const scene = new THREE.Scene()
 const pmrem = new THREE.PMREMGenerator(renderer)
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
-scene.environmentIntensity = 0.55
+scene.environmentIntensity = 0.95
 
 /* Studio: one soft key high and front-left, two rims to draw both edges of
    the silhouette out of a black ground, and almost no ambient. On black the
    rims are what make the object readable at all. */
-const key = new THREE.DirectionalLight(0xfff6ec, 2.0)
+const key = new THREE.DirectionalLight(0xfff6ec, 2.4)
 key.position.set(-90, 150, 130); scene.add(key)
-const rimL = new THREE.DirectionalLight(0x9ecfff, 2.2); rimL.position.set(-160, 55, -120); scene.add(rimL)
-const rimR = new THREE.DirectionalLight(0xffd0a0, 1.6); rimR.position.set(170, 75, -90); scene.add(rimR)
-scene.add(new THREE.AmbientLight(0xffffff, 0.12))
+const rimL = new THREE.DirectionalLight(0xcfe0ff, 0.9); rimL.position.set(-160, 55, -120); scene.add(rimL)
+const rimR = new THREE.DirectionalLight(0xffe2c4, 0.7); rimR.position.set(170, 75, -90); scene.add(rimR)
+// On paper the fill does most of the work: strong rims are what separate an
+// object from black, and on a light ground they just look like a halo.
+scene.add(new THREE.AmbientLight(0xffffff, 0.55))
 
 const { root, screen, shellMaterial } = await buildV3(THREE, STLLoader, { mergeVertices })
 scene.add(root)

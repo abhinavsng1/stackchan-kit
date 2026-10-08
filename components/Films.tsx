@@ -124,10 +124,10 @@ function Film({ film }: { film: (typeof FILMS)[number] }) {
       </div>
 
       <figcaption className="pt-4">
-        <span className="t-display block text-[20px] sm:text-[22px]" style={{ color: 'var(--pebble-white)' }}>
+        <span className="t-display block text-[20px] sm:text-[22px]">
           {film.title}
         </span>
-        <span className="block text-[14px] leading-[22px] mt-1" style={{ color: 'rgba(243,241,237,.6)' }}>
+        <span className="block text-[14px] leading-[22px] mt-1" style={{ color: 'var(--muted)' }}>
           {film.body}
         </span>
       </figcaption>

@@ -167,22 +167,26 @@ export default function Page() {
         </div>
 
         {/* ================= WATCH =================
-            The page's dark counterweight. Three films rather than one, the
-            way the reference does it: someone living with it, how it is made,
-            and the motion on its own. */}
+            A quiet panel rather than a dark slab. On warm paper a near-black
+            counterweight reads as a hole in the page, and the films are warm
+            lamp-lit footage that sits better on white than on brown. */}
         <section id="watch" className="px-3 md:px-4 pt-14 md:pt-20 pb-4 scroll-mt-20">
           <div className="overflow-hidden p-6 sm:p-10 lg:p-14"
-               style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+               style={{
+                 borderRadius: 'var(--radius-tile)',
+                 background: 'var(--surface)',
+                 border: '1px solid var(--line-soft)',
+               }}>
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end mb-10 lg:mb-14">
               <div>
-                <p className="t-label m-0 mb-4" style={{ color: 'rgba(243,241,237,.55)' }}>Watch</p>
+                <p className="t-label m-0 mb-4">Watch</p>
                 <h2 className="t-display m-0 max-w-[16ch]"
-                    style={{ fontSize: 'clamp(32px,5.2vw,64px)', lineHeight: 1.02, color: 'var(--pebble-white)' }}>
+                    style={{ fontSize: 'clamp(32px,5.2vw,64px)', lineHeight: 1.02 }}>
                   Watch it for a minute.
                 </h2>
               </div>
-              <p className="m-0 text-[16px] leading-[26px] max-w-[44ch] lg:justify-self-end"
-                 style={{ color: 'rgba(243,241,237,.62)' }}>
+              <p className="m-0 text-[16px] leading-[26px] max-w-[44ch] lg:justify-self-end
+                            text-[var(--muted)]">
                 Shot on a phone, on real desks, with real units. Each film has
                 sound — press play when you are somewhere you can hear it.
               </p>
@@ -217,7 +221,7 @@ export default function Page() {
                 real servos reach and eased so it arrives rather than snaps. Tap
                 it to change its mind.
               </p>
-              <p className="t-mono m-0 text-[12.5px]" style={{ color: 'var(--muted-2)' }}>
+              <p className="t-mono m-0 text-[12.5px]" style={{ color: 'var(--muted)' }}>
                 Built from the same print files as the robot in the box.
               </p>
             </div>
@@ -236,7 +240,11 @@ export default function Page() {
             {filmed.map((c) => (
               <article key={c.key} className="m-0">
                 <div className="overflow-hidden aspect-[4/5]"
-                     style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+                     style={{
+                 borderRadius: 'var(--radius-tile)',
+                 background: 'var(--surface)',
+                 border: '1px solid var(--line-soft)',
+               }}>
                   <Clip src={`/media/robot/${c.clip}`} poster={`/media/robot/${c.clip}.webp`}
                         alt={c.title} className="h-full" />
                 </div>
@@ -349,7 +357,11 @@ export default function Page() {
             ].map(([src, alt, caption]) => (
               <figure key={src} className="m-0">
                 <div className="relative overflow-hidden aspect-[4/5]"
-                     style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+                     style={{
+                 borderRadius: 'var(--radius-tile)',
+                 background: 'var(--surface)',
+                 border: '1px solid var(--line-soft)',
+               }}>
                   <Image src={src} alt={alt} fill sizes="(max-width: 1024px) 46vw, 420px" className="object-cover" />
                 </div>
                 <figcaption className="t-mono text-[11px] text-[var(--muted)] mt-3">{caption}</figcaption>
@@ -400,7 +412,11 @@ export default function Page() {
               centred, which is all of the information in it. */}
           <figure className="m-0 mt-10">
             <div className="relative overflow-hidden aspect-[16/9]"
-                 style={{ borderRadius: 'var(--radius-tile)', background: 'var(--pebble-ink)' }}>
+                 style={{
+                 borderRadius: 'var(--radius-tile)',
+                 background: 'var(--surface)',
+                 border: '1px solid var(--line-soft)',
+               }}>
               <video
                 className="absolute inset-0 w-full h-full object-cover"
                 poster="/media/build-poster.webp"
@@ -550,7 +566,7 @@ export default function Page() {
       <footer className="border-t pb-24 lg:pb-0" style={{ borderColor: 'var(--line)' }}>
         <div className="wrap py-12 grid gap-9 md:grid-cols-3">
           <div>
-            <Image src="/brand/logo-horizontal-white.svg" alt="Pebble Robotics"
+            <Image src="/brand/logo-horizontal.svg" alt="Pebble Robotics"
                    width={160} height={17} className="w-[150px] h-auto block mb-4" />
             <p className="text-[13.5px] text-[var(--muted)] mt-0 mb-3 max-w-[30ch]">
               The robot that lives on your desk.

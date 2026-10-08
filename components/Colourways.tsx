@@ -29,7 +29,7 @@ export default function Colourways() {
           style={{
             borderRadius: 'var(--radius-tile)',
             border: '1px solid var(--line-soft)',
-            background: '#050505',
+            background: 'var(--surface-2)',
           }}
         >
           {/* All five stay mounted and cross-fade. Swapping the src would
@@ -50,8 +50,8 @@ export default function Colourways() {
           <span
             className="t-mono absolute right-3 bottom-3 px-2 py-1 text-[10px] uppercase"
             style={{
-              borderRadius: 999, background: 'rgba(5,5,5,.72)',
-              border: '1px solid var(--line)', color: 'var(--muted-2)', letterSpacing: '.12em',
+              borderRadius: 999, background: 'var(--ink)',
+              border: '1px solid var(--ink)', color: 'var(--bg)', letterSpacing: '.12em',
             }}
           >
             render
@@ -60,7 +60,7 @@ export default function Colourways() {
 
         <div>
           <p className="t-label m-0 mb-4 flex items-center gap-2.5">
-            <span aria-hidden="true" style={{ width: 8, height: 8, background: 'var(--signal)' }} />
+            <span aria-hidden="true" style={{ width: 8, height: 8, background: 'var(--signal-ink)' }} />
             One robot, five shells
           </p>
           <h2 className="t-display m-0 mb-5" style={{ fontSize: 'var(--t-h2)' }}>

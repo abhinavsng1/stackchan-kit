@@ -90,10 +90,14 @@ export default function Hero3D() {
           aria-hidden="true"
           className="absolute pointer-events-none"
           style={{
-            inset: '-18%',
+            // inset: 0, not a negative inset. Hanging the glow outside its
+            // own box pushed the document 51px wider than the viewport and
+            // put a horizontal scrollbar on every page. The spread comes from
+            // the gradient's own stops instead.
+            inset: 0,
             background:
-              'radial-gradient(38% 32% at 52% 42%, rgba(92,225,230,.13) 0%, transparent 72%),'
-              + ' radial-gradient(58% 50% at 50% 50%, rgba(92,225,230,.05) 0%, transparent 78%)',
+              'radial-gradient(58% 48% at 52% 42%, var(--signal-glow) 0%, transparent 72%),'
+              + ' radial-gradient(86% 74% at 50% 52%, var(--signal-wash) 0%, transparent 80%)',
           }}
         />
         <div ref={host} className="relative w-full" style={{ aspectRatio: '1 / 1' }}>
@@ -117,7 +121,8 @@ export default function Hero3D() {
           className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
           style={{
             bottom: '9%', width: '40%', height: '5%',
-            background: 'radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.9) 0%, transparent 70%)',
+            background:
+              'radial-gradient(50% 50% at 50% 50%, rgba(43,36,32,.30) 0%, transparent 70%)',
           }}
         />
       </div>
@@ -136,19 +141,25 @@ export default function Hero3D() {
         >
           <span className="px-3 py-2 backdrop-blur-md whitespace-nowrap"
                 style={{
-                  borderRadius: 10, background: 'rgba(5,5,5,.78)',
+                  borderRadius: 10,
+                  // Token-driven, not a baked dark panel: these were
+                  // near-black chips carrying --ink text, so the moment the
+                  // page went light they became dark text on dark.
+                  background: 'var(--surface)',
                   border: '1px solid var(--line)',
+                  boxShadow: 'var(--sh-md)',
                 }}>
             <span className="t-mono block text-[10px] uppercase"
-                  style={{ letterSpacing: '.14em', color: 'var(--muted-2)' }}>{c.label}</span>
-            <span className="t-mono block text-[12.5px] mt-0.5">{c.value}</span>
+                  style={{ letterSpacing: '.14em', color: 'var(--muted)' }}>{c.label}</span>
+            <span className="t-mono block text-[12.5px] mt-0.5"
+                  style={{ color: 'var(--ink)' }}>{c.value}</span>
           </span>
         </div>
       ))}
 
       <div className="flex sm:hidden flex-wrap gap-x-5 gap-y-2 mt-4">
         {CHIPS.map((c) => (
-          <span key={c.label} className="t-mono text-[11.5px]" style={{ color: 'var(--muted-2)' }}>
+          <span key={c.label} className="t-mono text-[11.5px]" style={{ color: 'var(--muted)' }}>
             {c.value}
           </span>
         ))}
@@ -157,10 +168,10 @@ export default function Hero3D() {
       {/* The swatches recolour the live model, not a photograph of it. */}
       <div className="absolute left-1/2 -translate-x-1/2 bottom-4 flex items-center gap-3 px-3.5 py-2.5"
            style={{
-             borderRadius: 999, background: 'rgba(5,5,5,.78)',
-             border: '1px solid var(--line)', backdropFilter: 'blur(10px)',
+             borderRadius: 999, background: 'var(--surface)',
+             border: '1px solid var(--line)', boxShadow: 'var(--sh-md)',
            }}>
-        <span className="t-mono text-[11px] pl-1" style={{ color: 'var(--muted-2)' }}>
+        <span className="t-mono text-[11px] pl-1" style={{ color: 'var(--ink)' }}>
           {SHELLS[shell].name}
         </span>
         <div role="radiogroup" aria-label="Shell colour" className="flex items-center gap-2">

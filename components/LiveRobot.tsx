@@ -88,7 +88,7 @@ export default function LiveRobot() {
       </div>
 
       <div className="absolute left-4 right-4 bottom-4 flex items-end justify-between gap-4">
-        <p className="t-mono m-0 text-[11.5px]" style={{ color: 'var(--muted-2)' }}>
+        <p className="t-mono m-0 text-[11.5px]" style={{ color: 'var(--muted)' }}>
           {quiet === false && loaded
             ? '↳ This one’s live. Move your cursor, then tap it.'
             : failed
@@ -111,8 +111,8 @@ export default function LiveRobot() {
 
         <span className="t-mono px-2 py-1 text-[10px] uppercase"
               style={{
-                borderRadius: 999, background: 'rgba(5,5,5,.72)',
-                border: '1px solid var(--line)', color: 'var(--muted)', letterSpacing: '.12em',
+                borderRadius: 999, background: 'var(--ink)',
+                border: '1px solid var(--ink)', color: 'var(--bg)', letterSpacing: '.12em',
               }}>
           3D model
         </span>

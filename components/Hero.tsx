@@ -37,7 +37,7 @@ export default function Hero() {
       <div className="grid gap-8 lg:gap-16 items-center lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <div className="max-w-[640px]">
           <p className="t-label m-0 mb-5 flex items-center gap-2.5">
-            <span aria-hidden="true" style={{ width: 8, height: 8, background: 'var(--signal)' }} />
+            <span aria-hidden="true" style={{ width: 8, height: 8, background: 'var(--signal-ink)' }} />
             {edition === 'kit' ? 'An AI companion, in parts' : 'An AI companion for your desk'}
           </p>
 
@@ -84,8 +84,8 @@ export default function Hero() {
             {['Built and tested', 'Free delivery across India',
               `${PRICE.deposit} now, the rest on delivery`].map((t) => (
               <li key={t} className="t-mono text-[12.5px] flex items-center gap-2"
-                  style={{ color: 'var(--muted-2)' }}>
-                <span aria-hidden="true" style={{ color: 'var(--signal)' }}>✓</span>
+                  style={{ color: 'var(--muted)' }}>
+                <span aria-hidden="true" style={{ color: 'var(--signal-ink)' }}>✓</span>
                 {t}
               </li>
             ))}

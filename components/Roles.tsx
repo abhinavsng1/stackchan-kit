@@ -60,9 +60,9 @@ export default function Roles() {
                 className="t-mono absolute right-3 bottom-3 px-2 py-1 text-[10px] uppercase"
                 style={{
                   borderRadius: 999,
-                  background: 'rgba(5,5,5,.72)',
-                  border: '1px solid var(--line)',
-                  color: 'var(--muted)',
+                  background: 'var(--ink)',
+                  border: '1px solid var(--ink)',
+                  color: 'var(--bg)',
                   letterSpacing: '.12em',
                 }}
               >
