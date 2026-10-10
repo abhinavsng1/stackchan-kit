@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { smoothScrollTo } from '@/lib/smooth-scroll'
+
+import { useState } from 'react'
 import { EDITION, PRICE } from '@/lib/kit'
-import { editionFromUrl, useEdition } from '@/lib/edition-store'
+import { useEdition } from '@/lib/edition-store'
 import { track } from '@/lib/analytics'
 import { EV } from '@/lib/events'
-import { SwitchEdition } from '@/components/EditionGate'
+import ShellPicker from '@/components/site/ShellPicker'
 
 const MAX = 5
 
@@ -25,22 +27,20 @@ export default function BuyBox() {
   const [qty, setQty] = useState(1)
   const edition = useEdition()
 
-  // An advert for the kit links to ?edition=kit and should land on the kit.
-  useEffect(() => { editionFromUrl() }, [])
 
   const step = (by: number) => setQty((q) => Math.min(MAX, Math.max(1, q + by)))
 
   const reserve = () => {
     track(EV.reserveCtaClicked, { location: 'buybox', qty, edition })
     window.dispatchEvent(new CustomEvent('sc:qty', { detail: qty }))
-    document.getElementById('reserve')?.scrollIntoView({ block: 'start' })
+    smoothScrollTo('reserve')
   }
 
   const e = EDITION[edition]
 
   return (
     <div id="buybox">
-      <p className="t-label m-0">Batch 01 · {edition === 'assembled' ? 'Fully assembled' : 'Build-it-yourself kit'}</p>
+      <p className="t-label m-0">Batch 01</p>
       <h2 className="t-display mt-4 mb-0" style={{ fontSize: 'clamp(44px, 5vw, 72px)' }}>PebbleRobo</h2>
       <p className="text-[17px] text-[var(--muted)] mt-3 mb-0 max-w-[36ch]">{e.pitch}</p>
 
@@ -56,7 +56,12 @@ export default function BuyBox() {
         <span className="dot" aria-hidden="true" />Free delivery in India · {PRICE.ship}
       </p>
 
-      <div className="flex items-stretch gap-3 mt-8">
+      <div className="mt-7">
+        <p className="t-label m-0 mb-2">Colour</p>
+        <ShellPicker location="buybox" size={24} label="below" />
+      </div>
+
+      <div className="flex items-stretch gap-3 mt-7">
         <div className="flex items-center rounded-full border shrink-0" style={{ borderColor: 'var(--line)' }}>
           <StepButton label="Fewer" onClick={() => step(-1)} disabled={qty === 1}>−</StepButton>
           <span className="t-mono text-[15px] w-8 text-center tabular-nums" aria-live="polite"
@@ -72,13 +77,7 @@ export default function BuyBox() {
         <a href="#included" className="link text-[14px]">See what’s included</a>
       </div>
 
-      <p className="text-[14px] text-[var(--muted)] mt-8 mb-0 pt-5 border-t" style={{ borderColor: 'var(--line)' }}>
-        {edition === 'kit' ? 'Rather have it ready to go? ' : 'Prefer to build it yourself? '}
-        <SwitchEdition to={edition === 'kit' ? 'assembled' : 'kit'} location="buybox"
-                       className="link bg-transparent border-0 p-0 cursor-pointer text-[14px]">
-          {edition === 'kit' ? 'Switch to fully assembled' : 'The kit is the same price'}
-        </SwitchEdition>
-      </p>
+
     </div>
   )
 }

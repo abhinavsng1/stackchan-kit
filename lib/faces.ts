@@ -101,7 +101,7 @@ export const FACES: Face[] = [
   },
   {
     id: 'sad', name: 'Sad', bg: '#06121E', eye: '#7FB2E5', acc: '#B8DCFF', blinks: true,
-    cmd: 'emote sad', use: 'Limit hit, write rejected — the soft failure face.',
+    cmd: 'emote sad', use: 'Limit hit, write rejected: the soft failure face.',
     eyes: () => rr(EL, EY, 46, 50, 16, '#7FB2E5')
       + poly(`${EL - 23},${EY - 25} ${EL + 23},${EY - 25} ${EL - 23},${EY - 7}`, '#06121E')
       + rr(ER, EY, 46, 50, 16, '#7FB2E5')
@@ -156,7 +156,7 @@ export const FACES: Face[] = [
     },
     rest: () => zig(MX, MY - 4, 62, '#FFB3AE', 7)
       + `<rect x="1.5" y="1.5" width="317" height="237" fill="none" stroke="#FF3B30" stroke-width="3"/>`
-      + txt(160, 226, 15, '#FFB3AE', 'FAULT — TORQUE OFF', 600),
+      + txt(160, 226, 15, '#FFB3AE', 'FAULT: TORQUE OFF', 600),
   },
 ]
 

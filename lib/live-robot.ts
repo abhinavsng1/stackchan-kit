@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { MOODS, drawCompanion } from '@/lib/companion-face'
+import { OWN_MOODS, drawCompanion } from '@/lib/companion-face'
 import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
 import { aimAt, gazeFor, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
 
@@ -83,11 +83,11 @@ export async function start(
   let faceIndex = 0
   let gaze = { x: 0, y: 0 }
   const paint = (t: number) => {
-    drawCompanion(robot.ctx, MOODS[faceIndex % MOODS.length], t, 0, gaze)
+    drawCompanion(robot.ctx, OWN_MOODS[faceIndex % OWN_MOODS.length], t, 0, gaze)
     robot.update()
   }
   const drawFace = (index: number) => {
-    faceIndex = ((index % MOODS.length) + MOODS.length) % MOODS.length
+    faceIndex = ((index % OWN_MOODS.length) + OWN_MOODS.length) % OWN_MOODS.length
     paint(performance.now())
     onFace?.(faceIndex)
   }
@@ -133,7 +133,7 @@ export async function start(
   return {
     setShell: robot.setShell,
     setFace: (id: string) => {
-      const i = MOODS.findIndex((m) => m.id === id)
+      const i = OWN_MOODS.findIndex((m) => m.id === id)
       if (i >= 0) drawFace(i)
     },
     dispose: () => {

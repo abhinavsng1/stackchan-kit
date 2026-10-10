@@ -48,7 +48,7 @@ export default async function CheckoutPage(
         </h1>
         <p className="text-[var(--muted)] mt-0 mb-8">
           Your PebbleRobo is boxed and ready to ship. Paying here confirms it and starts
-          dispatch — {PRICE.ship.toLowerCase()}.
+          dispatch: {PRICE.ship.toLowerCase()}.
         </p>
 
         <div className="card p-6 mb-6">
@@ -62,7 +62,7 @@ export default async function CheckoutPage(
 
         <p className="text-[13.5px] text-[var(--muted)] m-0">
           Card, UPI, netbanking and EMI are all accepted. Payments are handled by
-          Razorpay — we never see your card details. Questions? Write to{' '}
+          Razorpay. We never see your card details. Questions? Write to{' '}
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.
         </p>
       </div>

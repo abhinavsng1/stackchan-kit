@@ -45,8 +45,8 @@ test.describe('discoverability', () => {
 
       const product = graph.find((n) => n['@type'] === 'Product') as Record<string, never>
       const offers = product.offers as unknown as Array<Record<string, string>>
-      // One offer per edition, each under its own catalogue id, at one price.
-      expect(offers.map((o) => o.sku).sort()).toEqual(['PBL-BOT-01', 'PBL-KIT-01'])
+      // One offer: the robot, the only thing the page sells.
+      expect(offers.map((o) => o.sku)).toEqual(['PBL-BOT-01'])
       expect(new Set(offers.map((o) => o.price)).size).toBe(1)
       for (const offer of offers) {
         expect(offer.priceCurrency).toBe('INR')

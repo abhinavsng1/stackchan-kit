@@ -25,6 +25,7 @@ export default function BuyBar() {
       frame = 0
       const hero = document.getElementById('hero')
       const buy = document.getElementById('buy')
+      const demo = document.getElementById('does')
       const reserve = document.getElementById('reserve')
       if (!hero || !buy || !reserve) return
 
@@ -34,7 +35,15 @@ export default function BuyBar() {
         return r.top < window.innerHeight * 0.9 && r.bottom > 0
       }
 
-      setShow(heroGone && !over(buy) && !over(reserve))
+      // Not over the demo either: its words and controls sit at the bottom of
+      // the screen, exactly where the bar would cover them.
+      // The demo only counts while it fills the middle of the screen, so the
+      // bar comes back as soon as the next section takes over.
+      const centred = (el: HTMLElement) => {
+        const r = el.getBoundingClientRect()
+        return r.top < window.innerHeight / 2 && r.bottom > window.innerHeight / 2
+      }
+      setShow(heroGone && !over(buy) && !over(reserve) && !(demo && centred(demo)))
     }
 
     const onScroll = () => {
@@ -71,7 +80,7 @@ export default function BuyBar() {
         <div className="min-w-0">
           <div className="text-[15px] font-medium leading-tight">PebbleRobo · {PRICE.now}</div>
           <div className="t-mono text-[11.5px] text-[var(--muted)] mt-0.5 truncate">
-            {EDITION[edition].label} · {PRICE.deposit} to book
+            {PRICE.deposit} to book · free delivery
           </div>
         </div>
         <a href="#buy" className="btn btn-brand ml-auto shrink-0"

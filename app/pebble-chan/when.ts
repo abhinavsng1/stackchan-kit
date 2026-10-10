@@ -18,7 +18,7 @@ export const WHEN: Record<string, string> = {
   love: 'Right after something goes the way you wanted.',
   sleepy: 'A few minutes with nobody about. It dozes.',
   sad: 'It tried and could not. The gentle version of no.',
-  angry: 'Something is stuck — or you asked it to scowl at someone.',
+  angry: 'Something is stuck, or you asked it to scowl at someone.',
   surprised: 'Someone turned up, or it got a nudge while it was idle.',
   curious: 'The head-tilt. It is working out what it just saw.',
   doubt: 'It heard you. It is not convinced.',

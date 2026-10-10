@@ -11,7 +11,7 @@ import MoodSequence from './MoodSequence'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Pebble-chan — a small robot that lives on your desk',
+  title: 'Pebble-chan, a small robot that lives on your desk',
   description:
     'Assembled, flashed and tested. A palm-sized robot with twelve expressions, a head '
     + 'that turns to find you, and a voice. ₹499 to prebook, the rest on delivery.',
@@ -54,7 +54,7 @@ const DAY = [
    'No app, no wake word to remember, no reaching for a phone. You say the thing, it answers in the room. Hands stay on the keyboard.'],
   ['When someone visits',
    'It is the thing people pick up',
-   'Children go straight for the screen — it is a touchscreen and it reacts to being prodded. It is the first object on the desk anyone asks about, and the answer is never boring.'],
+   'Children go straight for the screen. It is a touchscreen and it reacts to being prodded. It is the first object on the desk anyone asks about, and the answer is never boring.'],
   ['Late',
    'The room empties and it settles',
    'A few minutes with nobody about and it goes sleepy on its own. Leave it on. It draws about as much as a phone charger and it is awake again when you are.'],
@@ -68,11 +68,11 @@ const FAQS_PRODUCT = [
   ['Is it noisy?',
    'The head makes a soft whirr when it turns, quieter than a laptop fan. You can mute the voice entirely and keep the faces and the movement.'],
   ['Will it work without internet?',
-   'Yes, for the faces and the movement — it does not phone home to look at you. Talking needs Wi-Fi, because the answers come from our service.'],
+   'Yes, for the faces and the movement. It does not phone home to look at you. Talking needs Wi-Fi, because the answers come from our service.'],
   ['Is it safe around children and pets?',
    'There is nothing sharp, nothing hot, and no exposed battery. The head has no pinch points you could get a finger into. It is not a toy, though, and the cable is still a cable.'],
   ['What if something goes wrong with it?',
-   `Tell us and we replace it. Write to ${CONTACT.email} with a photo — there is no form and no ticket number. Every one of these is built by hand by two people, so you will be talking to whoever made yours.`],
+   `Tell us and we replace it. Write to ${CONTACT.email} with a photo. There is no form and no ticket number. Every one of these is built by hand by two people, so you will be talking to whoever made yours.`],
 ]
 
 export default async function PebbleChan() {
@@ -199,7 +199,7 @@ export default async function PebbleChan() {
                   <p className="text-[14px] leading-[22px] m-0 pt-5 border-t" style={{ borderColor: 'var(--line)' }}>
                     <strong className="font-semibold">Stop paying and it keeps working.</strong>{' '}
                     {SUBSCRIPTION_TERMS.keeps} {SUBSCRIPTION_TERMS.loses} The robot is
-                    yours — we do not take it back and we cannot switch it off.
+                    yours. We do not take it back and we cannot switch it off.
                   </p>
                 </>
               ) : (
@@ -251,8 +251,8 @@ export default async function PebbleChan() {
           </h2>
           <p className="text-[15.5px] leading-[26px] text-[var(--muted)] m-0">
             The same robot is sold as a kit: the same parts, unassembled, with an
-            evening of work between you and a working one. It costs about the same —
-            you are only deciding whether building it is the fun part or the annoying
+            evening of work between you and a working one. It costs about the same.
+            You are only deciding whether building it is the fun part or the annoying
             part.{' '}
             <a href="/" className="text-[var(--ink)] underline underline-offset-4">See the kit</a>.
           </p>

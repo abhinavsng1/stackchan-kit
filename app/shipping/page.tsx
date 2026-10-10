@@ -20,7 +20,7 @@ export default function Shipping() {
       <h2>Where we ship</h2>
       <p>
         Anywhere in India, to any address the courier serves. We do not ship
-        internationally — PebbleRobo is priced and supported for India only, and we would
+        internationally. PebbleRobo is priced and supported for India only, and we would
         rather not take an order we cannot support.
       </p>
 
@@ -46,8 +46,8 @@ export default function Shipping() {
 
       <h2>The address you give us</h2>
       <p>
-        Your order confirmation prints the address back to you. Check it when it arrives —
-        if anything is wrong, reply to that email the same day and we will correct it before
+        Your order confirmation prints the address back to you. Check it when it arrives.
+        If anything is wrong, reply to that email the same day and we will correct it before
         the box is sealed. Once it has shipped, the address cannot be changed and a
         redelivery is between you and the courier.
       </p>
@@ -58,7 +58,7 @@ export default function Shipping() {
         delivered and you do not have it, write to{' '}
         <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> with your payment id. We
         will chase the courier. If an order is genuinely lost in transit we send another one at
-        our cost — a parcel we handed to a courier is our problem, not yours.
+        our cost. A parcel we handed to a courier is our problem, not yours.
       </p>
 
       <h2>Damaged on arrival</h2>

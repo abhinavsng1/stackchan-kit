@@ -1,14 +1,12 @@
-import Image from 'next/image'
 import Gallery from '@/components/Gallery'
 import BuyBox from '@/components/BuyBox'
 import ReserveForm from '@/components/ReserveForm'
 import PartArt from '@/components/PartArt'
 import { OrderSteps } from '@/components/OrderSteps'
-import { KitOnly, ForEdition } from '@/components/EditionGate'
 import { TrackedDetails } from '@/components/Tracked'
 import { Reveal } from '@/components/site/motion'
 import { EV } from '@/lib/events'
-import { PARTS, BUILD_STEPS, SPEC_TABLES, PRICE, CONTACT, BUILDERS } from '@/lib/kit'
+import { SPEC_TABLES, PRICE, CONTACT, BUILDERS } from '@/lib/kit'
 
 /**
  * Buying it: the product and its price, what is in the box, the full spec
@@ -19,8 +17,8 @@ import { PARTS, BUILD_STEPS, SPEC_TABLES, PRICE, CONTACT, BUILDERS } from '@/lib
  * numbers the checkout charges against.
  */
 const INCLUDED_ROBOT: [string, string][] = [
-  ['PebbleRobo', 'Assembled, set up and tested'],
-  ['Power adapter', '5 V 3 A, plug it in and go'],
+  ['PebbleRobo', 'Set up, tested and ready to go'],
+  ['Power adapter', 'Plug it in and it wakes up'],
   ['Support', `Real people at ${CONTACT.email}`],
 ]
 
@@ -64,34 +62,14 @@ export default function Buy() {
               </p>
             </Reveal>
             <div className="lg:col-span-8">
-              <ForEdition
-                assembled={
-                  <dl className="grid sm:grid-cols-3 m-0">
-                    {INCLUDED_ROBOT.map(([k, v]) => (
-                      <div key={k} className="py-5 sm:pr-6 border-t" style={{ borderColor: 'var(--line)' }}>
-                        <dt className="text-[18px] font-medium tracking-[-0.015em]">{k}</dt>
-                        <dd className="m-0 mt-1 text-[14px] text-[var(--muted)]">{v}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                }
-                kit={
-                  <ul className="grid sm:grid-cols-2 list-none p-0 m-0">
-                    {PARTS.map((p) => (
-                      <li key={p.desig} className="py-4 sm:pr-6 border-t flex items-center gap-4" style={{ borderColor: 'var(--line)' }}>
-                        <span className="w-11 h-11 shrink-0 rounded-lg grid place-items-center overflow-hidden"
-                              style={{ background: 'var(--surface-2)' }}>
-                          <span className="block w-[80%] [&>svg]:w-full [&>svg]:h-auto"><PartArt kind={p.art} /></span>
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-[15px] font-medium leading-tight">{p.name}</span>
-                          <span className="t-mono block text-[11.5px] text-[var(--muted)] mt-1">{p.qty}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                }
-              />
+              <dl className="grid sm:grid-cols-3 m-0">
+                {INCLUDED_ROBOT.map(([k, v]) => (
+                  <div key={k} className="py-5 sm:pr-6 border-t" style={{ borderColor: 'var(--line)' }}>
+                    <dt className="text-[18px] font-medium tracking-[-0.015em]">{k}</dt>
+                    <dd className="m-0 mt-1 text-[14px] text-[var(--muted)]">{v}</dd>
+                  </div>
+                ))}
+              </dl>
 
               <div className="grid sm:grid-cols-3 gap-x-6 mt-10">
                 {[
@@ -116,7 +94,7 @@ export default function Buy() {
                   <span className="faq-icon group-open:rotate-45" aria-hidden="true">+</span>
                 </summary>
                 <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2 pb-8">
-                  {SPEC_TABLES.map((t) => (
+                  {SPEC_TABLES.filter((t) => t.title !== 'Software').map((t) => (
                     <div key={t.title}>
                       <p className="t-label m-0 mb-2">{t.title}</p>
                       <div className="overflow-x-auto"><SpecGrid table={t} /></div>
@@ -129,45 +107,6 @@ export default function Buy() {
         </div>
       </section>
 
-      {/* The kit, explained — only for someone who has chosen it. */}
-      <KitOnly>
-        <section id="kit" className="section scroll-mt-28" style={{ background: 'var(--surface)' }}>
-          <div className="wrap grid lg:grid-cols-12 gap-x-10 gap-y-12">
-            <div className="lg:col-span-4">
-              <p className="t-label m-0 mb-6">Your kit</p>
-              <h2 className="t-display t-h2 m-0">Build it in an evening.</h2>
-              <p className="t-lead mt-6 mb-0">
-                Same parts, same printed shell, same {PRICE.now}. Eight parts, no
-                soldering — and afterwards you know every screw in it.
-              </p>
-            </div>
-            <div className="lg:col-span-8">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  ['/media/robot/parts.webp', 'Printed shell parts on a desk beside a finished robot'],
-                  ['/media/robot/print.webp', 'Shell parts on the bed of a 3D printer'],
-                ].map(([src, alt]) => (
-                  <div key={src} className="media" style={{ aspectRatio: '4 / 5' }}>
-                    <Image src={src} alt={alt} fill sizes="(max-width: 1024px) 46vw, 420px" className="object-cover" />
-                  </div>
-                ))}
-              </div>
-              <ol className="grid sm:grid-cols-2 gap-x-8 list-none p-0 mt-12 mb-0">
-                {BUILD_STEPS.map((s) => (
-                  <li key={s.n} className="py-6 border-t" style={{ borderColor: 'var(--line)' }}>
-                    <span className="t-mono text-[13px] text-[var(--accent-ink)]">{String(s.n).padStart(2, '0')}</span>
-                    <h3 className="t-display text-[24px] mt-3 mb-2">{s.title}</h3>
-                    <p className="text-[15px] leading-[1.6] text-[var(--muted)] m-0">{s.body}</p>
-                  </li>
-                ))}
-              </ol>
-              <p className="text-[14px] text-[var(--muted)] mt-6 mb-0">
-                You supply a USB-C cable and a computer to flash it.
-              </p>
-            </div>
-          </div>
-        </section>
-      </KitOnly>
 
       {/* The order. */}
       <section id="reserve" className="section scroll-mt-20" style={{ paddingTop: 'clamp(64px, 8vw, 120px)' }}>
@@ -176,21 +115,13 @@ export default function Buy() {
             <p className="t-label m-0 mb-6">Order</p>
             <h2 className="t-display t-h2 m-0 mb-5">Book yours.</h2>
             <p className="t-lead mt-0 mb-12 max-w-[42ch]">
-              {PRICE.deposit} books your PebbleRobo today. The remaining {PRICE.balance} is
-              paid in cash when it’s delivered.
+              Your details and your colour. It takes about a minute.
             </p>
             <ReserveForm />
           </div>
 
           <aside className="lg:col-span-5 card p-7 md:p-8 h-fit lg:sticky lg:top-28">
-            <div className="flex items-baseline gap-3">
-              <span className="t-display text-[40px] leading-none">{PRICE.deposit}</span>
-              <span className="text-[15px] text-[var(--muted)]">today</span>
-            </div>
-            <p className="text-[14px] text-[var(--muted)] mt-2 mb-0">
-              {PRICE.balance} in cash on delivery · {PRICE.now} in total
-            </p>
-            <p className="t-label mt-6 mb-0">What happens next</p>
+            <p className="t-label m-0">What happens next</p>
             <OrderSteps />
             <p className="text-[13.5px] text-[var(--muted)] mt-7 mb-0 pt-5 border-t" style={{ borderColor: 'var(--line)' }}>
               Made by <span className="text-[var(--ink)] font-medium">{BUILDERS.map((b) => b.name).join(' and ')}</span>,

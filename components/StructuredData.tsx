@@ -1,4 +1,4 @@
-import { CONTACT, FAQS, PRICE, SPEC_TABLES, EDITION, EDITIONS } from '@/lib/kit'
+import { CONTACT, FAQS, PRICE, SPEC_TABLES, EDITION } from '@/lib/kit'
 
 /**
  * Structured data for search engines and for the models that increasingly
@@ -58,15 +58,15 @@ export default function StructuredData() {
       additionalProperty: SPEC_TABLES.flatMap((table) =>
         table.rows.map((row) => ({
           '@type': 'PropertyValue',
-          name: `${table.title} — ${row.label}`,
+          name: `${table.title}: ${row.label}`,
           value: Array.isArray(row.value) ? row.value.join('; ') : row.value,
         })),
       ),
-      /* One offer per edition, each under its own catalogue id, at the same
-         price. No priceValidUntil: the early bird date has passed but the
+      /* One offer: the robot, ready to use — the only thing the page sells.
+         No priceValidUntil: the early bird date has passed but the
          price has not changed, and a past date tells a search engine the
          price has expired when it has not. */
-      offers: EDITIONS.map((e) => ({
+      offers: (['assembled'] as const).map((e) => ({
         '@type': 'Offer',
         '@id': `${SITE}/#offer-${e}`,
         name: EDITION[e].name,

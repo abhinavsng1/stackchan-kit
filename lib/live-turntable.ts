@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { MOODS, drawCompanion } from '@/lib/companion-face'
+import { OWN_MOODS, drawCompanion } from '@/lib/companion-face'
 import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
 import { aimAt, frameBox, gazeFor, makeStage, Servo, watchPointer } from '@/lib/live-stage'
 
@@ -23,7 +23,7 @@ const VIEW = { el: 12 }
 
 export async function startTurntable(host: HTMLElement, {
   shell, startYaw = 28,
-}: { shell: Colourway; startYaw?: number }): Promise<{ dispose: () => void }> {
+}: { shell: Colourway; startYaw?: number }): Promise<{ setShell: (way: Colourway) => void; dispose: () => void }> {
   const parts = await loadBody()
   const stage = makeStage(host, { shadow: 0.24, budget: 1_000_000 })
   const { scene, camera, studio } = stage
@@ -46,7 +46,7 @@ export async function startTurntable(host: HTMLElement, {
   fit()
 
   const pan = new Servo(80), tilt = new Servo(80)
-  let mood = Math.max(0, MOODS.findIndex((m) => m.id === 'pleased'))
+  let mood = Math.max(0, OWN_MOODS.findIndex((m) => m.id === 'pleased'))
 
   /* ------------------------------ the spin ------------------------------ */
 
@@ -73,7 +73,7 @@ export async function startTurntable(host: HTMLElement, {
     dragging = false
     canvas.style.cursor = 'grab'
     // A tap rather than a drag: it changes its mood and nods.
-    if (moved < 4) { mood = (mood + 1) % MOODS.length; tilt.v += 260 }
+    if (moved < 4) { mood = (mood + 1) % OWN_MOODS.length; tilt.v += 260 }
     lastDrag = performance.now()
   }
   canvas.addEventListener('pointerdown', down)
@@ -98,7 +98,7 @@ export async function startTurntable(host: HTMLElement, {
     const want = watching ? aimAt(robot, camera, pointer, { maxPan: 80, maxTilt: 30, letGo: 100 }) : { pan: 0, tilt: 4 }
     robot.pose({ pan: pan.step(want.pan, dt), tilt: Math.max(-1, tilt.step(want.tilt, dt)) })
 
-    drawCompanion(robot.ctx, MOODS[mood], now, 0, watching ? gazeFor(robot, camera, pointer) : { x: 0, y: 0 })
+    drawCompanion(robot.ctx, OWN_MOODS[mood], now, 0, watching ? gazeFor(robot, camera, pointer) : { x: 0, y: 0 })
     robot.update()
   })
 
@@ -106,6 +106,7 @@ export async function startTurntable(host: HTMLElement, {
   window.addEventListener('resize', onResize)
 
   return {
+    setShell: robot.setShell,
     dispose: () => {
       window.removeEventListener('resize', onResize)
       canvas.removeEventListener('pointerdown', down)

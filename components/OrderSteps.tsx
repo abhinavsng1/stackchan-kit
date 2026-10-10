@@ -21,7 +21,7 @@ export function OrderSteps() {
     ['We ship it', 'Dispatch within 1–2 weeks.'],
     ['You pay the rest', `${PRICE.balance} in cash to the courier, when the box reaches you.`],
     edition === 'assembled'
-      ? ['You plug it in', 'Power on, and the face comes up. Nothing to build, nothing to flash.']
+      ? ['You plug it in', 'Its face comes up. That’s the whole setup.']
       : ['You build it', 'Four steps, one evening. Everything you need is in the box.'],
   ]
 

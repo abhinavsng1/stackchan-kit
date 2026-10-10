@@ -10,7 +10,7 @@ test('the menu opens full screen, every link moves the page, and it closes', asy
   const open = page.getByRole('button', { name: 'Open menu' })
   await expect(open).toBeVisible()
 
-  for (const label of ['What it does', 'Inside', 'FAQ']) {
+  for (const label of ['What it does', 'Where it fits', 'FAQ']) {
     await page.evaluate(() => window.scrollTo(0, 0))
     await open.click()
     const menu = page.getByRole('dialog', { name: 'Menu' })
@@ -37,7 +37,11 @@ test('buy bar appears after the hero and retreats over the buy section and the f
   const bar = page.locator('.buybar')
   await expect(bar).toHaveAttribute('data-show', 'false')
 
+  // Not over the demo: its controls sit where the bar would be.
   await page.locator('#does').scrollIntoViewIfNeeded()
+  await expect(bar).toHaveAttribute('data-show', 'false')
+
+  await page.locator('#everyday').scrollIntoViewIfNeeded()
   await expect(bar).toHaveAttribute('data-show', 'true')
 
   await page.locator('#buybox').scrollIntoViewIfNeeded()
@@ -54,7 +58,7 @@ test('buy bar appears after a jump, not just a smooth scroll', async ({ page }) 
   const bar = page.locator('.buybar')
   await expect(bar).toHaveAttribute('data-show', 'false')
   await page.getByRole('button', { name: 'Open menu' }).click()
-  await page.getByRole('dialog', { name: 'Menu' }).getByRole('link', { name: /^Inside/ }).click()
+  await page.getByRole('dialog', { name: 'Menu' }).getByRole('link', { name: /^Where it fits/ }).click()
   await expect(bar).toHaveAttribute('data-show', 'true')
 })
 
@@ -62,7 +66,7 @@ test('tap targets in the buy bar and the menu button are big enough', async ({ p
   await page.goto('/')
   const menu = await page.getByRole('button', { name: 'Open menu' }).boundingBox()
   expect(menu!.height).toBeGreaterThanOrEqual(44)
-  await page.locator('#does').scrollIntoViewIfNeeded()
+  await page.locator('#everyday').scrollIntoViewIfNeeded()
   const cta = await page.locator('.buybar a').boundingBox()
   expect(cta!.height).toBeGreaterThanOrEqual(44)
 })

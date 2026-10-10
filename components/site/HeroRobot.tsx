@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { AnimatePresence, motion } from 'motion/react'
 import { SHELLS, type Shell } from '@/lib/shells'
-import Swatch from '@/components/site/Swatch'
+import ShellPicker from '@/components/site/ShellPicker'
+import { useShell } from '@/lib/shell-store'
 import { rendered } from '@/lib/renders'
-import { MOODS } from '@/lib/companion-face'
+import { OWN_MOODS } from '@/lib/companion-face'
 import { EASE } from '@/components/site/motion'
 
 /**
@@ -20,14 +21,14 @@ import { EASE } from '@/components/site/motion'
  * The mood readout under it is the robot's own state, reported back from the
  * face it is drawing — tap it and the word changes with the face.
  */
-/** Ember leads: the orange shell with the graphite neck. */
-const LEAD = Math.max(0, SHELLS.findIndex((s) => s.id === 'ember'))
 
 export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement | null> }) {
   const host = useRef<HTMLDivElement>(null)
   const api = useRef<{ setShell: (way: Shell) => void; dispose: () => void } | null>(null)
   const [live, setLive] = useState(false)
-  const [shell, setShell] = useState(LEAD)
+  // The colour is shared with every picker on the page (lib/shell-store.ts).
+  const shellId = useShell()
+  const shell = Math.max(0, SHELLS.findIndex((s) => s.id === shellId))
   const [mood, setMood] = useState(0)
   const [quiet, setQuiet] = useState<boolean | null>(null)
 
@@ -77,10 +78,8 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quiet, area])
 
-  function pick(i: number) {
-    setShell(i)
-    api.current?.setShell(SHELLS[i])
-  }
+  // A colour chosen anywhere on the page recolours the live robot here.
+  useEffect(() => { api.current?.setShell(SHELLS[shell]) }, [shell])
 
   return (
     <div className="relative">
@@ -93,9 +92,9 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
             <Image
               key={s.id}
               src={rendered(`/media/shots/float-shell-${s.id}.webp`)}
-              alt={i === LEAD ? 'PebbleRobo, the assembled desk robot' : ''}
-              aria-hidden={i !== LEAD}
-              width={1400} height={1400} priority={i === LEAD}
+              alt={i === shell ? `PebbleRobo in ${s.name}` : ''}
+              aria-hidden={i !== shell}
+              width={1400} height={1400} priority={s.id === 'ember'}
               sizes="(max-width: 1024px) 92vw, 640px"
               className="absolute inset-0 w-full h-full object-contain"
               style={{
@@ -108,8 +107,9 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
       </div>
 
       {/* The controls sit under the robot, never over it. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 mt-1">
-        <div className="flex items-center gap-3 min-h-[28px]">
+      <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-6 gap-y-3 mt-1">
+        {/* The mood readout is a wide-screen nicety; a phone keeps the swatches only. */}
+        <div className="hidden sm:flex items-center gap-3 min-h-[28px]">
           <span className="live-dot" aria-hidden="true" />
           <span className="t-mono text-[12px] text-[var(--muted)]">
             {live ? 'Feeling ' : 'PebbleRobo'}
@@ -118,38 +118,20 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
             <span className="relative inline-block overflow-hidden h-[18px] min-w-[80px]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
-                  key={MOODS[mood]?.id}
+                  key={OWN_MOODS[mood]?.id}
                   className="t-mono text-[12px] text-[var(--ink)] absolute left-0 top-0"
                   initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -18, opacity: 0 }}
                   transition={{ duration: 0.35, ease: EASE }}
                   aria-live="polite"
                 >
-                  {MOODS[mood]?.name.toLowerCase()}
+                  {OWN_MOODS[mood]?.name.toLowerCase()}
                 </motion.span>
               </AnimatePresence>
             </span>
           )}
         </div>
 
-        <div role="radiogroup" aria-label="Shell colour" className="flex items-center gap-2.5">
-          <span className="t-mono text-[12px] text-[var(--muted)] mr-1 hidden sm:inline">
-            {SHELLS[shell].name}
-          </span>
-          {SHELLS.map((s, i) => (
-            <button
-              key={s.id} type="button" role="radio"
-              aria-checked={i === shell} aria-label={s.name}
-              onClick={() => pick(i)}
-              className="block cursor-pointer rounded-full transition-transform duration-200 hover:scale-110"
-              style={{
-                outline: i === shell ? '1.5px solid var(--ink)' : '1.5px solid transparent',
-                outlineOffset: 3,
-              }}
-            >
-              <Swatch way={s} size={22} />
-            </button>
-          ))}
-        </div>
+        <ShellPicker location="hero" size={20} />
       </div>
       <p className="t-mono text-[11.5px] text-[var(--muted-2)] mt-3 mb-0 hidden md:block">
         {live ? 'It’s watching your cursor. Tap it to change its mood.' : ' '}

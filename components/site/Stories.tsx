@@ -21,7 +21,7 @@ export default function Stories({ proof }: { proof: ReturnType<typeof visiblePro
         {showingPlaceholders && (
           <p role="note" className="t-mono text-[12px] m-0 mb-10 px-3 py-2 w-fit rounded"
              style={{ background: 'var(--ember-wash)', color: 'var(--accent-ink)' }}>
-            Placeholder content for layout review — hidden on the live site until real stories arrive.
+            Placeholder content for layout review. Hidden on the live site until real stories arrive.
           </p>
         )}
 

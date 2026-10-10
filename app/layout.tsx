@@ -26,7 +26,7 @@ const jetbrains = JetBrains_Mono({
 })
 
 const SITE = 'https://pebblerobo.com'
-const TITLE = 'PebbleRobo — a little robot that looks back'
+const TITLE = 'PebbleRobo | A little robot with a life of its own'
 const DESCRIPTION =
   'PebbleRobo is a desk companion with a face, a neck that turns and a voice. It notices you, ' +
   'looks up when you say its name and answers out loud. Arrives assembled and tested, no subscription. ' +

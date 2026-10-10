@@ -29,7 +29,12 @@ export type FaceMood = {
   /** How far the eyes are open at rest: 1 is wide open, 0 is shut. */
   openness: number
   /** Drawn under the eyes when it has something to say about itself. */
-  mouth?: 'none' | 'smile' | 'line'
+  mouth?: 'none' | 'smile' | 'line' | 'frown' | 'o'
+  /**
+   * A face someone made rather than one it ships with — shown in the site's
+   * "make it yours" preview, never cycled through as one of its own moods.
+   */
+  custom?: true
 }
 
 export const MOODS: FaceMood[] = [
@@ -38,7 +43,19 @@ export const MOODS: FaceMood[] = [
   { id: 'pleased', name: 'Pleased', glow: '#ffd98a', openness: 1, mouth: 'smile' },
   { id: 'thinking', name: 'Thinking', glow: '#b7a6ff', openness: 0.75, mouth: 'line' },
   { id: 'resting', name: 'Resting', glow: '#7f93b8', openness: 0, mouth: 'none' },
+  { id: 'happy', name: 'Happy', glow: '#ffd98a', openness: 1, mouth: 'smile' },
+  { id: 'sad', name: 'Sad', glow: '#8fb4ff', openness: 0.75, mouth: 'frown' },
+  { id: 'angry', name: 'Angry', glow: '#ff8a6a', openness: 0.75, mouth: 'frown' },
+  { id: 'surprised', name: 'Surprised', glow: '#ffffff', openness: 1, mouth: 'o' },
+  { id: 'curious', name: 'Curious', glow: '#9fe8ff', openness: 1, mouth: 'line' },
+  { id: 'sleepy', name: 'Sleepy', glow: '#7f93b8', openness: 0.3, mouth: 'none' },
+  // Made, not shipped: what a custom face can look like.
+  { id: 'heart', name: 'Hearts', glow: '#ff7aa8', openness: 1, mouth: 'smile', custom: true },
+  { id: 'wink', name: 'Wink', glow: '#ffd98a', openness: 1, mouth: 'smile', custom: true },
 ]
+
+/** The faces it ships with, in the order the live robot cycles them on a tap. */
+export const OWN_MOODS = MOODS.filter((m) => !m.custom)
 
 export const moodById = (id: string) => MOODS.find((m) => m.id === id) ?? MOODS[0]
 
@@ -98,12 +115,23 @@ export function drawCompanion(
 
   glow(EYE, 1, () => {
     for (const bx of [6, 15]) {
+      const left = bx === 6
       const x = bx + ex
       const y = 5 + ey + (mood.id === 'thinking' ? -0.5 : 0)
-      if (mood.id === 'pleased') {
+      if (mood.id === 'pleased' || mood.id === 'happy') {
         // Happy: an upturned V.
         cell(x, y + 2, 1, 1); cell(x + 1, y + 1, 1, 1); cell(x + 2, y + 2, 1, 1)
         cell(x + 0.5, y + 1.5, 2, 0.5)
+        continue
+      }
+      if (mood.id === 'heart') {
+        // A pixel heart.
+        cell(x - 0.5, y + 0.5, 1.5, 1.5); cell(x + 2, y + 0.5, 1.5, 1.5)
+        cell(x - 0.5, y + 1.5, 4, 1); cell(x, y + 2.5, 3, 1); cell(x + 1, y + 3.5, 1, 0.5)
+        continue
+      }
+      if (mood.id === 'wink' && !left) {
+        cell(x, y + 2, 3, 0.5); cell(x + 2.5, y + 1.5, 0.5, 0.5)
         continue
       }
       const open = Math.max(0, mood.openness * (1 - blink))
@@ -112,8 +140,30 @@ export function drawCompanion(
         cell(x, y + 3.5, 3, 0.5)
         continue
       }
+      if (mood.id === 'surprised') {
+        // Wide and round: taller, with the corners cut.
+        cell(x + 0.5, y - 1, 2, 6); cell(x, y - 0.5, 3, 5)
+        continue
+      }
+      if (mood.id === 'curious') {
+        // One eye wider than the other, the head-tilt of a face.
+        const eh = left ? 5 : 3
+        cell(x, y + (4 - eh) / 2, 3, eh)
+        if (!left) cell(x, y - 1, 3, 0.5)
+        continue
+      }
       const eh = Math.max(0.5, snap(4 * open))
-      cell(x, y + (4 - eh) / 2, 3, eh)
+      const ty = y + (4 - eh) / 2
+      cell(x, ty, 3, eh)
+      if (mood.id === 'sad') {
+        // Brows up at the inner corners.
+        if (left) { cell(x + 2, ty - 1.5, 1, 0.5); cell(x + 1, ty - 1, 1, 0.5); cell(x, ty - 0.5, 1, 0.5) }
+        else { cell(x, ty - 1.5, 1, 0.5); cell(x + 1, ty - 1, 1, 0.5); cell(x + 2, ty - 0.5, 1, 0.5) }
+      } else if (mood.id === 'angry') {
+        // Brows down at the inner corners, cutting into the eye.
+        if (left) { cell(x, ty - 1.5, 1, 0.5); cell(x + 1, ty - 1, 1, 0.5); cell(x + 2, ty - 0.5, 1, 0.5) }
+        else { cell(x + 2, ty - 1.5, 1, 0.5); cell(x + 1, ty - 1, 1, 0.5); cell(x, ty - 0.5, 1, 0.5) }
+      }
     }
   })
 
@@ -127,12 +177,16 @@ export function drawCompanion(
       cell(11, 11, 2, mh)
       cell(10.5, 11 + Math.max(0, mh - 0.5) / 2, 0.5, 0.5)
       cell(13, 11 + Math.max(0, mh - 0.5) / 2, 0.5, 0.5)
-    } else if (mood.id === 'pleased') {
+    } else if (mood.id === 'pleased' || mood.id === 'happy' || mood.id === 'heart') {
       cell(9, 11, 1, 1); cell(10, 12, 4, 1); cell(14, 11, 1, 1)
+    } else if (mood.mouth === 'frown') {
+      cell(10, 12, 1, 1); cell(11, 11, 2, 1); cell(13, 12, 1, 1)
+    } else if (mood.mouth === 'o') {
+      cell(11, 11, 2, 0.5); cell(11, 12.5, 2, 0.5); cell(10.5, 11.5, 0.5, 1); cell(13, 11.5, 0.5, 1)
     } else if (mood.mouth === 'smile') {
       cell(10, 11, 1, 1); cell(11, 12, 2, 1); cell(13, 11, 1, 1)
     } else if (mood.mouth === 'line') {
-      cell(mood.id === 'thinking' ? 12 : 11, 12, 2, 0.5)
+      cell(mood.id === 'thinking' || mood.id === 'curious' ? 12 : 11, 12, 2, 0.5)
     } else {
       cell(11.5, 12, 1, 0.5)
     }

@@ -21,7 +21,7 @@ export default function Returns() {
 
       <h2>What we accept back</h2>
       <p>
-        We accept returns for <strong>a robot or kit that does not work</strong> — a part
+        We accept returns for <strong>a robot or kit that does not work</strong>: a part
         that is dead on arrival, damaged in transit, missing from the box, or that fails
         in normal use or during a normal build.
       </p>
@@ -35,7 +35,7 @@ export default function Returns() {
       <h2>Condition</h2>
       <p>It must come back <strong>undamaged</strong>, apart from the fault you are reporting.</p>
       <ul>
-        <li>No physical damage caused after delivery — drops, bent pins, crushed housings.</li>
+        <li>No physical damage caused after delivery: drops, bent pins, crushed housings.</li>
         <li>No damage from wrong wiring, reversed polarity, or a supply other than the one in the box.</li>
         <li>Nothing cut, soldered, filed or glued. Neither the robot nor the kit needs any of that.</li>
         <li>All parts present, including fasteners and the printed shell.</li>
@@ -49,7 +49,7 @@ export default function Returns() {
       <ol>
         <li>
           Write to <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> within{' '}
-          <strong>7 days of delivery</strong>, with your order email and payment id — both
+          <strong>7 days of delivery</strong>, with your order email and payment id. Both
           are on your order confirmation.
         </li>
         <li>
@@ -64,7 +64,7 @@ export default function Returns() {
       <h2>Refunds</h2>
       <p>
         Once it reaches us we check the reported fault. If it holds up, we refund{' '}
-        <strong>within 7 working days</strong> to the same method you paid with — the card,
+        <strong>within 7 working days</strong> to the same method you paid with: the card,
         UPI account or bank account used at checkout. We cannot refund to a different
         destination; that is a restriction of the payment system, not a preference.
       </p>
@@ -73,7 +73,7 @@ export default function Returns() {
         is not refunded, and neither is the original delivery, which has already been used.
       </p>
       <p>
-        If the fault does not hold up — the part works here, or the damage is post-delivery —
+        If the fault does not hold up (the part works here, or the damage is post-delivery),
         we will tell you what we found and send it back to you at our cost. We will not
         keep both your PebbleRobo and your money.
       </p>

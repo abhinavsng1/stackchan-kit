@@ -1,5 +1,7 @@
 'use client'
 
+import { smoothScrollTo } from '@/lib/smooth-scroll'
+
 import { setEdition, useEdition } from '@/lib/edition-store'
 import { EV, track } from '@/lib/analytics'
 import type { Edition } from '@/lib/kit'
@@ -48,8 +50,8 @@ export function SwitchEdition({
 
     // Two frames: one for React to commit the change, one for layout.
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (to === 'kit') document.getElementById('kit')?.scrollIntoView({ block: 'start' })
-      else if (insideKit) document.getElementById('buy')?.scrollIntoView({ block: 'start' })
+      if (to === 'kit') smoothScrollTo('kit')
+      else if (insideKit) smoothScrollTo('buy')
     }))
   }
 

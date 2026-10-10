@@ -26,9 +26,9 @@ export type Part = {
 export const PARTS: Part[] = [
   { desig: 'U1',  qty: '× 1',     art: 'core',       name: 'M5Stack CoreS3 Lite',
     note: 'ESP32-S3 controller with a 2.0" touch display, camera, dual mics and speaker. This is the face and the brain.' },
-  { desig: 'M1',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo — pan',
+  { desig: 'M1',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo, pan',
     note: '6 V, 2.3 kg·cm, 300° of travel. Turns the head left and right.' },
-  { desig: 'M2',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo — tilt',
+  { desig: 'M2',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo, tilt',
     note: 'Same servo, its own address on the bus. Nods the head up and down.' },
   { desig: 'A1',  qty: '× 1',     art: 'driver',     name: 'Waveshare bus servo driver',
     note: 'Drives both servos over one RS485 pair and carries the servo power rail.' },
@@ -93,19 +93,19 @@ export const CAPABILITIES: Capability[] = [
   {
     key: 'touch', tone: 'amber',
     title: 'You can touch it',
-    body: 'The display is capacitive, so the face doubles as the interface. Tap it, swipe it, put a menu on it — the driver is already wired up.',
+    body: 'The display is capacitive, so the face doubles as the interface. Tap it, swipe it, put a menu on it. The driver is already wired up.',
     source: 'U1 · FT6336U',
   },
   {
     key: 'net', tone: 'brand',
     title: 'It gets online',
-    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like — PebbleRobo takes no view on that.',
+    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like. PebbleRobo takes no view on that.',
     source: 'U1 · ESP32-S3',
   },
   {
     key: 'hack', tone: 'mint',
     title: 'You rewrite all of it',
-    body: 'Stack-chan runs on the Moddable SDK in JavaScript, and the module is a stock CoreS3 — Arduino and M5Unified work too. Apache-2.0, all the way down.',
+    body: 'Stack-chan runs on the Moddable SDK in JavaScript, and the module is a stock CoreS3, and Arduino and M5Unified work too. Apache-2.0, all the way down.',
     source: 'Open source',
   },
 ]
@@ -116,7 +116,7 @@ export type Step = { n: number; title: string; body: string }
 
 export const BUILD_STEPS: Step[] = [
   { n: 1, title: 'Check the servos',
-    body: 'Both arrive already addressed and centred — pan on one ID, tilt on the other. Power them up and confirm each answers before anything is bolted shut.' },
+    body: 'Both arrive already addressed and centred: pan on one ID, tilt on the other. Power them up and confirm each answers before anything is bolted shut.' },
   { n: 2, title: 'Build the neck',
     body: 'Both servos bolt into the printed brackets with the M2 and M3 fasteners. Pan on the bottom, tilt on top.' },
   { n: 3, title: 'Wire the bus',
@@ -185,7 +185,7 @@ export const SPEC_TABLES: SpecTable[] = [
     ],
   },
   {
-    title: 'Software', desig: '—',
+    title: 'Software', desig: '-',
     rows: [
       { label: 'Firmware', value: ['Stack-chan on the Moddable SDK', 'Behaviour written in JavaScript'] },
       { label: 'Also supported', value: 'Arduino core and M5Unified, in C++' },
@@ -209,7 +209,7 @@ export const BUILDS: Build[] = [
   {
     tone: 'mint', effort: 'A weekend',
     title: 'A voice assistant with a face',
-    body: 'Two microphones in, a 1 W speaker out, Wi-Fi in between. Wire it to whichever speech and language API you already pay for — it reacts while it thinks, which is most of why it feels alive.',
+    body: 'Two microphones in, a 1 W speaker out, Wi-Fi in between. Wire it to whichever speech and language API you already pay for It reacts while it thinks, which is most of why it feels alive.',
   },
   {
     tone: 'amber', effort: 'An afternoon',
@@ -239,25 +239,21 @@ export type Faq = { q: string; a: string }
 
 export const FAQS: Faq[] = [
   { q: 'What is PebbleRobo?',
-    a: 'A small robot for your desk with a face, a neck that turns and a voice. It blinks, looks around and reacts to you from the moment it is plugged in, and answers out loud when you say its name. It is built around the open-source Stack-chan project and an M5Stack CoreS3 Lite. It is not the official M5Stack product — that is a different device with its own hardware. The software is Stack-chan and we take no credit for it.' },
-  { q: 'What can it actually do?',
-    a: 'Out of the box it keeps you company: it blinks, breathes, fidgets, turns to look, nods and changes its face, and gets dizzy if you shake it. Say "Hi, Stack-chan" and it wakes, turns to you and answers out loud, and it can take a photo to work out what you are showing it. It can also copy your head movements from your phone, and speak and move to a script you write.' },
-  { q: 'Do I need to know how to code?',
-    a: 'No. It runs the Stack-chan firmware out of the box. When you want to change what it does, the behaviour is JavaScript on the Moddable SDK, and the controller is a stock CoreS3 Lite, so the Arduino core and M5Unified work as well.' },
-  { q: 'Does it need the internet?',
-    a: 'No. The face, the movement and the sensors all run on the robot, and so does listening for its wake word. Wi-Fi and Bluetooth are there for when you want it to answer questions out loud, which uses a speech or language service you connect — that choice is yours. There is no account with us and no subscription.' },
-  { q: 'How is it powered?',
-    a: 'From the 5 V power adapter in the box. It lives plugged in on your desk, the way a lamp does.' },
-  { q: 'When does it ship and when do I pay?',
-    a: 'You pay ₹499 now to book — card, UPI, netbanking or EMI. The remaining ₹4,500 is collected in cash when it is delivered. Delivery anywhere in India is free, and orders dispatch within 1–2 weeks of the batch closing.' },
+    a: 'A little AI companion that lives on your desk. It has a face, a head that turns and a personality of its own, and it keeps you company.' },
+  { q: 'Does it need Wi-Fi?',
+    a: 'To talk with you, yes. Conversations happen over Wi-Fi, and so do updates and the app. Its faces, its movement and its reactions to your touch work without it.' },
+  { q: 'Is there a subscription, or anything to set up for conversations?',
+    a: 'There is no subscription with us for the PebbleRobo you buy here. If you want to know exactly how conversations are set up for your order, write to support@pebblerobo.com before you book and we’ll walk you through it.' },
+  { q: 'Do I need to be technical?',
+    a: 'Not at all. Take it out of the box, plug it in and its face comes up. Connecting it to Wi-Fi and the app takes a few minutes.' },
+  { q: 'What can I do with the app?',
+    a: 'Video call it: see through its camera, turn its head to look around the room and change its face, all from your phone.' },
+  { q: 'How does ordering work?',
+    a: 'You pay ₹499 now to book, by card, UPI, netbanking or EMI. The remaining ₹4,500 is paid in cash when it arrives. Delivery anywhere in India is free, and orders leave within 1–2 weeks of the batch closing.' },
   { q: 'What if it arrives broken or stops working?',
-    a: 'Write to us within 7 days of delivery. We accept returns for a robot or kit that does not work — dead on arrival, damaged in transit, missing a part, or failing in normal use — and refund within 7 working days of it reaching us. Often a photo or a short video lets us fix it with you in a reply. The full terms are on the returns page.' },
-  { q: 'Can I return it if I change my mind?',
-    a: 'No. Once a box is opened we cannot sell it to someone else as new, so we only take back a robot or kit that does not work. We would rather say that plainly than write a policy we quietly decline to honour.' },
-  { q: 'What is the difference between the robot and the kit?',
-    a: 'Only who puts it together. Both have the same CoreS3 Lite, the same two motors, the same printed shell and the same power supply, and both cost ₹4,999. The robot is assembled and tested by us; the kit arrives as eight parts and takes an evening, with no soldering.' },
-  { q: 'What do I need that is not in the box?',
-    a: 'For the robot, nothing: the power supply is included. For the kit, a USB-C cable and a computer to flash it. You never need a 3D printer — the shell is printed here and ships with both.' },
+    a: 'Write to us within 7 days of delivery. If it doesn’t work (dead on arrival, damaged on the way, missing something, or failing in normal use), we take it back and refund you within 7 working days of it reaching us. We don’t take back a working robot because you changed your mind. The full terms are on the returns page.' },
+  { q: 'How is it powered?',
+    a: 'From the power adapter in the box. It lives plugged in on your desk, the way a lamp does.' },
 ]
 
 /* ---------------------------------------------------------------- */
@@ -301,10 +297,10 @@ export const EDITION: Record<Edition, {
   assembled: {
     name: 'PebbleRobo robot, fully assembled',
     label: 'Fully assembled',
-    pitch: 'Built, flashed and tested. Plug it in and it wakes up.',
+    pitch: 'Ready the moment it arrives. Plug it in and it wakes up.',
     sku: SKU,
     assembly: 'Done for you',
-    prep: 'We build it, flash the firmware, and test the face and both servos before it is boxed.',
+    prep: 'We build it, set it up, and check its face and every movement before it’s boxed.',
   },
   kit: {
     name: 'PebbleRobo build kit',
@@ -375,7 +371,7 @@ export const CAMPAIGN = {
    */
   endsAt: '2026-10-02T23:59:59+05:30',
   /** Shown while the campaign is live. */
-  line: 'Early bird pricing — 7 days only',
+  line: 'Early bird pricing: 7 days only',
   /** Shown once it has closed, so the page never advertises a dead offer. */
   closedLine: 'Early bird pricing has closed',
 } as const

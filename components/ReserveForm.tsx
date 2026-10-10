@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
-import { CONTACT, EDITION, PRICE, type Edition } from '@/lib/kit'
+import { CONTACT, EDITION, PRICE, DEFAULT_EDITION, type Edition } from '@/lib/kit'
 import { pricing, type Variant } from '@/lib/variants'
-import { SHELLS, DEFAULT_SHELL } from '@/lib/shells'
+import { SHELLS } from '@/lib/shells'
+import { useShell, setShell } from '@/lib/shell-store'
+import Swatch from '@/components/site/Swatch'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 import { useEdition } from '@/lib/edition-store'
-import EditionPicker from '@/components/EditionPicker'
 import { storedTwclid, xEvent } from '@/lib/x-pixel'
 
 type State =
@@ -42,7 +43,8 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
   // Starts on a real colourway rather than empty, so the optional field is
   // optional in the sense that matters: ignoring it still produces an order.
-  const [shell, setShell] = useState<string>(DEFAULT_SHELL)
+  // Shared with every other colour control on the page (lib/shell-store.ts).
+  const shell = useShell()
   const qtyRef = useRef<HTMLSelectElement>(null)
   const started = useRef(false)
   /**
@@ -151,7 +153,7 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
             <>Your {PRICE.deposit} is paid and a confirmation is on its way to your
             inbox. {PRICE.ship}, and we&apos;ll email tracking the moment it leaves.
             Keep <strong className="text-[var(--ink)]">{PRICE.balance} in cash</strong> ready
-            for the courier — that is the rest of the {PRICE.now}, and they cannot
+            for the courier. That is the rest of the {PRICE.now}, and they cannot
             take a card.</>
           ) : (
             <>We take one order per person per batch. To change the address on an existing
@@ -286,7 +288,7 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
       const outcome = await openCheckout({
         token: token.current,
         entity: CONTACT.entity,
-        description: `${EDITION[ordered.current].name} — batch 01`,
+        description: `${EDITION[ordered.current].name}, batch 01`,
       })
       if (outcome.status === 'paid') {
         recordPurchase({ qty: local_qty(), edition: ordered.current })
@@ -343,10 +345,10 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
 
   return (
     <form onSubmit={onSubmit} onFocusCapture={onFirstTouch} noValidate className="max-w-[600px]">
-      <div className="mb-7">
-        <EditionPicker name="edition" location="form" disabled={busy} />
-        {errors.edition && <Err id="edition-err">{errors.edition}</Err>}
-      </div>
+      {/* One thing to buy: the robot, ready to use. The field is still sent,
+          because the order records it and an order without one is stored as
+          the kit (see README). */}
+      <input type="hidden" name="edition" value={DEFAULT_EDITION} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field name="name" label="Name" autoComplete="name" error={errors.name} disabled={busy} />
@@ -354,18 +356,6 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
         <Field name="phone" label="Phone" type="tel" autoComplete="tel"
                placeholder="98765 43210" hint="Indian mobile" error={errors.phone} disabled={busy} />
 
-        <div>
-          <label htmlFor="profession" className="t-label block mb-2">
-            Profession<span className="opacity-60"> — optional</span>
-          </label>
-          <select id="profession" name="profession" defaultValue="" className="field" disabled={busy}
-                  aria-invalid={errors.profession ? 'true' : undefined}
-                  aria-describedby={errors.profession ? 'profession-err' : undefined}>
-            <option value="">Prefer not to say</option>
-            {PROFESSIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-          {errors.profession && <Err id="profession-err">{errors.profession}</Err>}
-        </div>
       </div>
 
       <div className="mt-5">
@@ -404,7 +394,7 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
           buttons, and a button's label is a colour, not a word. */}
       <fieldset className="border-0 p-0 m-0 mt-5">
         <legend className="t-label mb-2 p-0">
-          Colour <span style={{ color: 'var(--muted-2)' }}>— optional</span>
+          Colour
         </legend>
         <input type="hidden" name="shell" value={shell} />
         <div className="flex flex-wrap items-center gap-3">
@@ -417,15 +407,16 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
                 aria-checked={s.id === shell} aria-label={s.name}
                 disabled={busy}
                 onClick={() => setShell(s.id)}
-                className="block cursor-pointer"
+                className="block cursor-pointer rounded-full"
                 style={{
-                  width: 24, height: 24, borderRadius: 999, background: s.hex,
                   // The ring sits outside the swatch so it never tints the
                   // colour someone is trying to judge.
-                  outline: s.id === shell ? '2px solid var(--ink)' : '1px solid var(--line)',
+                  outline: s.id === shell ? '2px solid var(--ink)' : '2px solid transparent',
                   outlineOffset: 2,
                 }}
-              />
+              >
+                <Swatch way={s} size={26} />
+              </button>
             ))}
           </div>
           <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
@@ -453,7 +444,7 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
         {paysNow} now; the courier collects {owed} in cash when the
         box reaches you. Your address and phone go to the courier, because that is
         how a parcel arrives, and to Mixpanel so we can follow up if an order does
-        not complete. Payment is handled by Razorpay — your card details never
+        not complete. Payment is handled by Razorpay, and your card details never
         reach us.
       </p>
 
@@ -482,7 +473,7 @@ function Field({
   return (
     <div>
       <label htmlFor={name} className="t-label block mb-2">
-        {label}{hint && <span className="opacity-60"> — {hint}</span>}
+        {label}{hint && <span className="opacity-60"> ({hint})</span>}
       </label>
       <input
         id={name}

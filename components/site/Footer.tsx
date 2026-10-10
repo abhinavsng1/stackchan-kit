@@ -12,7 +12,7 @@ import type { Social } from '@/lib/proof'
  */
 export default function Footer({ socials }: { socials: Social[] }) {
   const columns: [string, [string, string][]][] = [
-    ['Product', [['Meet it', '#meet'], ['What it does', '#does'], ['What’s inside', '#inside'], ['Specifications', '#specs'], ['Buy', '#buy']]],
+    ['Product', [['Why it feels alive', '#why'], ['What it does', '#does'], ['Colours', '#explore'], ['Where it fits', '#everyday'], ['Specifications', '#specs'], ['Buy', '#buy']]],
     ['Support', [['FAQ', '#faq'], ['Shipping', '/shipping'], ['Returns', '/returns'], ['Contact', '/contact']]],
     ['Legal', [['Terms of sale', '/terms'], ['Privacy', '/privacy']]],
   ]
@@ -21,10 +21,10 @@ export default function Footer({ socials }: { socials: Social[] }) {
     <footer className="on-stage pb-28 lg:pb-10" style={{ paddingTop: 'var(--section-y)' }}>
       <div className="wrap">
         <SplitHeadline as="p" className="t-display t-h1 m-0 max-w-[14ch]"
-                       text={'Your desk is\nwaiting for it.'} accent={['it.']} />
+                       text={'Your AI deserves\na face.'} accent={['face']} />
         <div className="flex flex-wrap items-center gap-3 mt-10">
           <a href="#buy" className="btn btn-accent btn-lg">
-            Buy PebbleRobo · {PRICE.now} <span className="arrow" aria-hidden="true">→</span>
+            Get PebbleRobo · {PRICE.now} <span className="arrow" aria-hidden="true">→</span>
           </a>
           <a href={`mailto:${CONTACT.email}`} className="btn btn-ghost btn-lg">Ask us anything</a>
         </div>
@@ -95,7 +95,7 @@ export default function Footer({ socials }: { socials: Social[] }) {
           <p className="m-0 max-w-[60ch] md:justify-self-end">
             Ordering stores your name, email, phone and shipping address to deliver your order,
             and in Mixpanel to follow up if an order does not complete. This page records how it is
-            used — clicks, scrolling and session replays — and shares some of it with Meta and X so
+            used (clicks, scrolling and session replays) and shares some of it with Meta and X so
             our ads reach the right people. Meta is never given your name, email, phone or
             address; X gets a one-way hash of your email and phone when you order. What you type
             into the form is never captured by the session replay. Card details go to Razorpay

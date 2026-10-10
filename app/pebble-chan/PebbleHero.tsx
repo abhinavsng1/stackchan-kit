@@ -93,7 +93,7 @@ export default function PebbleHero({ variant }: { variant: Variant }) {
           </div>
 
           <p className="t-mono text-[11px] mt-4 mb-0 ml-2" style={{ color: 'rgba(243,241,237,.58)' }}>
-            Not a render — a finished unit running on a desk in Bengaluru
+            Not a render: a finished unit running on a desk in Bengaluru
           </p>
         </div>
       </div>

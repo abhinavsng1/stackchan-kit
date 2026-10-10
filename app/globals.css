@@ -642,3 +642,134 @@ p { text-wrap: pretty; }
 
 /* Hairline, not a filled chip: on black a filled badge reads as a button. */
 .pebble-dark .badge { background: transparent; }
+
+/* ---------- the demo stage ----------
+   Mode tabs, chips, and the stand-in phone panel. Quiet on the dark stage:
+   the robot is the bright thing in this section. */
+.demo-tab {
+  font: 500 14.5px/1 var(--font-body);
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.demo-tab:hover { color: var(--ink); background: rgba(255,255,255,.04); }
+.demo-tab { border-color: var(--line); }
+.demo-tab[data-on="true"] { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+/* The stage: tall on a phone; on a wide screen, held inside the window. */
+.demo-screen { aspect-ratio: 4 / 5; }
+@media (min-width: 640px) { .demo-screen { aspect-ratio: 4 / 3; } }
+@media (min-width: 1024px) {
+  .demo-screen { aspect-ratio: auto; height: clamp(360px, calc(100svh - 300px), 620px); }
+}
+
+.demo-chip {
+  font: 500 14px/1 var(--font-body);
+  padding: 10px 14px;
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.demo-chip:hover { border-color: var(--muted); }
+.demo-chip:active { transform: scale(.97); }
+.demo-chip[data-on="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.demo-chip-sm { font-size: 12.5px; padding: 7px 10px; min-height: 32px; }
+
+.phone-panel {
+  width: 220px;
+  padding: 14px;
+  border-radius: 26px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.04);
+}
+.joy {
+  position: relative;
+  height: 108px;
+  border-radius: 18px;
+  background: radial-gradient(circle at center, rgba(255,255,255,.07), rgba(255,255,255,.02));
+  border: 1px solid var(--line-soft);
+  display: grid; place-items: center;
+  touch-action: none;
+  cursor: grab;
+}
+.joy:active { cursor: grabbing; }
+.joy-knob {
+  width: 34px; height: 34px; border-radius: 999px;
+  background: var(--ink);
+  box-shadow: 0 6px 18px rgba(0,0,0,.4);
+  transition: transform 90ms linear;
+  pointer-events: none;
+}
+
+/* A moment card: an object you can pick up, so it gets a card. */
+.moment {
+  display: flex; flex-direction: column;
+  padding: 22px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+}
+.moment:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--line); }
+@media (min-width: 768px) { .rail.md\:\!grid > * { max-width: none; } }
+
+/* The hero's "see it" shortcuts into the demo. */
+.hero-try { padding: 16px 12px 8px 0; border-radius: 10px; transition: background-color var(--dur-1) var(--ease); }
+@media (min-width: 1024px) { li + li > .hero-try { padding-left: 20px; } }
+.hero-try:hover .t-mono { color: var(--accent-ink); }
+
+/* ---------- hero, on a phone ----------
+   The two buttons share the width equally, and the five small robots all fit
+   across the screen: a face over a short word. From sm up, face beside label. */
+.hero-cta { padding-inline: 14px; }
+@media (min-width: 640px) { .hero-cta { padding: 18px 28px; min-height: 56px; font-size: 16.5px; } }
+.hero-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 639px) {
+  .hero-row .hero-try { flex-direction: column; gap: 6px; padding: 12px 2px 4px; text-align: center; }
+  .hero-row .hero-try canvas { width: 40px !important; height: 30px !important; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .hero-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* The "why" statement is long; on a phone it is set smaller so it reads as a
+   paragraph, not a wall. */
+@media (max-width: 639px) { .why-statement { font-size: 30px; line-height: 1.04; } }
+
+/* ---------- the demo on a phone ----------
+   One screen: below the fixed nav, a compact header, all the chips, a stage
+   sized to what is left, and the words for the mode. */
+.demo-section { padding-block: 76px 16px; }
+@media (min-width: 640px) { .demo-section { padding-block: clamp(72px, 9vh, 104px) clamp(40px, 6vh, 72px); } }
+@media (max-width: 639px) {
+  .demo-tab { font-size: 13.5px; padding: 9px 4px; text-align: center; justify-content: center; }
+  /* Exactly one screen: everything above and below the stage keeps its
+     natural height, and the stage takes what is left — so a mode with more
+     controls simply gets a slightly smaller robot, never a scroll. */
+  .demo-section { height: 100svh; min-height: 0; }
+  .demo-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .demo-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .demo-stage-col { flex: 1 1 auto; min-height: 150px; display: flex; }
+  .demo-screen { aspect-ratio: auto; height: auto; flex: 1 1 auto; }
+  .phone-panel { width: 100%; display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: center; padding: 10px; border-radius: 18px; }
+  .phone-panel > :first-child, .phone-panel > p { grid-column: 1 / -1; margin: 0; }
+  .phone-panel .joy { height: 72px; margin: 0; }
+  .phone-panel > p { display: none; }
+  .phone-panel > div:last-child { margin: 0; flex-wrap: wrap; }
+}
+
+/* "A day with it" on a phone: a list, not a sideways rail — face on the left,
+   words on the right, every moment visible by scrolling down. */
+@media (max-width: 767px) {
+  .moments { display: grid !important; gap: 10px; }
+  .moments > .moment { display: grid; grid-template-columns: 52px 1fr; column-gap: 14px; padding: 16px; }
+  .moments > .moment > canvas { grid-row: span 4; width: 52px !important; height: 39px !important; }
+  .moments > .moment > p:first-of-type { margin-top: 0 !important; }
+  .moments > .moment > button { margin-top: 6px; justify-self: start; }
+  .moments > .moment > p.text-\[15px\] { margin: 6px 0 4px !important; }
+}

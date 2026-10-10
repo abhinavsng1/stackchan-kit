@@ -65,7 +65,7 @@ ${FAQS.map((f) => `### ${f.q}\n${f.a}`).join('\n\n')}
 
 ## Buying
 
-Payment is taken on the page by Razorpay — card, UPI, netbanking or EMI.
+Payment is taken on the page by Razorpay: card, UPI, netbanking or EMI.
 Delivery details are collected at the same time. ${PRICE.ship}.
 `
 

@@ -7,7 +7,6 @@ import { EASE } from '@/components/site/motion'
 import { PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
-import { SwitchEdition } from '@/components/EditionGate'
 
 /**
  * Large and transparent over the hero; once the page moves, it gathers itself
@@ -23,10 +22,10 @@ export default function SiteNav({ stories }: { stories: boolean }) {
   const edition = useEdition()
 
   const links: [string, string][] = [
-    ['Meet it', '#meet'],
     ['What it does', '#does'],
+    ['Colours', '#explore'],
+    ['Where it fits', '#everyday'],
     ...(stories ? [['Stories', '#stories'] as [string, string]] : []),
-    ['Inside', '#inside'],
     ['FAQ', '#faq'],
   ]
 
@@ -57,7 +56,7 @@ export default function SiteNav({ stories }: { stories: boolean }) {
     <>
       <header className="nav" data-compact={compact}>
         <div className="nav-bar">
-          <a href="#top" className="shrink-0 no-underline text-[var(--ink)]" aria-label="PebbleRobo — home">
+          <a href="#top" className="shrink-0 no-underline text-[var(--ink)]" aria-label="PebbleRobo, home">
             <Wordmark size={compact ? 20 : 24} />
           </a>
 
@@ -85,24 +84,6 @@ export default function SiteNav({ stories }: { stories: boolean }) {
           </div>
         </div>
 
-        {/* The kit is the exception, so it is announced while it is chosen
-            and stays in view. One press puts the robot back. */}
-        {edition === 'kit' && (
-          <div data-testid="kit-banner" role="status" className="mx-auto mt-2 w-fit max-w-[calc(100%-24px)]">
-            <div className="flex items-center gap-3 px-4 py-2 rounded-full text-[13px]"
-                 style={{ background: 'var(--ink)', color: 'var(--paper)' }}>
-              <span className="min-w-0 truncate">
-                <strong className="font-medium">Build-it-yourself kit selected</strong>
-                <span className="hidden sm:inline opacity-70"> · same {PRICE.now}</span>
-              </span>
-              <SwitchEdition to="assembled" location="kit-banner"
-                             className="shrink-0 underline underline-offset-4 cursor-pointer bg-transparent border-0 p-0 text-[13px] text-inherit">
-                <span className="sm:hidden">Switch to assembled</span>
-                <span className="hidden sm:inline">Switch to fully assembled</span>
-              </SwitchEdition>
-            </div>
-          </div>
-        )}
       </header>
 
       <AnimatePresence>

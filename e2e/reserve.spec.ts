@@ -40,7 +40,6 @@ const fill = async (page: import('@playwright/test').Page, email = 'asha@example
   await page.getByLabel('Name', { exact: true }).fill('Asha Rao')
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel(/^Phone/).fill('9876543210')
-  await page.getByLabel(/^Profession/).selectOption('Embedded / firmware')
   await page.getByLabel('Shipping address').fill('12 Silicon Gardenia, 12th Main, JP Nagar 5th Phase')
   await page.getByLabel('City', { exact: true }).fill('Bengaluru')
   await page.getByLabel('PIN code').fill('560078')
@@ -205,11 +204,11 @@ test('an order goes through without a profession', async ({ page }) => {
 
   await page.goto('/#reserve')
   await fill(page)
-  await page.getByLabel(/^Profession/).selectOption('')
   await page.getByRole('button', { name: /^Book for / }).click()
 
   await expect(page.getByText('Your PebbleRobo is booked.')).toBeVisible()
-  expect(sent!.profession, 'an unanswered profession must not block the sale').toBe('')
+  // The form no longer asks; whatever it sends for it must not block the sale.
+  expect(sent!.profession ?? '', 'an unanswered profession must not block the sale').toBe('')
 })
 
 test('rejects a phone number that is not a mobile', async ({ page }) => {
@@ -250,7 +249,7 @@ test('does not scroll horizontally on a phone', async ({ page }) => {
   expect(overflow).toBe(0)
 })
 
-test.describe('robot or kit', () => {
+test.describe('one thing to buy', () => {
   /** Captures what the form sends, and answers as if the order were saved. */
   async function capture(page: import('@playwright/test').Page) {
     const sent: Array<Record<string, unknown>> = []
@@ -262,7 +261,7 @@ test.describe('robot or kit', () => {
     return sent
   }
 
-  test('an order is for the assembled robot unless the kit is chosen', async ({ page }) => {
+  test('an order is for the robot, ready to use', async ({ page }) => {
     const sent = await capture(page)
     await page.goto('/')
     await fill(page)
@@ -271,39 +270,24 @@ test.describe('robot or kit', () => {
     expect(sent[0].edition).toBe('assembled')
   })
 
-  test('choosing the kit in the buy box orders the kit from the form', async ({ page }) => {
-    // The choice is made in one place and paid for in another; the two must agree.
-    const sent = await capture(page)
+  test('there is no kit to choose, anywhere on the page', async ({ page }) => {
     await page.goto('/')
-    // The buy box offers the kit as a quiet alternative, not an equal choice.
-    await page.locator('#buybox').getByRole('button', { name: 'The kit is the same price' }).click()
-    await expect(page.locator('form input[name="edition"]:checked')).toHaveValue('kit')
+    await expect(page.locator('#kit')).toHaveCount(0)
+    await expect(page.getByTestId('kit-banner')).toHaveCount(0)
+    const text = (await page.locator('body').innerText()).toLowerCase()
+    for (const phrase of ['build-it-yourself', 'fully assembled', 'the kit is the same price']) {
+      expect(text, phrase).not.toContain(phrase)
+    }
+  })
+
+  test('a link that asks for the kit still orders the robot', async ({ page }) => {
+    // Old adverts linked to ?edition=kit. With no kit on the page, a visitor
+    // must never be switched to one they cannot see.
+    const sent = await capture(page)
+    await page.goto('/?edition=kit')
     await fill(page)
     await page.getByRole('button', { name: /^Book for / }).click()
     await expect(page.getByText('Your PebbleRobo is booked.')).toBeVisible()
-    expect(sent[0].edition).toBe('kit')
-  })
-
-  test('kit content appears only once the kit is chosen, and one press takes it away', async ({ page }) => {
-    await page.goto('/')
-    // The default is the robot: no build instructions, no banner, no kit link.
-    await expect(page.locator('#kit')).toHaveCount(0)
-    await expect(page.getByTestId('kit-banner')).toHaveCount(0)
-    await expect(page.locator('header a[href="#kit"]')).toHaveCount(0)
-
-    await page.locator('#buybox').getByRole('button', { name: 'The kit is the same price' }).click()
-    await expect(page.locator('#kit')).toBeVisible()
-    await expect(page.getByTestId('kit-banner')).toContainText('kit selected')
-
-    await page.getByTestId('kit-banner').getByRole('button').click()
-    await expect(page.locator('#kit')).toHaveCount(0)
-    await expect(page.getByTestId('kit-banner')).toHaveCount(0)
-    await expect(page.locator('form input[name="edition"]:checked')).toHaveValue('assembled')
-  })
-
-  test('a link to ?edition=kit lands on the kit', async ({ page }) => {
-    await page.goto('/?edition=kit')
-    await expect(page.locator('#buybox')).toContainText('Build-it-yourself kit')
-    await expect(page.locator('form input[name="edition"]:checked')).toHaveValue('kit')
+    expect(sent[0].edition).toBe('assembled')
   })
 })

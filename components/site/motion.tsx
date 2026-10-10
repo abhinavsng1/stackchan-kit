@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import { MotionConfig, motion, useReducedMotion, type Variants } from 'motion/react'
+import { installSmoothAnchors } from '@/lib/smooth-scroll'
 
 /**
  * The page's motion vocabulary. Every animated thing on the site is built from
@@ -17,6 +19,8 @@ import { MotionConfig, motion, useReducedMotion, type Variants } from 'motion/re
 export const EASE = [0.22, 1, 0.36, 1] as const
 
 export function MotionRoot({ children }: { children: React.ReactNode }) {
+  // Every in-page link scrolls smoothly (lib/smooth-scroll.ts).
+  useEffect(() => installSmoothAnchors(), [])
   return <MotionConfig reducedMotion="user" transition={{ ease: EASE }}>{children}</MotionConfig>
 }
 

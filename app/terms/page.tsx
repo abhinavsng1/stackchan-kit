@@ -42,8 +42,8 @@ export default function Terms() {
       <h2>Price and payment</h2>
       <p>
         {PRICE.now} per robot or kit, inclusive of delivery within India. Payment is taken on the page
-        by <a href="https://razorpay.com" target="_blank" rel="noreferrer noopener">Razorpay</a>{' '}
-        — card, UPI, netbanking or EMI. Your card details go to Razorpay and never reach us.
+        by <a href="https://razorpay.com" target="_blank" rel="noreferrer noopener">Razorpay</a>:{' '}
+        card, UPI, netbanking or EMI. Your card details go to Razorpay and never reach us.
       </p>
       <p>
         Your order is confirmed when the payment settles, not when the form is submitted. If a
@@ -64,7 +64,7 @@ export default function Terms() {
       <p>
         That every part arrives present and working, that the specifications published on this
         site are accurate and taken from supplier documentation rather than marketing, and that
-        what you receive — built by us, or built by you from the kit — is the robot shown.
+        what you receive (built by us, or built by you from the kit) is the robot shown.
       </p>
       <p>
         If a part is dead, damaged or missing, see{' '}
@@ -78,7 +78,7 @@ export default function Terms() {
         write.
       </p>
       <p>
-        We do not cover damage you cause after delivery — wrong wiring, reversed polarity, a
+        We do not cover damage you cause after delivery: wrong wiring, reversed polarity, a
         supply other than the one in the box, drops, or modification. The parts are standard
         and individually replaceable, so a mistake is rarely fatal; write to us and we will
         usually sell you the one part.
@@ -91,7 +91,7 @@ export default function Terms() {
       <h2>Support</h2>
       <p>
         Email <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>, answered by a person
-        within two working days. Build questions are welcome — we would rather help you finish
+        within two working days. Build questions are welcome. We would rather help you finish
         it than process a return.
       </p>
 

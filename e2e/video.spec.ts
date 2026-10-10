@@ -28,7 +28,7 @@ test.describe('the film', () => {
     page.on('request', (r) => { if (/\/film-\w+\.(mp4|webm)$/.test(r.url())) media.push(r.url()) })
 
     await page.goto('/')
-    await page.locator('#meet').scrollIntoViewIfNeeded()
+    await page.locator('#why').scrollIntoViewIfNeeded()
     await page.waitForTimeout(1500)
     expect(media, 'a film must not load for someone who never presses play').toEqual([])
 
@@ -43,7 +43,7 @@ test.describe('the film', () => {
     // The label is a claim. If the file is swapped for one of a different
     // length, the page starts lying and this is what catches it.
     await page.goto('/')
-    await page.locator('#meet').scrollIntoViewIfNeeded()
+    await page.locator('#why').scrollIntoViewIfNeeded()
     const button = page.getByRole('button', { name: PLAY })
     const label = (await button.getAttribute('aria-label'))!.match(/(\d+):(\d{2})/)!
     const claimed = Number(label[1]) * 60 + Number(label[2])
@@ -53,26 +53,3 @@ test.describe('the film', () => {
   })
 })
 
-test.describe('section clips', () => {
-  test('each capability has its own clip, none loads up front, and all are silent', async ({ page }) => {
-    const clips: string[] = []
-    page.on('request', (r) => { if (/\/media\/render\/loop-/.test(r.url()) && /\.(mp4|webm)$/.test(r.url())) clips.push(r.url()) })
-
-    await page.goto('/')
-    await page.waitForTimeout(1200)
-    expect(clips, 'clips are decoration; they must not cost anything above the fold').toEqual([])
-
-    await page.locator('#does').scrollIntoViewIfNeeded()
-    await expect.poll(() => clips.length, { timeout: 20000 }).toBeGreaterThan(0)
-
-    // Each behaviour has its own clip. On a wide screen they are rendered
-    // twice — once in the pinned frame, once inline for phones — so it is the
-    // distinct clips that are counted.
-    const sources = await page.locator('#does video').evaluateAll((vs) =>
-      vs.map((v) => (v as HTMLVideoElement).poster))
-    expect(new Set(sources).size).toBe(3)
-
-    const vids = page.locator('#does video')
-    expect(await vids.evaluateAll((vs) => vs.every((v) => (v as HTMLVideoElement).muted))).toBe(true)
-  })
-})
