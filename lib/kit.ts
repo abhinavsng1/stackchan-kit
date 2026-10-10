@@ -26,9 +26,9 @@ export type Part = {
 export const PARTS: Part[] = [
   { desig: 'U1',  qty: '× 1',     art: 'core',       name: 'M5Stack CoreS3 Lite',
     note: 'ESP32-S3 controller with a 2.0" touch display, camera, dual mics and speaker. This is the face and the brain.' },
-  { desig: 'M1',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo — pan',
+  { desig: 'M1',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo, pan',
     note: '6 V, 2.3 kg·cm, 300° of travel. Turns the head left and right.' },
-  { desig: 'M2',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo — tilt',
+  { desig: 'M2',  qty: '× 1',     art: 'servo',      name: 'SCS0009 bus servo, tilt',
     note: 'Same servo, its own address on the bus. Nods the head up and down.' },
   { desig: 'A1',  qty: '× 1',     art: 'driver',     name: 'Waveshare bus servo driver',
     note: 'Drives both servos over one RS485 pair and carries the servo power rail.' },
@@ -52,54 +52,60 @@ export type Capability = {
   source: string
   tone: 'brand' | 'mint' | 'amber' | 'violet'
   /**
-   * Slug of the clip that shows this capability, where one exists. Wi-Fi and
-   * a software licence are not things a camera can point at, so those two
-   * tiles stay drawn rather than filmed.
+   * Slug of the clip in /media/robot that shows this capability, where one
+   * exists. Wi-Fi and a microphone are not things a camera can point at, so
+   * those tiles stay as text rather than pretend.
    */
   clip?: string
 }
 
 export const CAPABILITIES: Capability[] = [
   {
-    key: 'face', clip: 'face', tone: 'brand',
+    key: 'move', clip: 'clip-look', tone: 'mint',
+    title: 'It turns to look',
+    body: 'The head pans on a bus servo that reports the position it actually reached, so the robot knows where it is looking rather than guessing.',
+    source: 'M1 · SCS0009 pan',
+  },
+  {
+    key: 'tilt', clip: 'clip-tilt', tone: 'amber',
+    title: 'It nods and tilts',
+    body: 'A second servo, on its own address on the same bus, tips the head up, down and sideways. Two axes are what make it read as curious.',
+    source: 'M2 · SCS0009 tilt',
+  },
+  {
+    key: 'face', clip: 'clip-face', tone: 'brand',
     title: 'It has a face',
-    body: 'A 320 × 240 display renders the eyes. Expressions, blinking and a slow breathing idle are what the Stack-chan avatar library does out of the box.',
+    body: 'A 320 × 240 display draws the eyes. Expressions, blinking and a slow breathing idle run from the moment it is plugged in.',
     source: 'U1 · 2.0" IPS display',
   },
   {
-    key: 'move', clip: 'move', tone: 'mint',
-    title: 'It turns to look',
-    body: 'Pan and tilt on two bus servos. Each reports the position it actually reached, so your code knows where the head is rather than guessing.',
-    source: 'M1 + M2 · SCS0009',
-  },
-  {
-    key: 'see', clip: 'see', tone: 'amber',
+    key: 'see', tone: 'amber',
     title: 'It can see',
     body: 'An onboard camera plus a proximity and ambient-light sensor. Pointing the head at a face is the classic first project, and every part for it is in the box.',
     source: 'U1 · GC0308 + LTR-553ALS',
   },
   {
-    key: 'talk', clip: 'talk', tone: 'violet',
+    key: 'talk', tone: 'violet',
     title: 'It talks and listens',
     body: 'A 1 W speaker on an I²S amplifier and two microphones on a full-duplex codec. Speech in, speech out, no extra module.',
     source: 'U1 · AW88298 + ES7210',
   },
   {
-    key: 'touch', clip: 'touch', tone: 'amber',
+    key: 'touch', tone: 'amber',
     title: 'You can touch it',
-    body: 'The display is capacitive, so the face doubles as the interface. Tap it, swipe it, put a menu on it — the driver is already wired up.',
+    body: 'The display is capacitive, so the face doubles as the interface. Tap it, swipe it, put a menu on it. The driver is already wired up.',
     source: 'U1 · FT6336U',
   },
   {
-    key: 'net', clip: 'net', tone: 'brand',
+    key: 'net', tone: 'brand',
     title: 'It gets online',
-    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like — the kit takes no view on that.',
+    body: 'Wi-Fi and Bluetooth are on the ESP32-S3. Point it at whichever speech or language API you like. PebbleRobo takes no view on that.',
     source: 'U1 · ESP32-S3',
   },
   {
     key: 'hack', tone: 'mint',
     title: 'You rewrite all of it',
-    body: 'Stack-chan runs on the Moddable SDK in JavaScript, and the module is a stock CoreS3 — Arduino and M5Unified work too. Apache-2.0, all the way down.',
+    body: 'Stack-chan runs on the Moddable SDK in JavaScript, and the module is a stock CoreS3, and Arduino and M5Unified work too. Apache-2.0, all the way down.',
     source: 'Open source',
   },
 ]
@@ -110,7 +116,7 @@ export type Step = { n: number; title: string; body: string }
 
 export const BUILD_STEPS: Step[] = [
   { n: 1, title: 'Check the servos',
-    body: 'Both arrive already addressed and centred — pan on one ID, tilt on the other. Power them up and confirm each answers before anything is bolted shut.' },
+    body: 'Both arrive already addressed and centred: pan on one ID, tilt on the other. Power them up and confirm each answers before anything is bolted shut.' },
   { n: 2, title: 'Build the neck',
     body: 'Both servos bolt into the printed brackets with the M2 and M3 fasteners. Pan on the bottom, tilt on top.' },
   { n: 3, title: 'Wire the bus',
@@ -179,7 +185,7 @@ export const SPEC_TABLES: SpecTable[] = [
     ],
   },
   {
-    title: 'Software', desig: '—',
+    title: 'Software', desig: '-',
     rows: [
       { label: 'Firmware', value: ['Stack-chan on the Moddable SDK', 'Behaviour written in JavaScript'] },
       { label: 'Also supported', value: 'Arduino core and M5Unified, in C++' },
@@ -191,43 +197,37 @@ export const SPEC_TABLES: SpecTable[] = [
 
 /* ---------------------------------------------------------------- */
 
-export type Build = { title: string; body: string; effort: string; tone: 'brand' | 'mint' | 'amber' | 'violet'; clip: string }
+export type Build = { title: string; body: string; effort: string; tone: 'brand' | 'mint' | 'amber' | 'violet' }
 
 /** Concrete projects, with an honest sense of how much work each one is. */
 export const BUILDS: Build[] = [
   {
     tone: 'brand', effort: 'An evening',
-    clip: 'build-1',
     title: 'A desk companion that notices you',
     body: 'Point the camera at your chair. It looks up when you sit down, follows you while you work, and goes sleepy when you leave. About forty lines once the face is drawing.',
   },
   {
     tone: 'mint', effort: 'A weekend',
-    clip: 'build-2',
     title: 'A voice assistant with a face',
-    body: 'Two microphones in, a 1 W speaker out, Wi-Fi in between. Wire it to whichever speech and language API you already pay for — it reacts while it thinks, which is most of why it feels alive.',
+    body: 'Two microphones in, a 1 W speaker out, Wi-Fi in between. Wire it to whichever speech and language API you already pay for It reacts while it thinks, which is most of why it feels alive.',
   },
   {
     tone: 'amber', effort: 'An afternoon',
-    clip: 'build-3',
     title: 'A standup bot for the team',
     body: 'It turns to whoever is speaking, shows the build status on its face, and goes Error red when CI breaks. The twelve expressions are already there and settable over HTTP.',
   },
   {
     tone: 'violet', effort: 'An hour',
-    clip: 'build-4',
     title: 'A very good pomodoro timer',
     body: 'Curious while you work, sleepy on a break, excited when the cycle completes. The least useful thing you can build with it and the one people keep on the desk.',
   },
   {
     tone: 'brand', effort: 'A term',
-    clip: 'build-5',
     title: 'A teaching rig',
     body: 'One object that covers RS485, servo addressing, I²S audio, camera capture and an embedded JavaScript runtime. Students can break it and put it back together.',
   },
   {
     tone: 'mint', effort: 'Ongoing',
-    clip: 'build-6',
     title: 'Whatever you were going to build anyway',
     body: 'It is a stock CoreS3 on a servo bus with the shell already printed. If you had a robotics idea waiting on a mechanical starting point, this is one.',
   },
@@ -238,29 +238,83 @@ export const BUILDS: Build[] = [
 export type Faq = { q: string; a: string }
 
 export const FAQS: Faq[] = [
-  { q: 'Do I need a 3D printer?',
-    a: 'No. The shell and the servo brackets are printed here and ship in the box. If you would rather print your own, the Stack-chan project publishes the models.' },
-  { q: 'What is Pebble-chan, exactly?',
-    a: 'It is our build kit, assembled around the open-source Stack-chan project and an M5Stack CoreS3 Lite. It is not the official M5Stack product — that is a different, pre-assembled device with its own hardware. The software is Stack-chan and we take no credit for it.' },
-  { q: 'What do I write the software in?',
-    a: 'Stack-chan runs on the Moddable SDK, so the behaviour is JavaScript. The controller is a stock CoreS3 Lite, so the Arduino core and M5Unified work as well if you prefer C++.' },
-  { q: 'Does it need the internet to work?',
-    a: 'No. The face, the motion and the sensors all run on the device. Wi-Fi is there for when you want to reach a speech or language API, and that choice is yours.' },
-  { q: 'What do I need that is not in the box?',
-    a: 'A USB-C cable and a computer to flash it. Nothing else.' },
-  { q: 'When does it ship and when do I pay?',
-    a: 'You pay ₹499 now to book your kit — card, UPI, netbanking or EMI. The remaining ₹4,500 is collected in cash when the kit is delivered. Kits dispatch within 1–2 weeks of the batch closing.' },
+  { q: 'What is PebbleRobo?',
+    a: 'A little AI companion that lives on your desk. It has a face, a head that turns and a personality of its own, and it keeps you company.' },
+  { q: 'Does it need Wi-Fi?',
+    a: 'To talk with you, yes. Conversations happen over Wi-Fi, and so do updates and the app. Its faces, its movement and its reactions to your touch work without it.' },
+  { q: 'Is there a subscription, or anything to set up for conversations?',
+    a: 'There is no subscription with us for the PebbleRobo you buy here. If you want to know exactly how conversations are set up for your order, write to support@pebblerobo.com before you book and we’ll walk you through it.' },
+  { q: 'Do I need to be technical?',
+    a: 'Not at all. Take it out of the box, plug it in and its face comes up. Connecting it to Wi-Fi and the app takes a few minutes.' },
+  { q: 'What can I do with the app?',
+    a: 'Video call it: see through its camera, turn its head to look around the room and change its face, all from your phone.' },
+  { q: 'How does ordering work?',
+    a: 'You pay ₹499 now to book, by card, UPI, netbanking or EMI. The remaining ₹4,500 is paid in cash when it arrives. Delivery anywhere in India is free, and orders leave within 1–2 weeks of the batch closing.' },
+  { q: 'What if it arrives broken or stops working?',
+    a: 'Write to us within 7 days of delivery. If it doesn’t work (dead on arrival, damaged on the way, missing something, or failing in normal use), we take it back and refund you within 7 working days of it reaching us. We don’t take back a working robot because you changed your mind. The full terms are on the returns page.' },
+  { q: 'How is it powered?',
+    a: 'From the power adapter in the box. It lives plugged in on your desk, the way a lamp does.' },
 ]
 
 /* ---------------------------------------------------------------- */
 
 /**
- * The catalogue id. One constant, because it has to match in three places
- * that are read by different systems: the page, the Meta pixel's
- * `content_ids`, and a Merchant Center feed. A mismatch there does not error,
- * it just silently reports nothing.
+ * The catalogue ids. Each has to match in three places that are read by
+ * different systems: the page, the Meta pixel's `content_ids`, and a Merchant
+ * Center feed. A mismatch there does not error, it just silently reports
+ * nothing.
+ *
+ * SKU is the robot, which is what the page leads with. The kit keeps the id it
+ * has always had, so reporting on earlier kit orders still lines up.
  */
-export const SKU = 'PBL-KIT-01'
+export const SKU = 'PBL-BOT-01'
+export const KIT_SKU = 'PBL-KIT-01'
+
+/**
+ * Two ways to buy the same robot, at the same price.
+ *
+ * The robot arrives built, flashed and tested. The kit is the same parts in a
+ * box for someone who wants to put it together. Assembled is the default
+ * everywhere — the page, the buy box, the order form — and the order records
+ * which one was chosen, because the two are packed differently.
+ */
+export const EDITIONS = ['assembled', 'kit'] as const
+export type Edition = (typeof EDITIONS)[number]
+export const DEFAULT_EDITION: Edition = 'assembled'
+
+export const EDITION: Record<Edition, {
+  /** What it is called on a receipt or a packing slip. */
+  name: string
+  /** The choice, as a button label. */
+  label: string
+  /** One line under the label. */
+  pitch: string
+  sku: string
+  assembly: string
+  /** What we do between payment and dispatch. */
+  prep: string
+}> = {
+  assembled: {
+    name: 'PebbleRobo robot, fully assembled',
+    label: 'Fully assembled',
+    pitch: 'Ready the moment it arrives. Plug it in and it wakes up.',
+    sku: SKU,
+    assembly: 'Done for you',
+    prep: 'We build it, set it up, and check its face and every movement before it’s boxed.',
+  },
+  kit: {
+    name: 'PebbleRobo build kit',
+    label: 'Build-it-yourself kit',
+    pitch: 'The same robot as eight parts. One evening, no soldering.',
+    sku: KIT_SKU,
+    assembly: 'You build it',
+    prep: 'We match the parts, print the shell, and address and centre the servos.',
+  },
+}
+
+export function isEdition(v: unknown): v is Edition {
+  return typeof v === 'string' && (EDITIONS as readonly string[]).includes(v)
+}
 
 export const PRICE = {
   mrp: '₹13,999',
@@ -317,7 +371,7 @@ export const CAMPAIGN = {
    */
   endsAt: '2026-10-02T23:59:59+05:30',
   /** Shown while the campaign is live. */
-  line: 'Early bird pricing — 7 days only',
+  line: 'Early bird pricing: 7 days only',
   /** Shown once it has closed, so the page never advertises a dead offer. */
   closedLine: 'Early bird pricing has closed',
 } as const

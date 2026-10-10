@@ -87,6 +87,34 @@ describe('reservation persistence', () => {
     })
   })
 
+  it('stores the edition, and stores an order that names none as a kit', async () => {
+    await createPreorder({ ...minimal, edition: 'assembled' })
+    await createPreorder(minimal)
+    expect(sql.mock.calls[0].slice(1)[9]).toBe('assembled')
+    expect(sql.mock.calls[1].slice(1)[9]).toBe('kit')
+  })
+
+  it('moves an unpaid order to the edition chosen on resuming it', async () => {
+    sql.mockResolvedValueOnce([])
+    sql.mockResolvedValueOnce([
+      { payment_token: 'a'.repeat(32), paid_at: null, phone: '+919876543210' },
+    ])
+    await createPreorder({ ...minimal, phone: '+919876543210', edition: 'assembled' })
+    const update = sql.mock.calls[2]
+    expect(update[0].join('?')).toMatch(/update preorders set edition/)
+    expect(update.slice(1)).toEqual(['assembled', 'asha@example.com'])
+  })
+
+  it('never touches the edition of an order it will not hand back', async () => {
+    // A mismatched phone gets no token, so it must not be able to edit the row either.
+    sql.mockResolvedValueOnce([])
+    sql.mockResolvedValueOnce([
+      { payment_token: 'a'.repeat(32), paid_at: null, phone: '+919876543210' },
+    ])
+    await createPreorder({ ...minimal, phone: '+919000000000', edition: 'assembled' })
+    expect(sql).toHaveBeenCalledTimes(2)
+  })
+
   it('retains classification of a collision on an optional supplied phone', async () => {
     const error = Object.assign(new Error('duplicate key'), {
       code: '23505', constraint: 'preorders_phone_key',

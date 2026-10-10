@@ -71,3 +71,56 @@ alter table preorders add column if not exists balance_collected_at timestamptz;
 -- Which orders still owe money, for whoever is packing the batch.
 create index if not exists preorders_balance_outstanding
   on preorders (paid_at) where paid_at is not null and balance_collected_at is null;
+
+-- ---------------------------------------------------------------------------
+-- Edition: the assembled robot or the build kit. Additive and safe to re-run.
+--
+-- The two are packed differently, so every order has to say which it is.
+-- Every order placed before this column existed was for the kit, because the
+-- kit was the only thing on sale, so existing rows are filled in as 'kit'.
+--
+-- The default stays 'kit' on purpose. This runs before the release that sells
+-- the robot is deployed, and until it is, the old page keeps inserting rows
+-- without an edition — every one of them a kit order. The new application
+-- always writes the column explicitly, so it never relies on the default.
+alter table preorders add column if not exists edition text not null default 'kit';
+alter table preorders drop constraint if exists preorders_edition_check;
+alter table preorders add constraint preorders_edition_check check (edition in ('assembled', 'kit'));
+
+-- ---------------------------------------------------------------------------
+-- X attribution. Additive and safe to re-run.
+--
+-- The click id of the X ad an order came through, when there was one. It is
+-- only in the address of the page the buyer landed on, so it is kept with the
+-- order and sent to X's Conversion API when the deposit settles.
+alter table preorders add column if not exists twclid text;
+
+-- A buyer whose browser sent Global Privacy Control (the Sec-GPC header) when
+-- ordering. Nothing about their order is reported to an ad platform from the
+-- server — not when it is placed, and not when the webhook settles it later,
+-- which is why the signal has to be kept with the order.
+alter table preorders add column if not exists ad_opt_out boolean not null default false;
+-- Pricing experiment on /pebble-chan. Additive and safe to re-run.
+--
+-- Two columns, because a conversion rate needs two numbers. `variant` on the
+-- order is the numerator: which price this buyer was actually shown.
+-- variant_views is the denominator: how many people saw each price. With only
+-- the first, the arms cannot be compared at all.
+alter table preorders add column if not exists variant text;
+
+create table if not exists variant_views (
+  day     date    not null,
+  variant text    not null,
+  count   integer not null default 0,
+  primary key (day, variant)
+);
+
+-- ---------------------------------------------------------------------------
+-- Shell colour. Additive and safe to re-run.
+--
+-- Optional at the form, so it is nullable here: every order placed before the
+-- picker existed has no answer, and inventing one for them would be a guess
+-- written into the record. The application fills the default on new orders,
+-- which is why there is no default on the column — a default here would make
+-- an old row indistinguishable from a deliberate choice.
+alter table preorders add column if not exists shell text;

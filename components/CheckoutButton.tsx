@@ -35,7 +35,7 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
       const outcome = await openCheckout({
         token,
         entity: CONTACT.entity,
-        description: `Pebble-chan kit \u00d7 ${qty} \u2014 batch 01`,
+        description: `PebbleRobo kit \u00d7 ${qty} \u2014 batch 01`,
       })
       if (outcome.status === 'paid') {
         track(EV.paymentSucceeded, { from: 'payment_link' })

@@ -1,85 +1,83 @@
 'use client'
 
+import { smoothScrollTo } from '@/lib/smooth-scroll'
+
 import { useState } from 'react'
-import { PRICE, PARTS, SKU } from '@/lib/kit'
+import { EDITION, PRICE } from '@/lib/kit'
+import { useEdition } from '@/lib/edition-store'
 import { track } from '@/lib/analytics'
 import { EV } from '@/lib/events'
+import ShellPicker from '@/components/site/ShellPicker'
 
 const MAX = 5
 
 /**
- * The buy box. Sticky beside the gallery, so the price and the way to act on it
- * stay in view however far the specifications run.
+ * The buy box: the product, its price, and one clear way to act on it.
  *
- * It does not contain the form: ordering asks for a shipping address, and
+ * It does not contain the form — ordering asks for a shipping address, and
  * eight fields do not belong in a sticky panel. The quantity chosen here is
- * carried to the form so nobody enters it twice.
+ * carried to the form, and the edition is shared through one store, so
+ * nobody chooses either twice.
+ *
+ * The assembled robot is the product. The kit is offered as a quiet
+ * alternative underneath rather than as an equal choice: most buyers want a
+ * robot, not a project.
  */
 export default function BuyBox() {
   const [qty, setQty] = useState(1)
+  const edition = useEdition()
+
 
   const step = (by: number) => setQty((q) => Math.min(MAX, Math.max(1, q + by)))
 
   const reserve = () => {
-    track(EV.reserveCtaClicked, { location: 'buybox', qty })
+    track(EV.reserveCtaClicked, { location: 'buybox', qty, edition })
     window.dispatchEvent(new CustomEvent('sc:qty', { detail: qty }))
-    document.getElementById('reserve')?.scrollIntoView({ block: 'start' })
+    smoothScrollTo('reserve')
   }
 
+  const e = EDITION[edition]
+
   return (
-    <div id="buybox" className="lg:sticky lg:top-24">
-      <p className="t-label m-0">Pebble Robo · Batch 01</p>
-      <h1 className="t-display text-[clamp(28px,4.4vw,40px)] mt-2 mb-0">
-        Pebble-chan build kit
-      </h1>
-      <p className="t-mono text-[12px] text-[var(--muted)] mt-2 mb-0">
-        SKU {SKU} · {PARTS.length} parts
+    <div id="buybox">
+      <p className="t-label m-0">Batch 01</p>
+      <h2 className="t-display mt-4 mb-0" style={{ fontSize: 'clamp(44px, 5vw, 72px)' }}>PebbleRobo</h2>
+      <p className="text-[17px] text-[var(--muted)] mt-3 mb-0 max-w-[36ch]">{e.pitch}</p>
+
+      <div className="flex items-baseline gap-3 flex-wrap mt-8">
+        <span className="t-display leading-none" style={{ fontSize: 'clamp(40px, 4vw, 56px)' }}>{PRICE.now}</span>
+        <span className="t-mono text-[15px] text-[var(--muted-2)] line-through">{PRICE.mrp}</span>
+      </div>
+      <p className="text-[15px] mt-3 mb-0">
+        <strong className="font-medium">{PRICE.deposit} today</strong>
+        <span className="text-[var(--muted)]"> · {PRICE.balance} in cash when it arrives</span>
+      </p>
+      <p className="text-[14px] text-[var(--muted)] mt-2 mb-0 flex items-center gap-2">
+        <span className="dot" aria-hidden="true" />Free delivery in India · {PRICE.ship}
       </p>
 
-      <div className="flex items-end gap-3 flex-wrap mt-6">
-        <span className="t-display text-[clamp(34px,5.5vw,46px)] leading-none">{PRICE.now}</span>
-        <span className="t-mono text-[15px] text-[var(--muted)] line-through mb-1">{PRICE.mrp}</span>
-        <span className="badge mb-1.5" style={{
-          color: 'var(--mint)',
-          borderColor: 'color-mix(in srgb, var(--mint) 40%, transparent)',
-          background: 'color-mix(in srgb, var(--mint) 10%, var(--surface))',
-        }}>{PRICE.save}</span>
+      <div className="mt-7">
+        <p className="t-label m-0 mb-2">Colour</p>
+        <ShellPicker location="buybox" size={24} label="below" />
       </div>
 
-      <p className="text-[14px] text-[var(--muted)] mt-2 mb-0 flex items-center gap-2">
-        <span className="dot" />In stock · {PRICE.ship}
-      </p>
-
-      <div className="flex items-center gap-3 mt-6">
-        <div className="flex items-center rounded-full border" style={{ borderColor: 'var(--line)' }}>
-          <StepButton label="Fewer kits" onClick={() => step(-1)} disabled={qty === 1}>−</StepButton>
-          <span className="t-mono text-[15px] w-9 text-center tabular-nums" aria-live="polite"
-                aria-label={`${qty} kit${qty > 1 ? 's' : ''}`}>{qty}</span>
-          <StepButton label="More kits" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
+      <div className="flex items-stretch gap-3 mt-7">
+        <div className="flex items-center rounded-full border shrink-0" style={{ borderColor: 'var(--line)' }}>
+          <StepButton label="Fewer" onClick={() => step(-1)} disabled={qty === 1}>−</StepButton>
+          <span className="t-mono text-[15px] w-8 text-center tabular-nums" aria-live="polite"
+                aria-label={`Quantity ${qty}`}>{qty}</span>
+          <StepButton label="More" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
         </div>
-        <button type="button" onClick={reserve} className="btn btn-brand flex-1 justify-center">
-          Book {qty > 1 ? `${qty} kits` : 'a kit'} — {PRICE.deposit}
+        <button type="button" onClick={reserve} className="btn btn-brand btn-lg flex-1">
+          Buy PebbleRobo <span className="arrow" aria-hidden="true">→</span>
         </button>
       </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+        <p className="t-mono text-[12px] text-[var(--muted)] m-0">Card · UPI · netbanking · EMI, via Razorpay</p>
+        <a href="#included" className="link text-[14px]">See what’s included</a>
+      </div>
 
-      <p className="t-label mt-3 mb-0">Card · UPI · netbanking · EMI</p>
 
-      <dl className="mt-7 m-0 grid gap-0 border-t" style={{ borderColor: 'var(--line)' }}>
-        {[
-          ['Dispatch', '1–2 weeks'],
-          ['Due today', PRICE.deposit],
-          ['On delivery, cash', PRICE.balance],
-          ['Assembly', 'You build it'],
-          ['Shell', 'Printed, included'],
-          ['Licence', 'Apache-2.0'],
-        ].map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-4 py-2.5 border-b"
-               style={{ borderColor: 'var(--line)' }}>
-            <dt className="t-label">{k}</dt>
-            <dd className="t-mono text-[13px] m-0 text-right">{v}</dd>
-          </div>
-        ))}
-      </dl>
     </div>
   )
 }
@@ -93,8 +91,8 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="w-9 h-9 grid place-items-center text-[17px] rounded-full disabled:opacity-35
-                 hover:bg-[var(--surface-2)] transition-colors"
+      className="w-11 h-11 grid place-items-center text-[18px] rounded-full disabled:opacity-30
+                 hover:bg-[var(--surface-2)] transition-colors cursor-pointer disabled:cursor-not-allowed"
     >
       {children}
     </button>

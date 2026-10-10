@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:#0e1013}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/":"/node_modules/three/"}}</script>
+<script type="module">
+import * as THREE from 'three'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { buildRig } from './scene-rig.js'
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true})
+renderer.setPixelRatio(2); renderer.setSize(560,560,false)
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+document.body.appendChild(renderer.domElement)
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0e1013)
+const pmrem = new THREE.PMREMGenerator(renderer)
+scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture
+const k = new THREE.DirectionalLight(0xffffff,2.2); k.position.set(-90,150,130); scene.add(k)
+const r1 = new THREE.DirectionalLight(0x9ecfff,1.6); r1.position.set(-160,55,-120); scene.add(r1)
+scene.add(new THREE.AmbientLight(0xffffff,.3))
+const rig = await buildRig(THREE, STLLoader, { mergeVertices })
+scene.add(rig.root)
+const box = new THREE.Box3().setFromObject(rig.root)
+const c = box.getCenter(new THREE.Vector3()), rad = box.getSize(new THREE.Vector3()).length()/2
+const cam = new THREE.PerspectiveCamera(30,1,1,4000)
+window.__pose = (pan, tiltDeg) => rig.setPose(pan, tiltDeg)
+window.__shot = (dx,dy,dz) => {
+  const dir = new THREE.Vector3(dx,dy,dz).normalize()
+  cam.position.copy(c).addScaledVector(dir, rad/Math.sin(THREE.MathUtils.degToRad(30)/2)*0.95)
+  cam.lookAt(c); cam.updateProjectionMatrix(); renderer.render(scene,cam)
+  return renderer.domElement.toDataURL('image/png')
+}
+window.__exportGLB = () => new Promise((res, rej) => {
+  new GLTFExporter().parse(rig.root, (b) => res(Array.from(new Uint8Array(b))), rej,
+    { binary: true, onlyVisible: true })
+})
+window.__ready = true
+</script>

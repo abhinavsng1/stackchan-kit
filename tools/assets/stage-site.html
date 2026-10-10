@@ -1,0 +1,213 @@
+<!doctype html>
+<meta charset="utf-8"><title>site renders</title>
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">
+{"imports":{"three":"/node_modules/three/build/three.module.js","three/":"/node_modules/three/"}}
+</script>
+<script type="module">
+/**
+ * The site's product renders, from the same robot the live hero uses
+ * (lib/robot-body.ts on public/models/stackchan-body.glb), so a render and the
+ * robot on the page cannot disagree about anything: the shell's clear coat,
+ * the curved glass, the servos, the studio, the shadow.
+ *
+ * Everything is finished here, in the page — the ground, the shadow, the
+ * reflection, the WebP stills and the WebM / MP4 loops — so the pipeline needs
+ * nothing installed but the browser. build-site.mjs drives it.
+ *
+ * Grounds:
+ *   float   transparent, with the robot's own shadow, for places the page has its own background
+ *   studio  a white sweep under the same shadow, like a product table
+ *   stage   the studio's own near-black backdrop with a soft floor reflection
+ */
+import * as THREE from 'three'
+import { MOODS, drawCompanion } from './.gen/companion-face.js'
+import { loadBody, buildRobot, configureRenderer, makeStudio } from './.gen/robot-body.js'
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+renderer.setPixelRatio(1)
+renderer.setClearColor(0x000000, 0)
+configureRenderer(renderer)
+document.body.appendChild(renderer.domElement)
+
+const parts = await loadBody('/public/models/stackchan-body.glb', '/node_modules/three/examples/jsm/libs/draco/gltf/')
+
+// Two rooms with the same lights: one clear, one with the dark backdrop and
+// the floor reflection. A robot is moved into whichever the shot needs.
+const rooms = {
+  clear: (() => { const s = new THREE.Scene(); return { scene: s, studio: makeStudio(renderer, s, { ground: 'clear', shadow: 0.34 }) } })(),
+  dark: (() => { const s = new THREE.Scene(); return { scene: s, studio: makeStudio(renderer, s, { ground: 'dark', reflectionSize: [1200, 1200] }) } })(),
+}
+
+const robots = []
+const camera = new THREE.PerspectiveCamera(26, 1, 5, 6000)
+
+/** Set one robot up: shell, face, pose, place. */
+function setUnit(r, u) {
+  r.setShell(u.shell)
+  const mood = MOODS.find((m) => m.id === u.mood) ?? MOODS[0]
+  drawCompanion(r.ctx, mood, u.clock ?? 0, u.speak ?? 0, u.gaze ?? { x: 0, y: 0 })
+  r.update()
+  r.pose({ pan: u.pan ?? 0, tilt: u.tilt ?? 0, explode: u.explode ?? 0 })
+}
+
+/**
+ * Render one frame onto the WebGL canvas. Returns where the robots stand and
+ * the framing, so a loop can hold the camera still across its frames.
+ */
+let held = null
+/**
+ * Framing, three ways:
+ *   sphere  the bounding sphere at `fill` (the default, and the hero's own)
+ *   box     as close as every corner allows, inside `margin` (the live lineup)
+ *   sweep   the box the robot sweeps as it turns (the live turntable)
+ * box and sweep match lib/live-stage.ts frameBox, so a stand-in matches its live scene.
+ */
+function frameBox(box, dir, target, margin) {
+  const d = new THREE.Vector3(...dir).normalize()
+  const corners = []
+  for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) corners.push(new THREE.Vector3(x, y, z))
+  const q = new THREE.Vector3()
+  const place = (dist) => { camera.position.copy(target).addScaledVector(d, dist); camera.lookAt(target); camera.updateMatrixWorld() }
+  let lo = 1, hi = camera.far * 0.8
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2
+    place(mid)
+    const fits = corners.every((c) => { q.copy(c).project(camera); return q.z < 1 && Math.abs(q.x) <= margin && Math.abs(q.y) <= margin })
+    if (fits) hi = mid; else lo = mid
+  }
+  place(hi)
+}
+
+function draw({ w, h, ground = 'studio', dir = [0.55, 0.2, 0.82], fill = 0.92, units, aim = [0, 0, 0], keepCamera = false, spacing = 82, fit = 'sphere', margin = 0.9 }) {
+  const room = ground === 'stage' ? rooms.dark : rooms.clear
+  while (robots.length < units.length) {
+    const r = buildRobot(parts, units[0].shell)
+    rooms.clear.studio.adopt(r.root)
+    robots.push(r)
+  }
+  robots.forEach((r, i) => {
+    if (i < units.length) room.scene.add(r.root)
+    else r.root.removeFromParent()
+  })
+  const at = units.map((u, i) => ({ x: u.x ?? (i - (units.length - 1) / 2) * spacing, z: u.z ?? 0 }))
+  units.forEach((u, i) => {
+    setUnit(robots[i], u)
+    robots[i].root.position.set(at[i].x, 0, at[i].z)
+    robots[i].root.rotation.y = THREE.MathUtils.degToRad(u.yaw ?? 0)
+  })
+  renderer.setSize(w, h, false)
+  room.scene.updateMatrixWorld(true)
+
+  if (!(keepCamera && held)) {
+    let box = new THREE.Box3()
+    units.forEach((_, i) => box.expandByObject(robots[i].root))
+    camera.aspect = w / h
+    camera.updateProjectionMatrix()
+    if (fit === 'sweep') {
+      let r = 0
+      for (const x of [box.min.x, box.max.x]) for (const z of [box.min.z, box.max.z]) r = Math.max(r, Math.hypot(x, z))
+      box = new THREE.Box3(new THREE.Vector3(-r, box.min.y, -r), new THREE.Vector3(r, box.max.y + 4, r))
+    }
+    const centre = box.getCenter(new THREE.Vector3())
+    const target = centre.clone().add(new THREE.Vector3(...aim))
+    if (fit === 'sphere') {
+      const radius = box.getSize(new THREE.Vector3()).length() / 2
+      const vFov = THREE.MathUtils.degToRad(camera.fov)
+      const fitH = radius / Math.sin(vFov / 2)
+      const fitW = radius / Math.sin(Math.atan(Math.tan(vFov / 2) * camera.aspect))
+      camera.position.copy(target).addScaledVector(new THREE.Vector3(...dir).normalize(), Math.max(fitH, fitW) * fill)
+      camera.lookAt(target)
+    } else {
+      frameBox(box, dir, target, margin)
+    }
+    room.studio.fitShadow(box, at)
+    held = true
+  }
+  room.studio.turn(0)
+  renderer.render(room.scene, camera)
+}
+
+/** The white sweep: lighter at the top, settling to the table, one soft lift behind the product. */
+function sweep(g, w, h) {
+  const lin = g.createLinearGradient(0, 0, 0, h)
+  lin.addColorStop(0, '#f8f8f6'); lin.addColorStop(1, '#e8e8e5')
+  g.fillStyle = lin; g.fillRect(0, 0, w, h)
+  const lift = g.createRadialGradient(w / 2, h * 0.45, 0, w / 2, h * 0.45, Math.max(w, h) * 0.5)
+  lift.addColorStop(0, 'rgba(255,255,255,0.55)'); lift.addColorStop(1, 'rgba(255,255,255,0)')
+  g.fillStyle = lift; g.fillRect(0, 0, w, h)
+}
+
+/** The finished frame: the ground under the render. */
+const out = document.createElement('canvas')
+function compose(w, h, ground) {
+  out.width = w; out.height = h
+  const g = out.getContext('2d')
+  g.clearRect(0, 0, w, h)
+  if (ground === 'studio') sweep(g, w, h)
+  g.drawImage(renderer.domElement, 0, 0, w, h)
+  return out
+}
+
+/** A WebP at each requested width, high-quality downscale. */
+function webp(src, width) {
+  if (width === src.width) return src.toDataURL('image/webp', 0.9)
+  const c = document.createElement('canvas')
+  c.width = width; c.height = Math.round(src.height * width / src.width)
+  const g = c.getContext('2d')
+  g.imageSmoothingQuality = 'high'
+  g.drawImage(src, 0, 0, c.width, c.height)
+  return c.toDataURL('image/webp', 0.88)
+}
+
+window.__still = (shot) => {
+  held = null
+  draw(shot)
+  const finished = compose(shot.w, shot.h, shot.ground)
+  return (shot.widths ?? [shot.w]).map((wd) => webp(finished, wd))
+}
+
+/**
+ * A loop, encoded here with WebCodecs: VP9 in WebM and H.264 in MP4, the two
+ * the page's <video> offers. `frames` is one list of units per frame.
+ */
+window.__loop = async (loop) => {
+  const { Muxer: WebM, ArrayBufferTarget: WebMTarget } = await import('https://cdn.jsdelivr.net/npm/webm-muxer@5/+esm')
+  const { Muxer: MP4, ArrayBufferTarget: MP4Target } = await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5/+esm')
+  const { w, h } = loop
+  const fps = 24
+  const webm = new WebM({ target: new WebMTarget(), video: { codec: 'V_VP9', width: w, height: h, frameRate: fps } })
+  const mp4 = new MP4({ target: new MP4Target(), video: { codec: 'avc', width: w, height: h }, fastStart: 'in-memory' })
+  let failed = null
+  const vp9 = new VideoEncoder({ output: (c, m) => webm.addVideoChunk(c, m), error: (e) => { failed = e } })
+  vp9.configure({ codec: 'vp09.00.40.08', width: w, height: h, bitrate: loop.bitrate ?? 450_000, framerate: fps })
+  const avc = new VideoEncoder({ output: (c, m) => mp4.addVideoChunk(c, m), error: (e) => { failed = e } })
+  avc.configure({ codec: 'avc1.640028', width: w, height: h, bitrate: loop.bitrate ?? 450_000, framerate: fps, avc: { format: 'avc' } })
+
+  held = null
+  if (loop.frameAt) draw({ ...loop, units: loop.frameAt })
+  let poster = null
+  for (let i = 0; i < loop.frames.length; i++) {
+    if (failed) throw failed
+    draw({ ...loop, units: loop.frames[i], keepCamera: i > 0 || Boolean(loop.frameAt) })
+    const finished = compose(w, h, loop.ground)
+    if (i === 0) poster = finished.toDataURL('image/webp', 0.9)
+    const frame = new VideoFrame(finished, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) })
+    const keyFrame = i % (fps * 2) === 0
+    vp9.encode(frame, { keyFrame }); avc.encode(frame, { keyFrame })
+    frame.close()
+    while (vp9.encodeQueueSize > 4 || avc.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 5))
+  }
+  await vp9.flush(); await avc.flush()
+  if (failed) throw failed
+  webm.finalize(); mp4.finalize()
+  const b64 = (buf) => {
+    const u = new Uint8Array(buf); let s = ''
+    for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000))
+    return btoa(s)
+  }
+  return { webm: b64(webm.target.buffer), mp4: b64(mp4.target.buffer), poster }
+}
+
+window.__ready = true
+</script>

@@ -1,0 +1,183 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>asset stage</title>
+<style>html,body{margin:0;background:#050505}canvas{display:block}</style>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/": "/node_modules/three/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { buildRobot, SCREEN } from './scene.js'
+import { FACES, faceSvg } from './.gen/faces.js'
+
+const scene = new THREE.Scene()
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
+renderer.setPixelRatio(2)
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 0.78
+document.body.appendChild(renderer.domElement)
+
+const pmrem = new THREE.PMREMGenerator(renderer)
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+scene.environmentIntensity = 0.45
+
+/* Studio lighting, not daylight.
+   A single soft key with a hard rim is what makes a product read as an
+   object rather than a CAD screenshot: the rim separates the silhouette
+   from the ground, and the falloff on the key is what gives the shell its
+   form. The previous setup was three flat lights at similar strengths,
+   which is why everything came out the same grey. */
+const key = new THREE.DirectionalLight(0xfff4e8, 1.25)
+key.position.set(70, 150, 90); key.castShadow = true
+key.shadow.mapSize.set(2048, 2048)
+key.shadow.camera.near = 1; key.shadow.camera.far = 700
+key.shadow.bias = -0.0004
+for (const k of ['left','right','top','bottom']) key.shadow.camera[k] = (k==='left'||k==='bottom'?-1:1)*150
+scene.add(key)
+
+/* Two rims, opposed, so both edges of the silhouette catch light. */
+const rimL = new THREE.DirectionalLight(0x8fc9ff, 1.5); rimL.position.set(-150, 70, -110); scene.add(rimL)
+const rimR = new THREE.DirectionalLight(0xffd3a8, 0.9); rimR.position.set(160, 40, -70); scene.add(rimR)
+const fill = new THREE.DirectionalLight(0xffffff, 0.25); fill.position.set(-50, 10, 140); scene.add(fill)
+scene.add(new THREE.AmbientLight(0xffffff, 0.16))
+
+/* The halo. Its colour comes from whichever face is showing, because the
+   screen is the only saturated thing this product has — the shell is grey
+   printed plastic and always will be. Driving the glow from the face is the
+   honest version of a brand colour. */
+/** A soft radial, so the halo fades instead of ending. */
+function radialFalloff() {
+  const c = document.createElement('canvas')
+  c.width = c.height = 256
+  const g = c.getContext('2d').createRadialGradient(128, 128, 0, 128, 128, 128)
+  g.addColorStop(0, 'rgba(255,255,255,1)')
+  g.addColorStop(0.45, 'rgba(255,255,255,.35)')
+  g.addColorStop(1, 'rgba(255,255,255,0)')
+  const ctx = c.getContext('2d')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, 256, 256)
+  return new THREE.CanvasTexture(c)
+}
+
+const haloMat = new THREE.SpriteMaterial({
+  color: 0xffffff, transparent: true, opacity: 0.22,
+  blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true,
+  map: radialFalloff(),
+})
+const halo = new THREE.Sprite(haloMat)
+halo.scale.set(190, 190, 1)
+halo.position.set(-18, 40, -90)
+halo.visible = false
+scene.add(halo)
+
+const { root, screen, shellMaterial } = await buildRobot(THREE, STLLoader, { mergeVertices })
+window.__setShell = (hex) => { shellMaterial.color = new THREE.Color(hex) }
+root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true } })
+scene.add(root)
+
+// A seamless ground that takes the shadow without drawing a horizon.
+/* No ground plane. A product shot floats; a shadow on a floor puts it in a
+   room, which is the opposite of what a catalogue image wants. The
+   reflection underneath is composited afterwards, where its falloff can be
+   controlled exactly. */
+
+const camera = new THREE.PerspectiveCamera(32, 4/3, 1, 3000)
+
+/* Bloom, gently. The screen is emissive and the rims are hot; a little
+   bleed is what stops a render looking like a technical drawing. Too much
+   and the face stops being readable, which is the one thing it must be. */
+const composer = new EffectComposer(renderer)
+composer.addPass(new RenderPass(scene, camera))
+const bloom = new UnrealBloomPass(new THREE.Vector2(1200, 900), 0.12, 0.5, 0.98)
+composer.addPass(bloom)
+composer.addPass(new OutputPass())
+
+/** Draw one face from the atlas onto the screen mesh. */
+function setFace(id) {
+  if (!id) return
+  const face = FACES.find((f) => f.id === id) ?? FACES[0]
+  const svg = faceSvg(face)
+  const img = new Image()
+  const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)))
+  return new Promise((res) => {
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = SCREEN.px[0]; c.height = SCREEN.px[1]
+      const ctx = c.getContext('2d')
+      ctx.drawImage(img, 0, 0, c.width, c.height)
+      const tex = new THREE.CanvasTexture(c)
+      tex.colorSpace = THREE.SRGBColorSpace
+      screen.material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })
+      // The halo takes the face's accent, so the whole frame changes
+      // temperature with the expression.
+      haloMat.color = new THREE.Color(face.acc)
+      res()
+    }
+    img.onerror = () => res()
+    img.src = url
+  })
+}
+
+/* Direction only — the distance is computed from the model's own bounds, so
+   framing cannot drift when the geometry changes. */
+const ANGLES = {
+  hero:          { dir: [0.52, 0.42, 0.74] },
+  three_quarter: { dir: [0.70, 0.34, 0.62] },
+  front:         { dir: [0.00, 0.22, 1.00] },
+}
+
+const bounds = new THREE.Box3().setFromObject(root)
+const centre = bounds.getCenter(new THREE.Vector3())
+const radius = bounds.getSize(new THREE.Vector3()).length() / 2
+
+function frame(angleName, aspect) {
+  const a = ANGLES[angleName] ?? ANGLES.hero
+  const dir = new THREE.Vector3(...a.dir).normalize()
+  const vFov = THREE.MathUtils.degToRad(camera.fov)
+  // Fit by whichever dimension is tighter, with room to breathe.
+  const fitH = radius / Math.sin(vFov / 2)
+  const fitW = radius / Math.sin(2 * Math.atan(Math.tan(vFov / 2) * aspect) / 2)
+  const dist = Math.max(fitH, fitW) * 0.98
+  camera.position.copy(centre).addScaledVector(dir, dist)
+  camera.lookAt(centre)
+  camera.updateProjectionMatrix()
+}
+
+window.__render = async (angleName, faceId, width) => {
+  await setFace(faceId)
+  const h = Math.round(width * 0.75)
+  renderer.setSize(width / 2, h / 2, false)
+  camera.aspect = width / h
+  frame(angleName, camera.aspect)
+  composer.setSize(width / 2, h / 2)
+  composer.render()
+  const blob = await new Promise((r) => renderer.domElement.toBlob(r, 'image/webp', 0.92))
+  return Array.from(new Uint8Array(await blob.arrayBuffer()))
+}
+
+window.__exportGLB = () => new Promise((res, rej) => {
+  new GLTFExporter().parse(root, (buf) => res(Array.from(new Uint8Array(buf))),
+    (e) => rej(e), {
+      binary: true, onlyVisible: true,
+      // Half-float positions and normals. The model is 90 mm across and
+      // displayed at a few hundred pixels; float32 precision on a part that
+      // size is storing noise.
+      quantizePosition: 14, quantizeNormal: 10,
+    })
+})
+
+window.__ready = true
+</script>

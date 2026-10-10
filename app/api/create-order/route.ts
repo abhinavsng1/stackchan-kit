@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     return json({ error: 'This reservation has already been paid for.', code: 'already_paid' }, 409)
   }
 
-  const order = await createOrder(reservation.qty)
+  const order = await createOrder(reservation.qty, reservation.edition)
 
   if (order.status === 'unconfigured') {
     console.error('[create-order] Razorpay keys are not set')

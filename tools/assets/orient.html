@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:#111}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/":"/node_modules/three/"}}</script>
+<script type="module">
+import * as THREE from 'three'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+const renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true })
+renderer.setPixelRatio(2); renderer.setSize(500,500,false)
+document.body.appendChild(renderer.domElement)
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x15171a)
+const pmrem = new THREE.PMREMGenerator(renderer)
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+scene.add(new THREE.AmbientLight(0xffffff,.5))
+const d = new THREE.DirectionalLight(0xffffff,2); d.position.set(80,140,100); scene.add(d)
+const geo = await new Promise((r,j)=>new STLLoader().load('/assets-src/stl/assembled_v3.stl',r,undefined,j))
+geo.computeVertexNormals()
+const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:'#9aa0a6',roughness:.7}))
+mesh.rotation.x = -Math.PI/2           // STL is Z-up; three is Y-up
+const root = new THREE.Group(); root.add(mesh); scene.add(root)
+const box = new THREE.Box3().setFromObject(root)
+const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length()/2
+const cam = new THREE.PerspectiveCamera(32,1,1,3000)
+// Axis helper so the orientation is unambiguous.
+const ax = new THREE.AxesHelper(60); ax.position.copy(c); scene.add(ax)
+window.__shot = (dx,dy,dz) => {
+  const dir = new THREE.Vector3(dx,dy,dz).normalize()
+  cam.position.copy(c).addScaledVector(dir, r/Math.sin(THREE.MathUtils.degToRad(32)/2)*1.05)
+  cam.lookAt(c); cam.updateProjectionMatrix(); renderer.render(scene,cam)
+  return renderer.domElement.toDataURL('image/png')
+}
+window.__info = { center:[c.x,c.y,c.z].map(n=>+n.toFixed(1)), size:box.getSize(new THREE.Vector3()).toArray().map(n=>+n.toFixed(1)) }
+window.__ready = true
+</script>

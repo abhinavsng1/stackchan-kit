@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
-import { PRICE } from '@/lib/kit'
+import { PRICE, EDITION, type Edition } from '@/lib/kit'
+import { isVariant, pricing } from '@/lib/variants'
 
 /**
  * Razorpay, server side only.
@@ -59,8 +60,12 @@ export function orderAmountPaise(qty: number): number {
  * up on a packing slip and in a courier's hands, and it is the only number
  * standing between a buyer and being asked for the wrong amount at the door.
  */
-export function balanceDuePaise(qty: number): number {
+export function balanceDuePaise(qty: number, variant: string | null = null): number {
   assertQty(qty)
+  // The assembled robot's two price arms owe different amounts on delivery.
+  // An unrecognised variant falls back to the kit's balance rather than
+  // guessing, because a wrong figure here is what a courier asks for at a door.
+  if (variant && isVariant(variant)) return pricing(variant).balancePaise * qty
   return PRICE.balancePaise * qty
 }
 
@@ -77,7 +82,7 @@ function receiptId(): string {
   return `pbl_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`
 }
 
-export async function createOrder(qty: number): Promise<OrderResult> {
+export async function createOrder(qty: number, edition: Edition = 'kit'): Promise<OrderResult> {
   const creds = credentials()
   if (!creds) return { status: 'unconfigured' }
 
@@ -98,7 +103,8 @@ export async function createOrder(qty: number): Promise<OrderResult> {
         /* Visible in the Razorpay dashboard, where somebody reconciling a
            payment needs to know this was a deposit, not a full order. */
         notes: {
-          kits: String(qty), batch: '01', payment_type: 'booking_deposit',
+          kits: String(qty), edition, sku: EDITION[edition].sku,
+          batch: '01', payment_type: 'booking_deposit',
           balance_due_on_delivery_paise: String(balanceDuePaise(qty)),
         },
       }),

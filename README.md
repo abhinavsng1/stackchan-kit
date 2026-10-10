@@ -1,8 +1,9 @@
-# Pebble-chan — sales site
+# PebbleRobo — sales site
 
-Single-page pre-order site for Pebble-chan, a build kit based on the
-open-source Stack-chan project. Next.js App Router,
-TypeScript, Tailwind v4, Zod, Neon Postgres, deployed on Vercel.
+Single-page site for PebbleRobo, a desktop robot based on the open-source
+Stack-chan project, sold fully assembled (the default) or as a build kit at the
+same price. Next.js App Router, TypeScript, Tailwind v4, Zod, Neon Postgres,
+deployed on Vercel.
 
 Design spec: `docs/superpowers/specs/2026-09-12-stackchan-kit-site-design.md`
 
@@ -38,6 +39,33 @@ The form collects name, email and quantity; contact and shipping details are
 requested by email when the reservation is confirmed. Older clients that send
 the full details are still accepted and validated.
 
+### Robot or kit
+
+Every order records its edition in `preorders.edition` — `assembled` or `kit`
+— because the two are packed differently. **Run `db/schema.sql` (or
+`node db/migrate.mjs`) against production before deploying this release:** the
+insert writes the column, so an un-migrated database would refuse every new
+order. The migration fills existing rows with `kit`, which is what every order
+before this release was for, and keeps `kit` as the default, so orders the old
+page places between the migration and the deploy are recorded correctly too.
+
+The page sends the edition with every order; a request with none (a tab opened
+before the robot was on sale) is stored as a kit. Resuming an unpaid order moves
+it to the edition chosen on resuming. The edition is in the Razorpay order notes,
+the receipt email, and the analytics events. The robot's catalogue id is
+`PBL-BOT-01`; the kit keeps `PBL-KIT-01`. `?edition=kit` preselects the kit, for
+adverts that sell the kit.
+
+The page sells the robot first. Everything about building one — the kit section,
+its nav link — renders only while the kit is chosen, with a sticky banner
+("Build-it-yourself kit selected · Switch to fully assembled") in the header for
+as long as it is. The choice lives in one store (`lib/edition-store.ts`) read by
+every control that shows it.
+
+The same migration adds two attribution columns for X (see below): `twclid`, the
+X ad click id an order came through, and `ad_opt_out`, set when the browser sent
+Global Privacy Control.
+
 ## The twelve faces
 
 `lib/faces.ts` transcribes the firmware's face atlas (stackchan-bench,
@@ -49,9 +77,17 @@ the firmware blinks.
 The faces appear on the robot and nowhere else, so `tests/faces.test.ts` guards
 the table: a malformed entry would not be obvious on screen.
 
-## The 3D hero
+## The 3D model (off the page)
 
-The hero robot is the real thing: `public/model/*.glb` is converted straight
+The interactive model is not on the page at the moment. It is converted from the
+STLs of the previous design, and the robot now stands on taller legs: a model
+that disagrees with the photographs beside it is worse than none. The code
+(`components/Playground.tsx`, `components/robot3d/`) and `e2e/hero3d.spec.ts`
+are kept; convert the new leg STLs with the script below, put `<Playground />`
+back in the "What it does" section, and remove the `test.skip` at the top of the
+spec.
+
+When it was on the page, the model was the real thing: `public/model/*.glb` is converted straight
 from the STLs that print the shell, so the proportions on screen are the
 proportions in the box. The CoreS3 is modelled to its published
 54 x 54 x 16.5 mm and the screen is a true 4:3.
@@ -83,9 +119,27 @@ assertions the visitor has effectively made themselves:
 Each falls back to the authored SVG robot and fetches none of the 3D code
 (asserted in `e2e/hero3d.spec.ts`).
 
+## Media
+
+Every photograph and clip of the robot is real footage of a batch 01 unit,
+shot on a phone, in `public/media/robot/`. Stills are single frames from the
+films, not separate photographs.
+
+The product photographs (`robot-*.webp`), the desk film and its face clip come
+from the 1080 × 1920 phone original of that film, each still chosen for an
+upright body and no motion blur, cut to 4:5 at full width and served at
+quality 90 (`images.qualities` in `next.config.ts`). Everything else — the hero
+loop, the making-of and look-around films, the other clips — exists only as a
+576 px WhatsApp copy; the phone originals of those would sharpen them too. Films are H.264 + AAC and VP9 + Opus;
+loops are silent; the hero loop must stay under 800 KB (asserted in
+`e2e/video.spec.ts`).
+
+The share image and the ad posters are rendered from `lib/kit.ts` by
+`node scripts/poster.mjs` (`PW_CHANNEL=chrome` to use an installed Chrome).
+
 ## Analytics
 
-Meta Pixel and Mixpanel (including session replay and heatmaps) run only on
+Meta Pixel, the X pixel and Mixpanel (including session replay and heatmaps) run only on
 `pebblerobo.com` and `www.pebblerobo.com`. Local development and preview hosts
 send no analytics, even when production publishable tokens are configured.
 
@@ -136,11 +190,64 @@ credentials cleared, so they do not create real reservations or send email.
 ## Content rule
 
 The page states what is in the box. It never states component costs, supplier
-names, or sourcing. The only price on the site is the kit price.
+names, or sourcing. The only price on the site is the price of PebbleRobo,
+which is the same for the robot and the kit.
 
 ## Attribution
 
-Pebble-chan is based on [Stack-chan](https://github.com/meganetaaan/stack-chan)
+PebbleRobo is based on [Stack-chan](https://github.com/meganetaaan/stack-chan)
 by Shinya Ishikawa and contributors, used under the Apache License 2.0. It is
-not an official Stack-chan or M5Stack product. The name Pebble-chan refers only
-to this kit; the software is Stack-chan and the credit is theirs.
+not an official Stack-chan or M5Stack product. The name PebbleRobo refers only
+to this robot and kit; the software is Stack-chan and the credit is theirs.
+
+## X conversion tracking
+
+Pixel `rfx4u` (`lib/x.ts`). Two halves, which have to agree:
+
+- **The base code** (`components/XPixel.tsx`, rendered once from the root
+  layout with `next/script`, `afterInteractive`) is X's snippet verbatim, in
+  `lib/x-pixel.ts`. It loads on the live hostnames only, like the Meta Pixel;
+  browser tests get its queue without the script. Check it on pebblerobo.com
+  with the [X Pixel Helper](https://chrome.google.com/webstore/detail/twitter-pixel-helper/jepminnlebllinfmkhfbkpckogoiefpd).
+- **The Conversion API** (`lib/x-conversions.ts`) is called from the server
+  where a conversion is known to be true: `lead` when `/api/preorder` writes an
+  order, `purchase` when the deposit settles (verify-payment or the webhook,
+  whichever is first — exactly once). Each carries a SHA-256 hash of the
+  trimmed, lowercased email and of the E.164 phone, the ad click id if the
+  buyer arrived from an X ad, and the buyer's IP and user agent where the
+  request came from their browser.
+
+```bash
+vercel env add X_PIXEL_TOKEN production   # Events Manager → Manual setup → Generate access token
+```
+
+The events mirror the Meta Pixel's, so both platforms optimise on the same
+moments:
+
+| X event | Env var | Meta equivalent | Fires | From |
+|---|---|---|---|---|
+| Page view | — (automatic) | PageView | page load | pixel |
+| Content view (`tw-rfx4u-rgpxm`) | `NEXT_PUBLIC_X_EVENT_CONTENT` | ViewContent | first section seen, once a visit | pixel |
+| Checkout initiated (`tw-rfx4u-rgpxi`) | `NEXT_PUBLIC_X_EVENT_CHECKOUT` | InitiateCheckout | any Book / Buy button | pixel |
+| Lead (`tw-rfx4u-rgpxh`) | `NEXT_PUBLIC_X_EVENT_LEAD` | Lead (+ CompleteRegistration) | order saved | pixel + server |
+| Purchase (`tw-rfx4u-rgpx2`) | `NEXT_PUBLIC_X_EVENT_PURCHASE` | Purchase | deposit settled | pixel + server |
+
+The ids were created in Events Manager (Purchase is X's Purchase type; the other
+three are Custom, because X has no Lead, Checkout or Content type) and live in
+`lib/x.ts`. The env vars above override them without a code change — a redeploy,
+since the pixel reads them at build time — and only `X_PIXEL_TOKEN` has to be set. Lead and Purchase are reported by
+the pixel and the server with the same `conversion_id` — an id the browser makes
+for each order, and the Razorpay payment id — so X counts each once. X gets Lead
+without a CompleteRegistration twin: that one exists for a single Meta campaign
+and would count every order twice.
+
+To check the token and an event id together, once both are set:
+
+```bash
+node scripts/x-test-conversion.mjs   # sends one test Lead; expect 200
+```
+
+A browser that sends Global Privacy Control gets no X at all: no pixel, and the
+order is flagged so the server never reports it either, even from the webhook.
+The privacy page and the footer state what X receives; if this integration
+changes, they change with it.

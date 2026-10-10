@@ -1,17 +1,19 @@
 import { PRICE } from '@/lib/kit'
 import type { Metadata } from 'next'
-import { Outfit, JetBrains_Mono } from 'next/font/google'
+import { Inter_Tight, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import Analytics from '@/components/Analytics'
+import XPixel from '@/components/XPixel'
 
 /**
- * Outfit carries the whole page: display through caption. The brand asks for
- * 300 to 600, and nothing heavier — the wordmark itself is Medium.
+ * Inter Tight carries the whole page, display through caption. It is a
+ * variable font, so one file covers every weight the scale uses; the
+ * display sizes are SemiBold and tracked hard in, which is where its
+ * character comes from.
  */
-const outfit = Outfit({
+const sans = Inter_Tight({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-outfit',
+  variable: '--font-sans',
   display: 'swap',
 })
 
@@ -24,10 +26,11 @@ const jetbrains = JetBrains_Mono({
 })
 
 const SITE = 'https://pebblerobo.com'
-const TITLE = 'Pebble-chan — the desktop robot you build yourself'
+const TITLE = 'PebbleRobo | A little robot with a life of its own'
 const DESCRIPTION =
-  'A complete build kit: M5Stack CoreS3 Lite, two SCS0009 bus servos, driver board, ' +
-  `power supply, printed shell and fasteners. ${PRICE.now} early bird, ships across India in 1–2 weeks.`
+  'PebbleRobo is a desk companion with a face, a neck that turns and a voice. It notices you, ' +
+  'looks up when you say its name and answers out loud. Arrives assembled and tested, no subscription. ' +
+  `${PRICE.now}, or the same as a build kit. Ships across India in 1–2 weeks.`
 
 export const metadata: Metadata = {
   /** Lets every relative URL below resolve, including the share image. */
@@ -35,7 +38,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: '/' },
-  applicationName: 'Pebble Robotics',
+  applicationName: 'PebbleRobo',
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -45,22 +48,22 @@ export const metadata: Metadata = {
     apple: '/apple-icon.png',
     shortcut: '/favicon.ico',
   },
-  authors: [{ name: 'Pebble Robo' }],
+  authors: [{ name: 'PebbleRobo' }],
   keywords: [
-    'Stack-chan kit', 'desktop robot kit India', 'M5Stack CoreS3 Lite',
+    'PebbleRobo', 'desktop robot India', 'AI desk companion', 'Stack-chan', 'Stack-chan kit', 'desktop robot kit India', 'M5Stack CoreS3 Lite',
     'SCS0009 bus servo', 'ESP32-S3 robot', 'DIY robot kit', 'robotics kit India',
   ],
   category: 'Robotics',
   openGraph: {
     type: 'website',
     url: SITE,
-    siteName: 'Pebble Robo',
+    siteName: 'PebbleRobo',
     title: TITLE,
     description: DESCRIPTION,
     locale: 'en_IN',
     images: [{
       url: '/og.jpg', width: 1200, height: 630,
-      alt: 'An assembled Pebble-chan on a desk, its display showing a face',
+      alt: 'PebbleRobo on a desk, its display showing a smiling face',
     }],
   },
   twitter: {
@@ -91,10 +94,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${outfit.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${sans.variable} ${jetbrains.variable}`}>
       <body>
         {children}
         <Analytics />
+        <XPixel />
       </body>
     </html>
   )

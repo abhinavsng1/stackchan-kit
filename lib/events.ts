@@ -12,6 +12,9 @@ export const EV = {
   faqOpened: 'FAQ Opened',
   specsExpanded: 'Specs Expanded',
   outboundClicked: 'Outbound Link Clicked',
+  editionChosen: 'Edition Chosen',
+  colourChosen: 'Colour Chosen',
+  demoModeChosen: 'Demo Mode Chosen',
 
   // ---- the funnel that matters ----
   reserveCtaClicked: 'Reserve CTA Clicked',

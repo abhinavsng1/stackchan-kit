@@ -4,26 +4,34 @@ import { CONTACT, PRICE } from '@/lib/kit'
 
 export const metadata: Metadata = {
   title: 'Terms of sale · Pebble Robo',
-  description: 'The terms on which Pebble Robo sells the Pebble-chan build kit.',
+  description: 'The terms on which Pebble Robo sells PebbleRobo, assembled or as a build kit.',
   alternates: { canonical: '/terms' },
 }
 
 export default function Terms() {
   return (
-    <LegalPage title="Terms of sale" updated="25 September 2026">
+    <LegalPage title="Terms of sale" updated="7 October 2026">
       <p>
-        These terms apply when you buy a Pebble-chan kit from {CONTACT.entity}. They are
+        These terms apply when you buy a PebbleRobo, assembled or as a kit, from {CONTACT.entity}. They are
         written to be read, not to be survived.
       </p>
 
       <h2>What you are buying</h2>
       <p>
-        A <strong>build kit</strong>: a box of parts you assemble yourself. It does not
+        One of two editions, at the same price. Your order confirmation says which you
+        bought.
+      </p>
+      <p>
+        The <strong>assembled robot</strong> arrives built, flashed and tested. Plug in
+        the supplied power adapter and it runs.
+      </p>
+      <p>
+        The <strong>build kit</strong> is a box of parts you assemble yourself. It does not
         arrive working. Assembly takes an evening and needs no soldering, no printing and no
         tools beyond a small screwdriver, but it is work you do.
       </p>
       <p>
-        Pebble-chan is built around the open-source{' '}
+        PebbleRobo is built around the open-source{' '}
         <a href="https://github.com/meganetaaan/stack-chan" target="_blank" rel="noreferrer noopener">
           Stack-chan</a>{' '}
         project by Shinya Ishikawa and contributors, used under the Apache License 2.0. It is{' '}
@@ -33,9 +41,9 @@ export default function Terms() {
 
       <h2>Price and payment</h2>
       <p>
-        {PRICE.now} per kit, inclusive of delivery within India. Payment is taken on the page
-        by <a href="https://razorpay.com" target="_blank" rel="noreferrer noopener">Razorpay</a>{' '}
-        — card, UPI, netbanking or EMI. Your card details go to Razorpay and never reach us.
+        {PRICE.now} per robot or kit, inclusive of delivery within India. Payment is taken on the page
+        by <a href="https://razorpay.com" target="_blank" rel="noreferrer noopener">Razorpay</a>:{' '}
+        card, UPI, netbanking or EMI. Your card details go to Razorpay and never reach us.
       </p>
       <p>
         Your order is confirmed when the payment settles, not when the form is submitted. If a
@@ -48,7 +56,7 @@ export default function Terms() {
 
       <h2>Batches and availability</h2>
       <p>
-        Kits are made in batches. If a batch sells out or a component becomes unobtainable, we
+        Robots and kits are made in batches. If a batch sells out or a component becomes unobtainable, we
         will tell you and refund you in full rather than substituting a part you did not choose.
       </p>
 
@@ -56,7 +64,7 @@ export default function Terms() {
       <p>
         That every part arrives present and working, that the specifications published on this
         site are accurate and taken from supplier documentation rather than marketing, and that
-        the kit assembles into the robot shown.
+        what you receive (built by us, or built by you from the kit) is the robot shown.
       </p>
       <p>
         If a part is dead, damaged or missing, see{' '}
@@ -65,25 +73,25 @@ export default function Terms() {
 
       <h2>What we do not promise</h2>
       <p>
-        We do not promise that your project will work. The kit is a starting point: what you
+        We do not promise that your project will work. The robot is a starting point: what you
         build with it is your software, on your schedule, and we cannot warrant code we did not
         write.
       </p>
       <p>
-        We do not cover damage you cause after delivery — wrong wiring, reversed polarity, a
+        We do not cover damage you cause after delivery: wrong wiring, reversed polarity, a
         supply other than the one in the box, drops, or modification. The parts are standard
         and individually replaceable, so a mistake is rarely fatal; write to us and we will
         usually sell you the one part.
       </p>
       <p>
-        Our liability is limited to what you paid for the kit. We are not liable for anything
+        Our liability is limited to what you paid for the robot or kit. We are not liable for anything
         it was connected to or anything built on top of it.
       </p>
 
       <h2>Support</h2>
       <p>
         Email <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>, answered by a person
-        within two working days. Build questions are welcome — we would rather help you finish
+        within two working days. Build questions are welcome. We would rather help you finish
         it than process a return.
       </p>
 

@@ -1,4 +1,4 @@
-import { CONTACT, FAQS, PRICE, SPEC_TABLES, CAMPAIGN } from '@/lib/kit'
+import { CONTACT, FAQS, PRICE, SPEC_TABLES, EDITION } from '@/lib/kit'
 
 /**
  * Structured data for search engines and for the models that increasingly
@@ -41,33 +41,39 @@ export default function StructuredData() {
     {
       '@type': 'Product',
       '@id': `${SITE}/#product`,
-      name: 'Pebble-chan build kit',
+      name: 'PebbleRobo desktop robot',
       description:
-        'A complete desktop robot build kit based on the open-source Stack-chan project: ' +
-        'an M5Stack CoreS3 Lite, two SCS0009 serial bus servos, a Waveshare bus servo driver, ' +
-        'a 5 V 3 A supply, the 3D-printed shell and every fastener. Assembles in an evening.',
+        'A desktop robot with a face, based on the open-source Stack-chan project, sold fully ' +
+        'assembled and tested or as a build kit at the same price. An M5Stack CoreS3 Lite on two ' +
+        'SCS0009 serial bus servos for pan and tilt, a Waveshare bus servo driver, a 5 V 3 A ' +
+        'supply and a 3D-printed shell.',
       brand: { '@type': 'Brand', name: 'Pebble Robo' },
-      category: 'Robot kit',
-      image: [`${SITE}/og.jpg`, `${SITE}/media/unit.webp`, `${SITE}/kit-flatlay.webp`],
+      category: 'Desktop robot',
+      image: [
+        `${SITE}/og.jpg`, `${SITE}/media/robot/robot-desk.webp`, `${SITE}/media/robot/robot-happy.webp`,
+      ],
       url: SITE,
       // Component-level facts, straight from the specification tables. This is
       // what a model needs to answer "what controller does it use?" correctly.
       additionalProperty: SPEC_TABLES.flatMap((table) =>
         table.rows.map((row) => ({
           '@type': 'PropertyValue',
-          name: `${table.title} — ${row.label}`,
+          name: `${table.title}: ${row.label}`,
           value: Array.isArray(row.value) ? row.value.join('; ') : row.value,
         })),
       ),
-      offers: {
+      /* One offer: the robot, ready to use — the only thing the page sells.
+         No priceValidUntil: the early bird date has passed but the
+         price has not changed, and a past date tells a search engine the
+         price has expired when it has not. */
+      offers: (['assembled'] as const).map((e) => ({
         '@type': 'Offer',
-        '@id': `${SITE}/#offer`,
+        '@id': `${SITE}/#offer-${e}`,
+        name: EDITION[e].name,
+        sku: EDITION[e].sku,
         url: SITE,
         price: priceNumber(PRICE.now),
         priceCurrency: 'INR',
-        /* A limited offer has to declare when it stops being true, or Google
-           keeps showing the campaign price after it has gone. */
-        priceValidUntil: CAMPAIGN.endsAt.slice(0, 10),
         availability: 'https://schema.org/InStock',
         itemCondition: 'https://schema.org/NewCondition',
         seller: { '@id': `${SITE}/#org` },
@@ -81,7 +87,7 @@ export default function StructuredData() {
             handlingTime: { '@type': 'QuantitativeValue', minValue: 7, maxValue: 14, unitCode: 'DAY' },
           },
         },
-      },
+      })),
     },
     {
       // The questions people actually ask, answered in the words the page uses.

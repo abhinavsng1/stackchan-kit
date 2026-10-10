@@ -3,8 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
-import { CONTACT, PRICE } from '@/lib/kit'
+import { CONTACT, EDITION, PRICE, DEFAULT_EDITION, type Edition } from '@/lib/kit'
+import { pricing, type Variant } from '@/lib/variants'
+import { SHELLS } from '@/lib/shells'
+import { useShell, setShell } from '@/lib/shell-store'
+import Swatch from '@/components/site/Swatch'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
+import { useEdition } from '@/lib/edition-store'
+import { storedTwclid, xEvent } from '@/lib/x-pixel'
 
 type State =
   | { kind: 'idle' }
@@ -23,9 +29,22 @@ type State =
 
 const EMPTY: Record<string, string> = {}
 
-export default function ReserveForm() {
+export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
+  /**
+   * What this buyer actually owes on delivery.
+   *
+   * Hardcoding the kit's balance here put "₹4,500" under a form on a page
+   * quoting ₹3,500 — the small print contradicting the price above it, which
+   * is exactly where a buyer decides whether to trust the rest.
+   */
+  const owed = variant ? pricing(variant).balance : PRICE.balance
+  const paysNow = variant ? pricing(variant).deposit : PRICE.deposit
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
+  // Starts on a real colourway rather than empty, so the optional field is
+  // optional in the sense that matters: ignoring it still produces an order.
+  // Shared with every other colour control on the page (lib/shell-store.ts).
+  const shell = useShell()
   const qtyRef = useRef<HTMLSelectElement>(null)
   const started = useRef(false)
   /**
@@ -34,6 +53,19 @@ export default function ReserveForm() {
    * being told the email is taken.
    */
   const token = useRef<string | null>(null)
+  const edition = useEdition()
+  /**
+   * The edition as it was when the order was saved. The picker stays live
+   * while the payment window is open, and what is reported as bought has to be
+   * what the row says, not whatever the picker shows by then.
+   */
+  const ordered = useRef<Edition>(edition)
+  /**
+   * One id per order, made here, sent to our server and to the X pixel alike,
+   * so the two reports of the same order are counted once. Random, so it says
+   * nothing about the buyer.
+   */
+  const xid = useRef<string>('')
 
   // The buy box carries its quantity here, so nobody has to pick it twice.
   useEffect(() => {
@@ -76,8 +108,8 @@ export default function ReserveForm() {
           {state.why === 'failed' && state.detail
             ? `${state.detail} Your details are saved, so you can try the payment again without filling anything in.`
             : state.why === 'returning'
-              ? `We have your details from earlier. The ${PRICE.deposit} booking payment did not go through, so no kit is held for you yet.`
-              : `The payment window closed before anything went through. Your kit is not booked until the ${PRICE.deposit} is paid.`}
+              ? `We have your details from earlier. The ${PRICE.deposit} booking payment did not go through, so nothing is held for you yet.`
+              : `The payment window closed before anything went through. Your PebbleRobo is not booked until the ${PRICE.deposit} is paid.`}
         </p>
 
         <div className="flex flex-wrap items-center gap-4 mt-7">
@@ -110,7 +142,7 @@ export default function ReserveForm() {
 
         <p className="t-display text-[30px] mt-4 mb-3">
           {state.kind === 'paid'
-            ? 'Your kit is booked.'
+            ? 'Your PebbleRobo is booked.'
             : byPhone
               ? 'That number has already ordered.'
               : 'That email has already ordered.'}
@@ -121,10 +153,10 @@ export default function ReserveForm() {
             <>Your {PRICE.deposit} is paid and a confirmation is on its way to your
             inbox. {PRICE.ship}, and we&apos;ll email tracking the moment it leaves.
             Keep <strong className="text-[var(--ink)]">{PRICE.balance} in cash</strong> ready
-            for the courier — that is the rest of the {PRICE.now}, and they cannot
+            for the courier. That is the rest of the {PRICE.now}, and they cannot
             take a card.</>
           ) : (
-            <>We build one kit per person per batch. To change the address on an existing
+            <>We take one order per person per batch. To change the address on an existing
             order, or to order another, write to <a href={`mailto:${CONTACT.email}`}
               className="text-[var(--ink)] underline underline-offset-4">{CONTACT.email}</a>.</>
           )}
@@ -154,7 +186,12 @@ export default function ReserveForm() {
       city: get('city'),
       pincode: get('pincode'),
       qty: get('qty') || '1',
+      edition: get('edition') || edition,
+      twclid: storedTwclid(),
+      xid: (xid.current ||= newOrderId()),
       company: get('company'),
+      // Which price this buyer was shown. Absent on the kit page.
+      ...(variant ? { variant } : {}),
     }
 
     // Fast local feedback. The server re-runs this and its answer is the one
@@ -172,7 +209,10 @@ export default function ReserveForm() {
     setErrors(EMPTY)
     setState({ kind: 'submitting' })
     // Quantity and profession only. Never a name, email, phone or address.
-    track(EV.reserveSubmitted, { qty: local.data.qty, profession: local.data.profession })
+    ordered.current = local.data.edition
+    track(EV.reserveSubmitted, {
+      qty: local.data.qty, profession: local.data.profession, edition: local.data.edition,
+    })
 
     try {
       const res = await fetch('/api/preorder', {
@@ -196,8 +236,10 @@ export default function ReserveForm() {
           pincode: local.data.pincode,
           profession: local.data.profession,
           qty: local.data.qty,
+          edition: local.data.edition,
         })
-        track(EV.reserveSucceeded)
+        track(EV.reserveSucceeded, { edition: local.data.edition })
+        xEvent('lead', { conversion_id: xid.current })
         token.current = body.token ?? null
         return pay()
       }
@@ -246,11 +288,18 @@ export default function ReserveForm() {
       const outcome = await openCheckout({
         token: token.current,
         entity: CONTACT.entity,
-        description: 'Pebble-chan kit — batch 01',
+        description: `${EDITION[ordered.current].name}, batch 01`,
       })
       if (outcome.status === 'paid') {
-        recordPurchase({ qty: local_qty() })
-        track(EV.paymentSucceeded)
+        recordPurchase({ qty: local_qty(), edition: ordered.current })
+        track(EV.paymentSucceeded, { qty: local_qty(), edition: ordered.current })
+        // The server reports this sale too, under the same payment id.
+        xEvent('purchase', {
+          conversion_id: outcome.paymentId,
+          value: (PRICE.nowPaise / 100) * local_qty(),
+          currency: 'INR',
+          contents: [{ content_id: EDITION[ordered.current].sku, num_items: local_qty() }],
+        })
         return setState({ kind: 'paid', paymentId: outcome.paymentId })
       }
       if (outcome.status === 'dismissed') {
@@ -296,24 +345,17 @@ export default function ReserveForm() {
 
   return (
     <form onSubmit={onSubmit} onFocusCapture={onFirstTouch} noValidate className="max-w-[600px]">
+      {/* One thing to buy: the robot, ready to use. The field is still sent,
+          because the order records it and an order without one is stored as
+          the kit (see README). */}
+      <input type="hidden" name="edition" value={DEFAULT_EDITION} />
+
       <div className="grid gap-5 sm:grid-cols-2">
         <Field name="name" label="Name" autoComplete="name" error={errors.name} disabled={busy} />
         <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} disabled={busy} />
         <Field name="phone" label="Phone" type="tel" autoComplete="tel"
                placeholder="98765 43210" hint="Indian mobile" error={errors.phone} disabled={busy} />
 
-        <div>
-          <label htmlFor="profession" className="t-label block mb-2">
-            Profession<span className="opacity-60"> — optional</span>
-          </label>
-          <select id="profession" name="profession" defaultValue="" className="field" disabled={busy}
-                  aria-invalid={errors.profession ? 'true' : undefined}
-                  aria-describedby={errors.profession ? 'profession-err' : undefined}>
-            <option value="">Prefer not to say</option>
-            {PROFESSIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
-          {errors.profession && <Err id="profession-err">{errors.profession}</Err>}
-        </div>
       </div>
 
       <div className="mt-5">
@@ -333,12 +375,55 @@ export default function ReserveForm() {
         <Field name="pincode" label="PIN code" inputMode="numeric" autoComplete="postal-code"
                placeholder="560078" error={errors.pincode} disabled={busy} />
         <div>
-          <label htmlFor="qty" className="t-label block mb-2">Kits</label>
+          {/* "Quantity", not the product's name.
+              This label was briefly edition-aware — "Robots" or "Kits" — which
+              reads as a flourish and costs clarity: the field is a count, and
+              the thing being counted is already named all over the page. It
+              also named the field after the product, which is what the
+              checkout tests find it by. Neutral is both clearer and stable. */}
+          <label htmlFor="qty" className="t-label block mb-2">Quantity</label>
           <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
       </div>
+
+      {/* Colour. Optional on purpose: it starts on a real answer, so someone
+          who scrolls past it still gets a robot rather than a validation
+          error. The value posts through a hidden input because swatches are
+          buttons, and a button's label is a colour, not a word. */}
+      <fieldset className="border-0 p-0 m-0 mt-5">
+        <legend className="t-label mb-2 p-0">
+          Colour
+        </legend>
+        <input type="hidden" name="shell" value={shell} />
+        <div className="flex flex-wrap items-center gap-3">
+          <div role="radiogroup" aria-label="Shell colour"
+               className="inline-flex items-center gap-2.5 p-2.5"
+               style={{ borderRadius: 999, border: '1px solid var(--line)' }}>
+            {SHELLS.map((s) => (
+              <button
+                key={s.id} type="button" role="radio"
+                aria-checked={s.id === shell} aria-label={s.name}
+                disabled={busy}
+                onClick={() => setShell(s.id)}
+                className="block cursor-pointer rounded-full"
+                style={{
+                  // The ring sits outside the swatch so it never tints the
+                  // colour someone is trying to judge.
+                  outline: s.id === shell ? '2px solid var(--ink)' : '2px solid transparent',
+                  outlineOffset: 2,
+                }}
+              >
+                <Swatch way={s} size={26} />
+              </button>
+            ))}
+          </div>
+          <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
+            {SHELLS.find((s) => s.id === shell)?.name ?? ''}
+          </span>
+        </div>
+      </fieldset>
 
       {/* Honeypot. Hidden from people and from screen readers alike. */}
       <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px' }}>
@@ -350,16 +435,16 @@ export default function ReserveForm() {
         <button type="submit" className="btn btn-brand" disabled={busy}>
           {state.kind === 'submitting' ? 'Saving…'
             : state.kind === 'paying' ? 'Opening payment…'
-            : `Book for ${PRICE.deposit}`}
+            : `Book for ${paysNow}`}
         </button>
         <p className="t-label m-0">Card · UPI · netbanking · EMI</p>
       </div>
 
       <p className="text-[12.5px] text-[var(--muted)] mt-4 mb-0 max-w-[52ch]">
-        {PRICE.deposit} now; the courier collects {PRICE.balance} in cash when the
+        {paysNow} now; the courier collects {owed} in cash when the
         box reaches you. Your address and phone go to the courier, because that is
         how a parcel arrives, and to Mixpanel so we can follow up if an order does
-        not complete. Payment is handled by Razorpay — your card details never
+        not complete. Payment is handled by Razorpay, and your card details never
         reach us.
       </p>
 
@@ -388,7 +473,7 @@ function Field({
   return (
     <div>
       <label htmlFor={name} className="t-label block mb-2">
-        {label}{hint && <span className="opacity-60"> — {hint}</span>}
+        {label}{hint && <span className="opacity-60"> ({hint})</span>}
       </label>
       <input
         id={name}
@@ -405,4 +490,10 @@ function Field({
       {error && <Err id={`${name}-err`}>{error}</Err>}
     </div>
   )
+}
+
+/** A random id for one order, for matching the two reports of it at X. */
+function newOrderId(): string {
+  try { return crypto.randomUUID() } catch { /* insecure origin */ }
+  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 10)).join('-')
 }

@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test'
 import { settleConsent } from './helpers'
 
+/**
+ * The interactive model is off the page. It is converted from the STLs of the
+ * previous design, whose short feet the robot no longer has, and a model that
+ * contradicts the photographs beside it is worse than no model. These specs
+ * come back with it, once the new legs have been converted — see the README.
+ */
+test.skip(true, 'the 3D model is off the page until it is rebuilt from the new leg STLs')
+
 test.beforeEach(async ({ page }) => { await settleConsent(page) })
 
 const play = (p: import('@playwright/test').Page) => p.locator('#does')

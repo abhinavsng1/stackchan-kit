@@ -23,9 +23,16 @@ const queue: Array<[string, Props | undefined]> = []
 export { EV } from '@/lib/events'
 
 import { EV as EVENTS } from '@/lib/events'
-import { PRICE, SKU } from '@/lib/kit'
+import { PRICE, EDITION, isEdition, type Edition } from '@/lib/kit'
 import { initPixel, pixelStandard, pixelCustom, stopPixel, pixelConfigured } from '@/lib/pixel'
 import { analyticsMode } from '@/lib/analytics-environment'
+import { xEvent } from '@/lib/x-pixel'
+
+/** The catalogue id for whichever edition an event is about; the robot by default. */
+const skuOf = (props?: Props) => EDITION[isEdition(props?.edition) ? props.edition : 'assembled'].sku
+
+/** X hears about the first section seen in a visit, not every one. */
+let xContentSent = false
 
 /**
  * Meta understands a fixed vocabulary of standard events and reports on them
@@ -54,7 +61,8 @@ const META_STANDARD: Record<string, string> = {
  *
  * The figure comes from the same constant the server charges, so a price
  * change cannot leave the ad account reporting the old one. `props.qty`
- * multiplies it where the caller knows the quantity.
+ * multiplies it where the caller knows the quantity, and `props.edition`
+ * picks the catalogue id — the robot unless the caller says kit.
  */
 function metaValue(standard: string, props?: Props): Props {
   if (standard !== 'Purchase' && standard !== 'InitiateCheckout' && standard !== 'Lead') return {}
@@ -74,7 +82,7 @@ function metaValue(standard: string, props?: Props): Props {
     value: (PRICE.nowPaise / 100) * qty,
     currency: 'INR',
     content_type: 'product',
-    content_ids: [SKU],
+    content_ids: [skuOf(props)],
     num_items: qty,
   }
 }
@@ -152,6 +160,19 @@ export function track(event: string, props?: Props) {
   if (event === EVENTS.reserveSucceeded) {
     pixelStandard('CompleteRegistration', { content_name: event, status: true })
   }
+
+  // X, on the same moments as Meta's ViewContent and InitiateCheckout. Lead
+  // and Purchase are sent where they happen (ReserveForm), because only there
+  // is the conversion_id known that the server reports them under.
+  if (event === EVENTS.reserveCtaClicked) {
+    const { value, currency, num_items } = metaValue('InitiateCheckout', props)
+    xEvent('checkout', { value, currency, contents: [{ content_id: skuOf(props), num_items }] })
+  }
+  if (event === EVENTS.sectionViewed && !xContentSent) {
+    // Once a visit: X needs to know someone looked, not every section they passed.
+    xContentSent = true
+    xEvent('content', { contents: [{ content_id: skuOf(props), content_name: String(props?.section ?? '') }] })
+  }
   if (mode === 'test') return
 
   // Mixpanel.
@@ -202,6 +223,7 @@ export type BuyerProfile = {
   pincode?: string
   profession?: string
   qty?: number
+  edition?: Edition
 }
 
 /**
@@ -250,6 +272,7 @@ export async function identifyPerson(buyer: string | BuyerProfile): Promise<void
     if (b.pincode) profile.Pincode = b.pincode
     if (b.profession) profile.Profession = b.profession
     if (b.qty) profile['Kits Ordered'] = b.qty
+    if (b.edition) profile.Edition = b.edition
     mp?.people.set(profile)
     // Set on the order, cleared on payment: what is left is the list of people
     // who filled the form and did not pay.
@@ -258,7 +281,7 @@ export async function identifyPerson(buyer: string | BuyerProfile): Promise<void
 }
 
 /** Records that the identified person actually paid the booking deposit. */
-export function recordPurchase(props: { qty: number }): void {
+export function recordPurchase(props: { qty: number; edition?: Edition }): void {
   if (analyticsMode() !== 'live') return
   try {
     mp?.people.set({
@@ -266,6 +289,7 @@ export function recordPurchase(props: { qty: number }): void {
       // The deposit is paid; this much is still owed to a courier. Kept on the
       // profile so an unpaid balance is visible next to the person who owes it.
       'Balance Due': (PRICE.balancePaise / 100) * props.qty,
+      ...(props.edition ? { 'Last Edition Bought': props.edition } : {}),
     })
     mp?.people.increment({ 'Kits Bought': props.qty, 'Orders Paid': 1 })
   } catch { /* analytics must never break a purchase */ }

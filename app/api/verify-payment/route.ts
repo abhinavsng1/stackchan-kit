@@ -3,6 +3,7 @@ import { verifyPaymentSignature, orderAmountPaise, balanceDuePaise } from '@/lib
 import { markPaid } from '@/lib/preorders'
 import { sendPaymentReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
+import { sendXConversion, requestIdentity } from '@/lib/x-conversions'
 
 const MAX_BODY_BYTES = 1024
 
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
       name: settled.name,
       email: settled.email,
       qty: settled.qty,
+      edition: settled.edition,
       amountPaise: settled.amountPaise,
       balanceDuePaise: settled.balanceDuePaise,
       phone: settled.phone,
@@ -114,6 +116,23 @@ export async function POST(request: Request) {
       paymentId: result.data.razorpay_payment_id,
     })
     try { waitUntil(receipt) } catch { void receipt.catch(() => {}) }
+
+    // The sale, reported to X from where it is known to have happened. The
+    // payment id is the conversion_id the browser sends too, so X counts it
+    // once; this request came from the buyer's browser, so their address
+    // and user agent can go with it.
+    // Not for a buyer who ordered with Global Privacy Control on.
+    if (!settled.adOptOut) {
+      const conversion = sendXConversion({
+        event: 'purchase',
+        conversionId: result.data.razorpay_payment_id,
+        identity: {
+          email: settled.email, phone: settled.phone, twclid: settled.twclid,
+          ...requestIdentity(request),
+        },
+      })
+      try { waitUntil(conversion) } catch { void conversion.catch(() => {}) }
+    }
   }
 
   return json({ status: 'verified', payment_id: result.data.razorpay_payment_id }, 200)
