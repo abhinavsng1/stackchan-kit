@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { MOODS, OWN_MOODS, drawCompanion } from '@/lib/companion-face'
+import { drawNotes } from '@/lib/screen-scenes'
 import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
 import { aimAt, gazeFor, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
 
@@ -41,6 +42,10 @@ export type Demo = {
   hush: () => void
   /** Called when the robot itself is tapped (the screen). */
   onTap: (fn: (() => void) | null) => void
+  /** 'chat' leaves room under the robot for a conversation; 'centre' fills the stage with it. */
+  framing: (f: 'chat' | 'centre') => void
+  /** Music notes on its screen, for the dance. */
+  notes: (on: boolean) => void
   /** Where the head is, in degrees — for the readout. */
   pose: () => { pan: number; tilt: number }
   dispose: () => void
@@ -58,26 +63,42 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
   studio.fitShadow(box)
   const centre = box.getCenter(new THREE.Vector3())
   const radius = box.getSize(new THREE.Vector3()).length() / 2
-  let dist = 300
-  const place = () => {
+  /**
+   * Two framings. 'chat' stands the robot in the upper part of the frame with
+   * room below for a conversation to land; 'centre' brings it closer and puts
+   * it in the middle, for modes with nothing to overlay. The camera eases
+   * between them, so switching modes never jumps.
+   */
+  // 'centre' depends on the stage's shape: a tall phone stage can come
+  // closer and sit the robot lower; a wide desktop stage needs room for the
+  // base and the pill under it.
+  const FRAMES = {
+    chat: () => ({ k: 1.42, drop: 16 }),
+    centre: () => (camera.aspect > 1 ? { k: 1.3, drop: 4 } : { k: 1.0, drop: -10 }),
+  }
+  let framingName: 'chat' | 'centre' = 'chat'
+  const aim = { k: 1.42, drop: 16 }
+  const cur = { ...aim }
+  let base = 300
+  const fit = () => {
     stage.resize()
     const vFov = THREE.MathUtils.degToRad(camera.fov)
     const fitH = radius / Math.sin(vFov / 2)
     const fitW = radius / Math.sin(Math.atan(Math.tan(vFov / 2) * camera.aspect))
-    // Room round it: the head turns and lifts, and the conversation needs a
-    // floor under the robot to land on.
-    dist = Math.max(fitH, fitW) * 1.42
+    base = Math.max(fitH, fitW)
+  }
+  const place = () => {
+    const dist = base * cur.k
     const az = THREE.MathUtils.degToRad(VIEW.az), el = THREE.MathUtils.degToRad(VIEW.el)
     camera.position.set(
       centre.x + dist * Math.cos(el) * Math.sin(az),
-      centre.y - 16 + dist * Math.sin(el),
+      centre.y - cur.drop + dist * Math.sin(el),
       centre.z + dist * Math.cos(el) * Math.cos(az),
     )
-    // Aimed below the robot's middle, so it stands in the upper part of the
-    // frame and the bubbles have the lower part.
-    camera.lookAt(centre.x, centre.y - 16, centre.z)
+    camera.lookAt(centre.x, centre.y - cur.drop, centre.z)
     camera.updateMatrixWorld()
   }
+  fit()
   place()
 
   /* ------------------------------ the state ------------------------------ */
@@ -104,7 +125,17 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
   }
   canvas.addEventListener('pointerdown', onDown)
 
+  let notes = false
+
   stage.loop((dt, now) => {
+    // Ease the framing toward the mode's.
+    if (Math.abs(cur.k - aim.k) > 0.001 || Math.abs(cur.drop - aim.drop) > 0.05) {
+      const f = Math.min(1, dt * 4)
+      cur.k += (aim.k - cur.k) * f
+      cur.drop += (aim.drop - cur.drop) * f
+      place()
+    }
+
     let want = target
     let gaze = { x: 0, y: 0 }
     if (following) {
@@ -135,10 +166,12 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
       : 0
     const mood = MOODS.find((m) => m.id === moodId) ?? MOODS[0]
     drawCompanion(robot.ctx, mood, now, speak, gaze)
+    // Dancing: music notes drift up its screen, four to the second.
+    if (notes) drawNotes(robot.ctx, now / 250)
     robot.update()
   })
 
-  const onResize = () => place()
+  const onResize = () => { fit(); Object.assign(aim, FRAMES[framingName]()); place() }
   window.addEventListener('resize', onResize)
 
   return {
@@ -156,6 +189,8 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
     hush: () => { speakUntil = 0 },
     onTap: (fn) => { tapFn = fn },
     pose: () => ({ pan: pan.x, tilt: tilt.x }),
+    framing: (f) => { framingName = f; Object.assign(aim, FRAMES[f]()) },
+    notes: (on) => { notes = on },
     dispose: () => {
       window.removeEventListener('resize', onResize)
       canvas.removeEventListener('pointerdown', onDown)

@@ -79,6 +79,10 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
     const d = api.current
     d?.onTap(null)
     d?.hush()
+    // Only Meet has a conversation to land under the robot; every other mode
+    // fills the stage with it. Notes on its screen only while it dances.
+    d?.framing(mode.id === 'meet' ? 'chat' : 'centre')
+    d?.notes(mode.id === 'dance')
     setLines([])
     if (!mode.script) {
       // Modes without a script start from a friendly, level pose.
@@ -153,6 +157,15 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
             </span>
             {!live && <span className="tag absolute right-4 top-4">Render</span>}
 
+
+            {/* Dancing: a small "now playing" pill, so the floor of the stage
+                says what is happening rather than sitting empty. */}
+            {mode.id === 'dance' && (
+              <div className="dance-pill" aria-hidden="true">
+                <span className="dance-bars"><i /><i /><i /><i /></span>
+                Dancing
+              </div>
+            )}
 
             {/* The conversation, over the floor of the stage. */}
             {lines.length > 0 && (

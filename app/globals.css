@@ -773,3 +773,21 @@ p { text-wrap: pretty; }
   .moments > .moment > button { margin-top: 6px; justify-self: start; }
   .moments > .moment > p.text-\[15px\] { margin: 6px 0 4px !important; }
 }
+
+/* Dance mode: a "now playing" pill on the floor of the stage. */
+.dance-pill {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 14px 8px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid var(--stage-line);
+  color: var(--stage-ink); font: 500 13px/1 var(--font-body);
+}
+.dance-bars { display: inline-flex; align-items: flex-end; gap: 3px; height: 14px; }
+.dance-bars i {
+  display: block; width: 3px; height: 100%; border-radius: 2px; background: var(--accent);
+  transform-origin: bottom; animation: dance-bar 0.9s var(--ease-in-out) infinite;
+}
+.dance-bars i:nth-child(2) { animation-delay: -0.3s; }
+.dance-bars i:nth-child(3) { animation-delay: -0.6s; }
+.dance-bars i:nth-child(4) { animation-delay: -0.45s; }
+@keyframes dance-bar { 0%, 100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
