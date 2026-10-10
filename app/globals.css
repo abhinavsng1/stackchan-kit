@@ -662,7 +662,7 @@ p { text-wrap: pretty; }
 .demo-screen { aspect-ratio: 4 / 5; }
 @media (min-width: 640px) { .demo-screen { aspect-ratio: 4 / 3; } }
 @media (min-width: 1024px) {
-  .demo-screen { aspect-ratio: auto; height: clamp(360px, calc(100svh - 300px), 620px); }
+  .demo-screen { aspect-ratio: auto; height: clamp(340px, calc(100svh - 330px), 600px); }
 }
 
 .demo-chip {

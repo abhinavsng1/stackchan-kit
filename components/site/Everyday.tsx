@@ -11,11 +11,11 @@ import { EV, track } from '@/lib/analytics'
  * day. Each one opens the matching demo on the live robot above.
  */
 const MOMENTS: { mood: string; when: string; title: string; body: string; mode: string }[] = [
-  { mood: 'listening', when: 'Monday, 9 a.m.', title: 'Plan the week out loud.', body: 'Talk it through before the first meeting. It listens, answers, and helps you start.', mode: 'talk' },
+  { mood: 'listening', when: 'Monday, 9 a.m.', title: 'Plan the week out loud.', body: 'Talk it through before the first meeting. It listens, answers, and helps you start.', mode: 'meet' },
   { mood: 'curious', when: 'The long afternoon', title: 'Company at your desk.', body: 'It glances over, blinks, pulls a face when you tap it. The room feels less empty.', mode: 'meet' },
   { mood: 'surprised', when: 'From the office', title: 'Check in on home.', body: 'Video call it, turn its head to look around the room, and see that all’s well.', mode: 'call' },
   { mood: 'happy', when: 'Kids home from school', title: 'Instant dance party.', body: 'Ask it to dance and it never says no. It’s the most popular thing in the room.', mode: 'dance' },
-  { mood: 'pleased', when: 'After dinner', title: 'Practise a new language.', body: 'Ten minutes of Japanese a night, with a tutor that cheers when you get it right.', mode: 'talk' },
+  { mood: 'pleased', when: 'After dinner', title: 'Practise a new language.', body: 'Ten minutes of Japanese a night, with a tutor that cheers when you get it right.', mode: 'meet' },
 ]
 
 export default function Everyday() {

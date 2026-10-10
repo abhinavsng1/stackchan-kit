@@ -36,10 +36,21 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
   const api = useRef<Demo | null>(null)
   const shellId = useShell()
   const [lines, setLines] = useState<Line[]>([])
+  // Set when the visitor takes over (taps a face): the script stops and the
+  // robot does what they asked until they choose to play it again.
+  const [paused, setPaused] = useState(false)
   const [reduce, setReduce] = useState(false)
+  // On a phone the stage is small: only the latest two lines, so the robot
+  // stays in view while it talks.
+  const [phone, setPhone] = useState(false)
 
   useEffect(() => {
     setReduce(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    const mq = window.matchMedia('(max-width: 639px)')
+    const read = () => setPhone(mq.matches)
+    read()
+    mq.addEventListener('change', read)
+    return () => mq.removeEventListener('change', read)
   }, [])
 
   const live = useLiveScene(host, async (el) => {
@@ -56,7 +67,7 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
   useEffect(() => {
     const onAsk = (e: Event) => {
       const id = (e as CustomEvent<string>).detail
-      if (MODES.some((m) => m.id === id)) setModeId(id)
+      if (MODES.some((m) => m.id === id)) { setModeId(id); setPaused(false) }
     }
     window.addEventListener('pebble:demo', onAsk)
     return () => window.removeEventListener('pebble:demo', onAsk)
@@ -81,6 +92,7 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
       setLines(scriptLines(mode.script, 'static'))
       return
     }
+    if (paused) return
 
     let timers: ReturnType<typeof setTimeout>[] = []
     let round = 0
@@ -94,10 +106,11 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
     }
     run()
     return () => { for (const t of timers) clearTimeout(t); timers = [] }
-  }, [mode, live, reduce])
+  }, [mode, live, reduce, paused])
 
   const choose = (m: Mode) => {
     if (m.id === modeId) return
+    setPaused(false)
     setModeId(m.id)
     track(EV.demoModeChosen, { mode: m.id })
   }
@@ -107,7 +120,7 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
       {/* The modes: every one visible at once — a grid of short chips on a
           phone, one row on a wide screen. Nothing hides off to the side. */}
       <div role="tablist" aria-label="What it does"
-           className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap mb-3 sm:mb-5">
+           className="grid grid-cols-5 gap-1.5 sm:flex sm:flex-wrap mb-3 sm:mb-5">
         {MODES.map((m) => {
           const on = m.id === modeId
           return (
@@ -149,7 +162,7 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
                   <AnimatePresence initial={false} mode="popLayout">
                     {/* Playing: the latest few lines. Still (no robot, or less motion):
                         the opening exchange, so the conversation reads from its start. */}
-                    {(live && !reduce ? lines.slice(-4) : lines.slice(0, 4)).map((l) => (
+                    {(live && !reduce ? lines.slice(phone ? -2 : -4) : lines.filter((l) => l.who !== 'note').slice(0, 4)).map((l) => (
                       <motion.li key={l.key} layout
                                  initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                                  exit={{ opacity: 0, transition: { duration: 0.2 } }}
@@ -177,7 +190,9 @@ export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
             {/* On a phone the video-call note moves into the panel's own header. */}
             {mode.fine && <p className={`t-mono text-[10.5px] sm:text-[11.5px] text-[var(--muted-2)] mt-2 sm:mt-3 mb-0 ${mode.id === 'call' ? 'hidden sm:block' : ''}`}>{mode.fine}</p>}
           </div>
-          <Controls mode={mode} api={api} live={live} />
+          <Controls mode={mode} api={api} live={live}
+                    paused={paused} onTakeOver={() => { setPaused(true); setLines([]) }}
+                    onResume={() => setPaused(false)} />
         </motion.div>
       </div>
     </div>
@@ -196,6 +211,7 @@ function apply(step: Step, d: Demo | null, setLines: React.Dispatch<React.SetSta
   else if ('nod' in step) d?.nod(step.nod)
   else if ('shake' in step) d?.shake()
   else if ('follow' in step) d?.follow(true)
+  else if ('clear' in step) setLines([])
 }
 
 function scriptLines(script: Step[], prefix: string): Line[] {
@@ -227,8 +243,11 @@ function Bubble({ line }: { line: Line }) {
 
 /* ------------------------------ the controls ------------------------------ */
 
-function Controls({ mode, api, live }: { mode: Mode; api: React.RefObject<Demo | null>; live: boolean }) {
-  if (mode.id === 'faces') return <FacePicker api={api} live={live} />
+function Controls({ mode, api, live, paused, onTakeOver, onResume }: {
+  mode: Mode; api: React.RefObject<Demo | null>; live: boolean
+  paused: boolean; onTakeOver: () => void; onResume: () => void
+}) {
+  if (mode.id === 'meet') return <FacePicker api={api} paused={paused} onTakeOver={onTakeOver} onResume={onResume} />
   if (mode.id === 'touch') return <TouchPad api={api} live={live} />
   if (mode.id === 'call') return <PhonePanel api={api} />
   if (mode.id === 'yours') return <Customise api={api} />
@@ -244,32 +263,33 @@ function Chip({ on, onClick, children }: { on?: boolean; onClick: () => void; ch
   )
 }
 
-function FacePicker({ api, live }: { api: React.RefObject<Demo | null>; live: boolean }) {
-  const [face, setFace] = useState(EXPRESSIONS[0].id)
-  const [auto, setAuto] = useState(true)
-  const show = useCallback((id: string) => {
+/** The faces, to try one at a time. A tap takes over from the script. */
+function FacePicker({ api, paused, onTakeOver, onResume }: {
+  api: React.RefObject<Demo | null>; paused: boolean; onTakeOver: () => void; onResume: () => void
+}) {
+  const [face, setFace] = useState<string | null>(null)
+  const show = (id: string) => {
     const e = EXPRESSIONS.find((x) => x.id === id)!
+    onTakeOver()
     setFace(id)
     const d = api.current
-    d?.mood(id); d?.look(e.look[0], e.look[1])
+    d?.hush(); d?.mood(id); d?.look(e.look[0], e.look[1])
     if (e.gesture === 'nod') d?.nod(2)
     if (e.gesture === 'shake') d?.shake()
-  }, [api])
-
-  // Until someone picks one, it cycles through them by itself.
-  useEffect(() => {
-    if (!auto || !live) return
-    let i = 0
-    show(EXPRESSIONS[0].id)
-    const id = setInterval(() => { i = (i + 1) % EXPRESSIONS.length; show(EXPRESSIONS[i].id) }, 2400)
-    return () => clearInterval(id)
-  }, [auto, live, show])
-
+  }
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Faces">
-      {EXPRESSIONS.map((e) => (
-        <Chip key={e.id} on={face === e.id} onClick={() => { setAuto(false); show(e.id) }}>{e.label}</Chip>
-      ))}
+    <div className="grid gap-3">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Try a face">
+        {EXPRESSIONS.map((e) => (
+          <Chip key={e.id} on={paused && face === e.id} onClick={() => show(e.id)}>{e.label}</Chip>
+        ))}
+      </div>
+      {paused && (
+        <button type="button" onClick={() => { setFace(null); onResume() }}
+                className="link text-[14px] self-start bg-transparent border-0 p-0 cursor-pointer w-fit">
+          Play it again
+        </button>
+      )}
     </div>
   )
 }

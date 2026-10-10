@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-08",
+  "generated": "2026-10-10",
   "source": "public/models/stackchan-body.glb + lib/robot-body.ts — the robot the live hero uses",
   "note": "Every entry is a render and is labelled as one on the page.",
   "assets": [
@@ -161,6 +161,16 @@
     {
       "file": "/media/render/lineup-compact@1600.webp",
       "alt": "Five PebbleRobos standing close together, one in each shell colour",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-videocall.webm",
+      "alt": "public/media/render/loop-videocall",
+      "render": true
+    },
+    {
+      "file": "/media/render/loop-dance.webm",
+      "alt": "public/media/render/loop-dance",
       "render": true
     }
   ]

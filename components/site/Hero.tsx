@@ -30,10 +30,10 @@ export default function Hero() {
   // Five things it does, each a small robot that opens that demo below.
   // [face, label, short label for a phone, demo mode]
   const facts: [string, string, string, string][] = [
-    ['listening', 'Talks with you', 'Talks', 'talk'],
+    ['listening', 'Talks with you', 'Talks', 'meet'],
     ['happy', 'Dances', 'Dances', 'dance'],
     ['surprised', 'Video calls', 'Video calls', 'call'],
-    ['sad', 'Shows how it feels', 'Feelings', 'faces'],
+    ['sad', 'Shows how it feels', 'Feelings', 'meet'],
     ['curious', 'Feels your touch', 'Touch', 'touch'],
   ]
   const tryIt = (mode: string) => {
@@ -56,7 +56,7 @@ export default function Hero() {
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     transition={{ duration: 0.6, delay: 0.1 }}>
             <span className="inline-block w-6 h-px" style={{ background: 'var(--accent)' }} aria-hidden="true" />
-            The AI companion for your desk
+            <span>The <span className="accent">AI companion</span> for your desk</span>
           </motion.p>
 
           <SplitHeadline as="h1" immediate delay={0.15}
@@ -79,8 +79,10 @@ export default function Hero() {
           <motion.p className="t-lead mt-0 lg:mt-7 mb-0 max-w-[36ch]"
                     initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.75, ease: EASE }}>
-            PebbleRobo is an AI companion that lives on your desk. It keeps you
-            company, talks with you, and makes the room feel a little less empty.
+            PebbleRobo is an{' '}
+            <strong className="font-medium" style={{ color: 'var(--accent-ink)' }}>AI companion</strong>{' '}
+            that lives on your desk. It keeps you company, talks with you, and
+            makes the room feel a little less empty.
           </motion.p>
 
           {/* Equal halves side by side on a phone; natural widths from sm up. */}
@@ -104,7 +106,7 @@ export default function Hero() {
             beside a label on a wide screen. Nothing to swipe to find. */}
         <ul className="hero-row list-none p-0 m-0 border-t" style={{ borderColor: 'var(--line)' }}>
           {facts.map(([mood, label, short, mode], i) => (
-            <li key={mode} className={i > 0 ? 'lg:border-l' : ''} style={{ borderColor: 'var(--line)' }}>
+            <li key={label} className={i > 0 ? 'lg:border-l' : ''} style={{ borderColor: 'var(--line)' }}>
               <button type="button" onClick={() => tryIt(mode)}
                       className="hero-try group w-full flex items-center gap-3 text-left bg-transparent border-0 cursor-pointer">
                 <FaceIcon mood={mood} size={44} />

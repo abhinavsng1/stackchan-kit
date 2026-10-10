@@ -94,7 +94,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
               src={rendered(`/media/shots/float-shell-${s.id}.webp`)}
               alt={i === shell ? `PebbleRobo in ${s.name}` : ''}
               aria-hidden={i !== shell}
-              width={1400} height={1400} priority={s.id === 'ember'}
+              width={1400} height={1400} preload={s.id === 'ember'} loading={s.id === 'ember' ? 'eager' : 'lazy'}
               sizes="(max-width: 1024px) 92vw, 640px"
               className="absolute inset-0 w-full h-full object-contain"
               style={{

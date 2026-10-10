@@ -22,6 +22,7 @@
  */
 import * as THREE from 'three'
 import { MOODS, drawCompanion } from './.gen/companion-face.js'
+import { drawCaller, drawNotes } from './.gen/screen-scenes.js'
 import { loadBody, buildRobot, configureRenderer, makeStudio } from './.gen/robot-body.js'
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true })
@@ -46,7 +47,11 @@ const camera = new THREE.PerspectiveCamera(26, 1, 5, 6000)
 function setUnit(r, u) {
   r.setShell(u.shell)
   const mood = MOODS.find((m) => m.id === u.mood) ?? MOODS[0]
-  drawCompanion(r.ctx, mood, u.clock ?? 0, u.speak ?? 0, u.gaze ?? { x: 0, y: 0 })
+  // The screen: its own face, or a scene — a caller on a video call — and
+  // optionally music notes over whatever is there (lib/screen-scenes.ts).
+  if (u.screen === 'caller') drawCaller(r.ctx, u.clock ?? 0, u.talk ?? 0)
+  else drawCompanion(r.ctx, mood, u.clock ?? 0, u.speak ?? 0, u.gaze ?? { x: 0, y: 0 })
+  if (u.notes != null) drawNotes(r.ctx, u.notes)
   r.update()
   r.pose({ pan: u.pan ?? 0, tilt: u.tilt ?? 0, explode: u.explode ?? 0 })
 }

@@ -16,11 +16,12 @@
  * presented as a live AI.
  */
 
-export type Status = 'built-in' | 'wifi' | 'app' | 'preview'
+export type Status = 'built-in' | 'wifi' | 'mixed' | 'app' | 'preview'
 
 export const STATUS_LABEL: Record<Status, string> = {
   'built-in': 'Built in',
   wifi: 'With Wi-Fi and its AI agent',
+  mixed: 'Faces built in · talking over Wi-Fi',
   app: 'With the companion app',
   preview: 'Preview',
 }
@@ -35,6 +36,8 @@ export type Step =
   | { at: number; nod: number }
   | { at: number; shake: true }
   | { at: number; follow: true }
+  /** Clear the conversation from the stage. */
+  | { at: number; clear: true }
 
 export type Mode = {
   id: string
@@ -53,38 +56,29 @@ export type Mode = {
 
 export const MODES: Mode[] = [
   {
-    id: 'meet', label: 'Meet', short: 'Meet', status: 'built-in',
-    title: 'It has a life of its own.',
-    body: 'Leave it be and it blinks, glances around and shifts on its own. Move your cursor and it looks your way. Tap it and it changes its face.',
-    script: [{ at: 0, mood: 'awake' }, { at: 0, follow: true }],
-  },
-  {
-    id: 'talk', label: 'Talk', short: 'Talk', status: 'wifi',
-    title: 'Talk to it like a friend.',
-    body: 'Ask it anything, think out loud, practise a language. It looks up while you talk, answers out loud, and reacts when you get it right.',
-    fine: 'An illustration of a conversation, not a recording or a live AI.',
-    loop: 25,
+    id: 'meet', label: 'Meet', short: 'Meet', status: 'mixed',
+    title: 'It talks, listens and feels.',
+    body: 'Left alone it blinks and looks around. Talk to it and it looks up, answers out loud, and wears how it feels on its face. Tap a face to try one.',
+    fine: 'The conversation is an illustration, not a recording or a live AI.',
+    loop: 19.5,
     script: [
-      { at: 0, mood: 'listening' }, { at: 0, look: [10, 16] },
-      { at: 0.3, you: 'I can’t decide what to cook tonight.' },
-      { at: 2.2, mood: 'happy' }, { at: 2.2, robot: 'What’s in the fridge?', for: 1.6 },
-      { at: 4.4, mood: 'listening' }, { at: 4.4, look: [6, 20] },
-      { at: 4.6, you: 'Eggs, spinach and half an onion.' },
-      { at: 6.8, mood: 'happy' }, { at: 6.8, nod: 1 },
-      { at: 7.0, robot: 'That’s a frittata. Fifteen minutes. Want the steps?', for: 3.2 },
-      { at: 12.4, mood: 'listening' }, { at: 12.4, look: [-8, 18] },
-      { at: 12.6, you: 'How do I say “good morning” in Japanese?' },
-      { at: 14.6, mood: 'happy' }, { at: 14.6, robot: 'Ohayō gozaimasu. Say it back to me?', for: 2.6 },
-      { at: 17.8, mood: 'curious' }, { at: 17.8, look: [-4, 22] },
-      { at: 18.0, you: 'Ohayō gozaimasu.' },
-      { at: 19.8, mood: 'happy' }, { at: 19.8, nod: 2 },
-      { at: 20.0, robot: 'Perfect. Now a little faster!', for: 1.8 },
+      { at: 0, mood: 'awake' }, { at: 0, follow: true },
+      { at: 0.2, note: 'It blinks and looks around on its own.' },
+      { at: 2.6, mood: 'listening' }, { at: 2.6, look: [10, 16] },
+      { at: 2.8, you: 'I can’t decide what to cook tonight.' },
+      { at: 4.8, mood: 'happy' }, { at: 4.8, robot: 'What’s in the fridge?', for: 1.6 },
+      { at: 7.0, mood: 'listening' }, { at: 7.0, look: [6, 20] },
+      { at: 7.2, you: 'Eggs, spinach and half an onion.' },
+      { at: 9.4, mood: 'happy' }, { at: 9.4, nod: 1 },
+      { at: 9.6, robot: 'That’s a frittata. Fifteen minutes. Want the steps?', for: 3.2 },
+      { at: 13.3, clear: true },
+      { at: 13.4, note: 'And it wears how it feels.' },
+      { at: 13.4, mood: 'surprised' }, { at: 13.4, look: [0, 24] },
+      { at: 14.6, mood: 'sad' }, { at: 14.6, look: [-28, 0] },
+      { at: 15.8, mood: 'curious' }, { at: 15.8, look: [22, 16] },
+      { at: 17.0, mood: 'happy' }, { at: 17.0, look: [0, 10] }, { at: 17.2, nod: 2 },
+      { at: 18.6, follow: true },
     ],
-  },
-  {
-    id: 'faces', label: 'Faces', short: 'Faces', status: 'built-in',
-    title: 'You always know how it feels.',
-    body: 'Happy, sad, angry, surprised, curious, sleepy. All on its face, with a turn of the head to match.',
   },
   {
     id: 'touch', label: 'Touch', short: 'Touch', status: 'built-in',

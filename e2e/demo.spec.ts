@@ -14,8 +14,7 @@ test('every mode can be chosen, and says what it does without the 3D robot', asy
   await page.goto('/')
   const panel = page.locator('#demo-panel')
   for (const [tab, heading] of [
-    ['Meet', 'It has a life of its own.'], ['Talk', 'Talk to it like a friend.'],
-    ['Faces', 'You always know how it feels.'], ['Touch', 'It notices your touch.'],
+    ['Meet', 'It talks, listens and feels.'], ['Touch', 'It notices your touch.'],
     ['Dance', 'It dances.'], ['Video call', 'Video call it from anywhere.'],
     ['Make it yours', 'Make it look like yours.'],
   ] as const) {
@@ -27,12 +26,12 @@ test('every mode can be chosen, and says what it does without the 3D robot', asy
 
 test('a scripted conversation is shown in full, and labelled as an illustration', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('tab', { name: /^Talk/ }).click()
+  // The conversation is part of Meet, which is where the demo opens.
   const panel = page.locator('#demo-panel')
   await expect(panel.getByText('I can’t decide what to cook tonight.')).toBeVisible()
   await expect(panel.getByText(/That’s a frittata/)).toBeVisible()
   await expect(panel.getByText(/not a recording or a live AI/)).toBeVisible()
-  await expect(panel.getByText('With Wi-Fi and its AI agent')).toBeVisible()
+  await expect(panel.getByText('Faces built in · talking over Wi-Fi')).toBeVisible()
 })
 
 test('nothing on the page claims what does not ship, or talks to developers', async ({ page }) => {

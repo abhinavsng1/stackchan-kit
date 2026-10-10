@@ -35,7 +35,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 
 // The face, the body and the colourways are compiled from lib/ first, so the
 // renders read the same definitions as the site.
-await run(join(ROOT, 'node_modules/.bin/tsc'), ['lib/companion-face.ts', 'lib/robot-body.ts', 'lib/shells.ts', 'lib/talk-script.ts', '--ignoreConfig',
+await run(join(ROOT, 'node_modules/.bin/tsc'), ['lib/companion-face.ts', 'lib/robot-body.ts', 'lib/shells.ts', 'lib/talk-script.ts', 'lib/screen-scenes.ts', '--ignoreConfig',
   '--target', 'es2020', '--module', 'es2020', '--moduleResolution', 'bundler', '--outDir', 'tools/assets/.gen', '--skipLibCheck'], { cwd: ROOT })
 const { SHELLS } = await import('./.gen/shells.js')
 const SHELL = Object.fromEntries(SHELLS.map((s) => [s.id, s]))
@@ -154,6 +154,37 @@ const between = (p, t0, t1, a, b) => {
 const up = (t) => Math.max(0, t)
 
 const LOOPS = [
+  {
+    // A video call: someone's face on its screen, talking, while the robot
+    // listens with small nods and leans in. Square on, so the call reads.
+    out: 'public/media/render/loop-videocall', w: 1200, h: 900, frames: 168,
+    dir: [0.28, 0.1, 0.96], fill: 0.8,
+    pose: (p) => {
+      const talking = (p > 0.06 && p < 0.42) || (p > 0.56 && p < 0.92)
+      return {
+        shell: SHELL.signal, screen: 'caller', clock: 4000 + p * 7000,
+        talk: talking ? speech(p * 7) : 0,
+        pan: 8 + 3 * Math.sin(Math.PI * 2 * p),
+        tilt: up(8 + (p > 0.44 && p < 0.56 ? 6 * Math.sin(Math.PI * (p - 0.44) / 0.12) : 0)),
+      }
+    },
+  },
+  {
+    // A dance: swaying side to side, bobbing on the beat, grinning, with
+    // music notes drifting up its screen. Four bars, then round again.
+    out: 'public/media/render/loop-dance', w: 1200, h: 900, frames: 192,
+    dir: [0.45, 0.12, 0.89], fill: 0.84,
+    frameAt: { shell: SHELL.ember, mood: 'happy', pan: 30, tilt: 14 },
+    pose: (p) => {
+      const beat = p * 16
+      return {
+        shell: SHELL.ember, mood: p > 0.5 && p < 0.56 ? 'surprised' : 'happy', clock: 600 + p * 200,
+        notes: beat,
+        pan: 28 * Math.sin(Math.PI * 2 * p * 2),
+        tilt: up(6 + 8 * Math.abs(Math.sin(Math.PI * beat))),
+      }
+    },
+  },
   {
     // What's inside: assembled, then apart — base, neck and its servos, head,
     // the Lite — held long enough to see each part, then back together.

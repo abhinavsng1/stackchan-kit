@@ -4,6 +4,7 @@ import { MotionRoot } from '@/components/site/motion'
 import SiteNav from '@/components/site/SiteNav'
 import Hero from '@/components/site/Hero'
 import Meet from '@/components/site/Meet'
+import Showcase from '@/components/site/Showcase'
 import Demo from '@/components/site/Demo'
 import Everyday from '@/components/site/Everyday'
 import Explore from '@/components/site/Explore'
@@ -25,6 +26,7 @@ const SHOW_STORIES = false
  *
  *   what is it?                     →  hero: AI, with a face
  *   why does it feel different?     →  why it feels alive
+ *   show me                         →  a video call and a dance
  *   what does it actually do?       →  the live demo, on the robot
  *   where does it fit in my day?    →  a day with it
  *   what does it look like?         →  explore: spin it, pick a colour
@@ -46,6 +48,7 @@ export default function Page() {
       <main id="top">
         <Hero />
         <Meet />
+        <Showcase />
         <Demo />
         <Everyday />
         <Explore />
