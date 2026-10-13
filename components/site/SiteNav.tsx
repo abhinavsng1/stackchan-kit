@@ -68,7 +68,7 @@ export default function SiteNav({ stories }: { stories: boolean }) {
 
           <div className="ml-auto lg:ml-0 flex items-center gap-2">
             <a href="#buy" onClick={buy('nav')} className="btn btn-brand btn-sm hidden sm:inline-flex">
-              Buy <span className="opacity-60 font-normal">{PRICE.now}</span>
+              Book for {PRICE.deposit}
             </a>
             <button
               type="button"
@@ -128,10 +128,10 @@ export default function SiteNav({ stories }: { stories: boolean }) {
                         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.45, duration: 0.5, ease: EASE }}>
               <a href="#buy" onClick={buy('menu')} className="btn btn-brand btn-lg w-full">
-                Buy PebbleRobo · {PRICE.now} <span className="arrow" aria-hidden="true">→</span>
+                Book PebbleRobo for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
               </a>
               <p className="t-mono text-[12px] text-center text-[var(--muted)] m-0">
-                {PRICE.deposit} to book · {PRICE.balance} on delivery · Free shipping in India
+                {PRICE.now} to buy · remaining {PRICE.balance} on delivery · Free shipping in India
               </p>
             </motion.div>
           </motion.div>

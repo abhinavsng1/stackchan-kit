@@ -78,15 +78,15 @@ export default function BuyBar() {
     <div className="buybar" data-show={show} aria-hidden={!show}>
       <div className="flex items-center gap-3">
         <div className="min-w-0">
-          <div className="text-[15px] font-medium leading-tight">PebbleRobo · {PRICE.now}</div>
+          <div className="text-[15px] font-medium leading-tight">Book PebbleRobo for {PRICE.deposit}</div>
           <div className="t-mono text-[11.5px] text-[var(--muted)] mt-0.5 truncate">
-            {PRICE.deposit} to book · free delivery
+            {PRICE.now} to buy · rest on delivery · free shipping
           </div>
         </div>
         <a href="#buy" className="btn btn-brand ml-auto shrink-0"
            onClick={() => track(EV.reserveCtaClicked, { location: 'buybar', edition })}
            tabIndex={show ? undefined : -1}>
-          Buy <span className="arrow" aria-hidden="true">→</span>
+          Book <span className="arrow" aria-hidden="true">→</span>
         </a>
       </div>
     </div>

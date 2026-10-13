@@ -9,6 +9,7 @@ import FaceIcon from '@/components/site/FaceIcon'
 import { SplitHeadline, EASE } from '@/components/site/motion'
 import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
+import { PRICE } from '@/lib/kit'
 
 /**
  * The first screen. The robot is the protagonist and the headline is one
@@ -91,10 +92,15 @@ export default function Hero() {
                       transition={{ duration: 0.8, delay: 0.9, ease: EASE }}>
             <a href="#buy" className="btn btn-brand hero-cta"
                onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>
-              Bring one home <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
+              Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
             </a>
             <a href="#does" className="btn btn-ghost hero-cta">See what it does</a>
           </motion.div>
+          <motion.p className="t-mono text-[12.5px] text-[var(--muted)] mt-4 mb-0"
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 1.0 }}>
+            {PRICE.deposit} to book · {PRICE.now} to buy · the rest on delivery
+          </motion.p>
         </motion.div>
       </div>
 

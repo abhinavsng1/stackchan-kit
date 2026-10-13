@@ -44,13 +44,26 @@ export default function BuyBox() {
       <h2 className="t-display mt-4 mb-0" style={{ fontSize: 'clamp(44px, 5vw, 72px)' }}>PebbleRobo</h2>
       <p className="text-[17px] text-[var(--muted)] mt-3 mb-0 max-w-[36ch]">{e.pitch}</p>
 
-      <div className="flex items-baseline gap-3 flex-wrap mt-8">
-        <span className="t-display leading-none" style={{ fontSize: 'clamp(40px, 4vw, 56px)' }}>{PRICE.now}</span>
-        <span className="t-mono text-[15px] text-[var(--muted-2)] line-through">{PRICE.mrp}</span>
+      {/* Booking leads: it is the only thing charged on this page. The full
+          price sits beside it so nobody mistakes ₹499 for the price. */}
+      <div className="flex items-end gap-x-8 gap-y-4 flex-wrap mt-8">
+        <div>
+          <p className="t-label m-0 mb-2">Book today</p>
+          <span className="t-display leading-none" style={{ fontSize: 'clamp(52px, 5.5vw, 80px)', color: 'var(--accent)' }}>
+            {PRICE.deposit}
+          </span>
+        </div>
+        <div className="pb-1">
+          <p className="t-label m-0 mb-2">Full price</p>
+          <span className="flex items-baseline gap-2">
+            <span className="t-display text-[26px] leading-none">{PRICE.now}</span>
+            <span className="t-mono text-[13px] text-[var(--muted-2)] line-through">{PRICE.mrp}</span>
+          </span>
+        </div>
       </div>
-      <p className="text-[15px] mt-3 mb-0">
-        <strong className="font-medium">{PRICE.deposit} today</strong>
-        <span className="text-[var(--muted)]"> · {PRICE.balance} in cash when it arrives</span>
+      <p className="text-[15px] mt-4 mb-0 max-w-[40ch]">
+        <strong className="font-medium">Pay {PRICE.deposit} now to book yours.</strong>
+        <span className="text-[var(--muted)]"> The remaining {PRICE.balance} is charged after booking, in cash when it’s delivered.</span>
       </p>
       <p className="text-[14px] text-[var(--muted)] mt-2 mb-0 flex items-center gap-2">
         <span className="dot" aria-hidden="true" />Free delivery in India · {PRICE.ship}
@@ -69,7 +82,7 @@ export default function BuyBox() {
           <StepButton label="More" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
         </div>
         <button type="button" onClick={reserve} className="btn btn-brand btn-lg flex-1">
-          Buy PebbleRobo <span className="arrow" aria-hidden="true">→</span>
+          Book for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
         </button>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 mt-4">

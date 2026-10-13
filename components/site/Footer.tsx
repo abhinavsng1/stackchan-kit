@@ -24,7 +24,7 @@ export default function Footer({ socials }: { socials: Social[] }) {
                        text={'Your AI deserves\na face.'} accent={['face']} />
         <div className="flex flex-wrap items-center gap-3 mt-10">
           <a href="#buy" className="btn btn-accent btn-lg">
-            Get PebbleRobo · {PRICE.now} <span className="arrow" aria-hidden="true">→</span>
+            Book PebbleRobo for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
           </a>
           <a href={`mailto:${CONTACT.email}`} className="btn btn-ghost btn-lg">Ask us anything</a>
         </div>

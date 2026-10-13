@@ -39,6 +39,7 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
    */
   const owed = variant ? pricing(variant).balance : PRICE.balance
   const paysNow = variant ? pricing(variant).deposit : PRICE.deposit
+  const total = variant ? pricing(variant).total : PRICE.now
   const [state, setState] = useState<State>({ kind: 'idle' })
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
   // Starts on a real colourway rather than empty, so the optional field is
@@ -431,6 +432,23 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
         <input id="company" name="company" tabIndex={-1} autoComplete="off" />
       </div>
 
+      {/* Said before the button, not after: the buyer should know exactly
+          what this payment is and what is still to come. */}
+      <dl className="mt-8 m-0 border-t border-b text-[15px]" style={{ borderColor: 'var(--line)' }}>
+        <div className="flex items-baseline justify-between gap-4 py-3">
+          <dt className="font-medium">Pay now to book</dt>
+          <dd className="m-0 t-display text-[24px] leading-none">{paysNow}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-4 py-3 border-t" style={{ borderColor: 'var(--line-soft)' }}>
+          <dt className="text-[var(--muted)]">Remaining, charged after booking, on delivery</dt>
+          <dd className="m-0 t-mono">{owed}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-4 py-3 border-t" style={{ borderColor: 'var(--line-soft)' }}>
+          <dt className="text-[var(--muted)]">Total</dt>
+          <dd className="m-0 t-mono">{total}</dd>
+        </div>
+      </dl>
+
       <div className="mt-7 flex flex-wrap items-center gap-5">
         <button type="submit" className="btn btn-brand" disabled={busy}>
           {state.kind === 'submitting' ? 'Saving…'
@@ -441,8 +459,8 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
       </div>
 
       <p className="text-[12.5px] text-[var(--muted)] mt-4 mb-0 max-w-[52ch]">
-        {paysNow} now; the courier collects {owed} in cash when the
-        box reaches you. Your address and phone go to the courier, because that is
+        Only {paysNow} is charged now. The remaining {owed} is charged after
+        booking: the courier collects it in cash when the box reaches you. Your address and phone go to the courier, because that is
         how a parcel arrives, and to Mixpanel so we can follow up if an order does
         not complete. Payment is handled by Razorpay, and your card details never
         reach us.

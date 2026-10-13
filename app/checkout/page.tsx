@@ -55,8 +55,15 @@ export default async function CheckoutPage(
           <div className="flex items-baseline justify-between gap-4 pb-4 mb-4"
                style={{ borderBottom: '1px solid var(--line)' }}>
             <span className="text-[15px]">PebbleRobo × 1</span>
-            <span className="t-display text-[26px] leading-none">{PRICE.now}</span>
+            <span className="t-mono text-[15px]">{PRICE.now}</span>
           </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-[15px] font-medium">Pay now to book</span>
+            <span className="t-display text-[26px] leading-none">{PRICE.deposit}</span>
+          </div>
+          <p className="text-[14px] text-[var(--muted)] mt-2 mb-5">
+            The remaining {PRICE.balance} is charged after booking, in cash when it’s delivered.
+          </p>
           <CheckoutButton token={t} />
         </div>
 

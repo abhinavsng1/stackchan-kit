@@ -89,7 +89,7 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
         disabled={state.phase === 'working'}
         className="btn btn-brand"
       >
-        {state.phase === 'working' ? 'Opening\u2026' : `Pay ${PRICE.now}`}
+        {state.phase === 'working' ? 'Opening\u2026' : `Pay ${PRICE.deposit} to book`}
       </button>
 
       {state.phase === 'error' && (
