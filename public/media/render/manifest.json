@@ -1,71 +1,56 @@
 {
-  "generated": "2026-10-10",
-  "source": "public/models/stackchan-body.glb + lib/robot-body.ts — the robot the live hero uses",
+  "generated": "2026-10-16",
+  "source": "public/models/stackchan-body.glb + lib/robot-body.ts \u2014 the robot the live hero uses",
   "note": "Every entry is a render and is labelled as one on the page.",
   "assets": [
     {
       "file": "/media/shots/float-shell-graphite.webp",
-      "alt": "PebbleRobo in Graphite",
+      "alt": "PebbleRobo in Black",
       "render": true
     },
     {
       "file": "/media/shots/float-shell-bone.webp",
-      "alt": "PebbleRobo in Bone",
-      "render": true
-    },
-    {
-      "file": "/media/shots/float-shell-ember.webp",
-      "alt": "PebbleRobo in Ember",
-      "render": true
-    },
-    {
-      "file": "/media/shots/float-shell-signal.webp",
-      "alt": "PebbleRobo in Signal",
-      "render": true
-    },
-    {
-      "file": "/media/shots/float-shell-moss.webp",
-      "alt": "PebbleRobo in Moss",
+      "alt": "PebbleRobo in White",
       "render": true
     },
     {
       "file": "/media/render/role-answers@1600.webp",
-      "alt": "PebbleRobo in Signal, looking up, listening",
+      "alt": "PebbleRobo in white, looking up, listening",
       "render": true
     },
     {
       "file": "/media/render/role-answers@800.webp",
-      "alt": "PebbleRobo in Signal, looking up, listening",
+      "alt": "PebbleRobo in white, looking up, listening",
       "render": true
     },
     {
       "file": "/media/render/role-performer@1600.webp",
-      "alt": "PebbleRobo in Ember, head turned, smiling",
+      "alt": "PebbleRobo in black, head turned, smiling",
       "render": true
     },
     {
       "file": "/media/render/role-performer@800.webp",
-      "alt": "PebbleRobo in Ember, head turned, smiling",
+      "alt": "PebbleRobo in black, head turned, smiling",
       "render": true
     },
     {
       "file": "/media/render/role-puppet@1600.webp",
-      "alt": "PebbleRobo in Moss, turning its head",
+      "alt": "PebbleRobo in white, turning its head",
       "render": true
     },
     {
       "file": "/media/render/role-puppet@800.webp",
-      "alt": "PebbleRobo in Moss, turning its head",
+      "alt": "PebbleRobo in white, turning its head",
       "render": true
     },
     {
       "file": "/media/render/role-pet@1600.webp",
-      "alt": "PebbleRobo in Moss, seen from above, resting",
+      "alt": "PebbleRobo in white, seen from above, resting",
       "render": true
     },
     {
       "file": "/media/render/role-pet@800.webp",
-      "alt": "PebbleRobo in Moss, seen from above, resting",
+      "alt": "PebbleRobo in white, seen from above, resting",
       "render": true
     },
     {
@@ -80,42 +65,42 @@
     },
     {
       "file": "/media/render/meet-face.webp",
-      "alt": "PebbleRobo in Ember, smiling, on a turntable",
+      "alt": "PebbleRobo in black, smiling, on a turntable",
       "render": true
     },
     {
       "file": "/media/render/gallery-hero.webp",
-      "alt": "PebbleRobo in Ember, three-quarter view",
+      "alt": "PebbleRobo in black, three-quarter view",
       "render": true
     },
     {
       "file": "/media/render/gallery-front.webp",
-      "alt": "PebbleRobo in Ember, front view",
+      "alt": "PebbleRobo in black, front view",
       "render": true
     },
     {
       "file": "/media/render/gallery-right.webp",
-      "alt": "PebbleRobo in Ember, from the right view",
+      "alt": "PebbleRobo in black, from the right view",
       "render": true
     },
     {
       "file": "/media/render/gallery-profile.webp",
-      "alt": "PebbleRobo in Ember, in profile view",
+      "alt": "PebbleRobo in black, in profile view",
       "render": true
     },
     {
       "file": "/media/render/gallery-high.webp",
-      "alt": "PebbleRobo in Ember, from above view",
+      "alt": "PebbleRobo in black, from above view",
       "render": true
     },
     {
       "file": "/media/render/lineup@2400.webp",
-      "alt": "Five PebbleRobos standing in an arc, one in each shell colour, all looking the same way",
+      "alt": "Two PebbleRobos side by side, one white and one black",
       "render": true
     },
     {
       "file": "/media/render/lineup@1200.webp",
-      "alt": "Five PebbleRobos standing in an arc, one in each shell colour, all looking the same way",
+      "alt": "Two PebbleRobos side by side, one white and one black",
       "render": true
     },
     {
@@ -160,7 +145,7 @@
     },
     {
       "file": "/media/render/lineup-compact@1600.webp",
-      "alt": "Five PebbleRobos standing close together, one in each shell colour",
+      "alt": "Two PebbleRobos standing close together, one white and one black",
       "render": true
     },
     {

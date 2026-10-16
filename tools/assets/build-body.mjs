@@ -3,15 +3,16 @@
  *
  *   node tools/assets/build-body.mjs
  *
- * Built straight from assets-src/stl/assembled_v3.stl, the assembled v3
- * preview, so every printed part sits exactly where the CAD put it: no
- * solving, no hand placement. The file holds the seven parts in their
- * assembled positions, already split by servo:
+ * Built straight from assets-src/stl/assembled_v4.stl, the assembled v4
+ * preview (the body that ships: five printed parts, no screws outside), so
+ * every printed part sits exactly where the CAD put it: no solving, no hand
+ * placement. The file holds the five parts in their assembled positions,
+ * already split by servo:
  *
  *   Robot
  *     Base          base, bottom_cover                  fixed to the desk
- *     Neck_Pan      neck, neck_cover                    turns about Y
- *       Head_Tilt   head, horn_plate, pivot_plate       nods about X, at the hinge
+ *     Neck_Pan      neck, pivot_pin                     turns about Y
+ *       Head_Tilt   head                                nods about X, at the hinge
  *
  * Coordinates are three's: millimetres, Y up, the face looking down +Z. The
  * pan axis is the origin's vertical; Head_Tilt sits at the hinge height so a
@@ -24,36 +25,32 @@
  * Everything bought — the CoreS3 Lite, both SCS0009 servos, the horns, the
  * bus adapter and its DC socket — is modelled in lib/robot-body.ts.
  */
-import { readFile, mkdir, rm } from 'node:fs/promises'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
+import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { Document, NodeIO } from '@gltf-transform/core'
+import { KHRDracoMeshCompression } from '@gltf-transform/extensions'
+import draco3d from 'draco3dgltf'
 
-const run = promisify(execFile)
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const SRC = join(ROOT, 'assets-src/stl/assembled_v3.stl')
-const RAW = join(ROOT, '.shots-tmp/stackchan-body.raw.glb')
+const SRC = join(ROOT, 'assets-src/stl/assembled_v4.stl')
 const OUT = join(ROOT, 'public/models/stackchan-body.glb')
 
-/** Height of the tilt hinge: the centre of the horn plate and the pivot plate. */
+/** Height of the tilt hinge: the tilt servo's shaft and the pivot pin. */
 export const TILT_Y = 51.7
 
 /**
- * The assembled preview is the seven part files concatenated in order, so
+ * The assembled preview is the five part files concatenated in order, so
  * each part is a run of triangles. The counts are the part files' own, and
  * the bounding boxes below are checked so a re-exported preview cannot be
  * split in the wrong place silently.
  */
 const PARTS = [
-  ['head', 21188, 'tilt'],
-  ['neck', 3606, 'pan'],
-  ['neck_cover', 1094, 'pan'],
-  ['horn_plate', 2192, 'tilt'],
-  ['pivot_plate', 536, 'tilt'],
-  ['base', 10238, 'base'],
-  ['bottom_cover', 4564, 'base'],
+  ['head', 17082, 'tilt'],
+  ['neck', 9906, 'pan'],
+  ['pivot_pin', 2156, 'pan'],
+  ['base', 11122, 'base'],
+  ['bottom_cover', 3852, 'base'],
 ]
 /** Expected CAD bounds (mm, Z up) per part, to 0.1 mm. */
 const EXPECT = {
@@ -122,9 +119,15 @@ for (const [name, count, group] of PARTS) {
   console.log(`  ${name.padEnd(13)} ${String(idx.length / 3).padStart(6)} tris  ${group}`)
 }
 
-await mkdir(join(ROOT, '.shots-tmp'), { recursive: true })
-await new NodeIO().write(RAW, doc)
-await run(join(ROOT, 'node_modules/.bin/gltf-transform'), ['draco', RAW, OUT, '--method', 'edgebreaker'], { cwd: ROOT })
-await rm(join(ROOT, '.shots-tmp'), { recursive: true, force: true })
+// Draco in-process, through the WASM encoder: the gltf-transform CLI pulls in
+// sharp's native module, which some machines refuse to load.
+doc.createExtension(KHRDracoMeshCompression).setRequired(true).setEncoderOptions({
+  method: KHRDracoMeshCompression.EncoderMethod.EDGEBREAKER,
+})
+const io = new NodeIO().registerExtensions([KHRDracoMeshCompression]).registerDependencies({
+  'draco3d.encoder': await draco3d.createEncoderModule(),
+  'draco3d.decoder': await draco3d.createDecoderModule(),
+})
+await io.write(OUT, doc)
 const size = (await readFile(OUT)).length
 console.log(`wrote public/models/stackchan-body.glb (${(size / 1024).toFixed(0)} KB)`)

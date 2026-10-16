@@ -10,9 +10,18 @@ import type { Social } from '@/lib/proof'
  * The end of the story: one last line, one last way to act, then everything
  * a footer is for — set as an index rather than a wall of links.
  */
-export default function Footer({ socials }: { socials: Social[] }) {
+const HOME_PRODUCT: [string, string][] = [
+  ['Why it feels alive', '#why'], ['What it does', '#does'], ['Colours', '#explore'],
+  ['Watch it', '#films'], ['Specifications', '#specs'], ['Buy', '#buy'], ['For developers', '/kit'],
+]
+
+export default function Footer({ socials, product = HOME_PRODUCT }: {
+  socials: Social[]
+  /** The Product column. Each page passes links to its own sections. */
+  product?: [string, string][]
+}) {
   const columns: [string, [string, string][]][] = [
-    ['Product', [['Why it feels alive', '#why'], ['What it does', '#does'], ['Colours', '#explore'], ['Where it fits', '#everyday'], ['Specifications', '#specs'], ['Buy', '#buy']]],
+    ['Product', product],
     ['Support', [['FAQ', '#faq'], ['Shipping', '/shipping'], ['Returns', '/returns'], ['Contact', '/contact']]],
     ['Legal', [['Terms of sale', '/terms'], ['Privacy', '/privacy']]],
   ]
@@ -23,9 +32,10 @@ export default function Footer({ socials }: { socials: Social[] }) {
         <SplitHeadline as="p" className="t-display t-h1 m-0 max-w-[14ch]"
                        text={'Your AI deserves\na face.'} accent={['face']} />
         <div className="flex flex-wrap items-center gap-3 mt-10">
-          <a href="#buy" className="btn btn-accent btn-lg">
+          <TrackedLink href="#reserve" className="btn btn-accent btn-lg"
+                       event={EV.reserveCtaClicked} props={{ location: 'footer' }}>
             Book PebbleRobo for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
-          </a>
+          </TrackedLink>
           <a href={`mailto:${CONTACT.email}`} className="btn btn-ghost btn-lg">Ask us anything</a>
         </div>
 

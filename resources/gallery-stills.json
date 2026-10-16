@@ -1,0 +1,16 @@
+{
+  "selection": "Reviewed one-second samples from all three product_vid clips; chose two complementary full-body shots with a clear face.",
+  "processing": "Original video frame extraction, 4:5 composition crop and resize only. No AI retouching, sharpening or colour changes.",
+  "stills": [
+    {
+      "asset": "/media/real/footage-daylight-v1.webp",
+      "source": "DJI_20261006_000257_591_slowmotion.MP4",
+      "time_seconds": 0.5
+    },
+    {
+      "asset": "/media/real/footage-profile-v1.webp",
+      "source": "DJI_20261006_003813_774_video.MP4",
+      "time_seconds": 14.5
+    }
+  ]
+}

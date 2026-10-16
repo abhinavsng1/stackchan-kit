@@ -1,61 +1,112 @@
 'use client'
 
-import Clip from '@/components/Clip'
-import { Stagger, StaggerItem } from '@/components/site/motion'
-import { smoothScrollTo } from '@/lib/smooth-scroll'
-import { EV, track } from '@/lib/analytics'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-/**
- * Two moments, side by side, before the full demo: a video call with a face
- * on its screen, and a dance. Rendered loops of the same robot as the rest of
- * the page (tools/assets/build-site.mjs), labelled as renders, each a door
- * into that mode on the live robot below.
- */
-const MOMENTS = [
-  {
-    loop: 'loop-videocall', mode: 'call', tag: 'Video call',
-    title: 'Call home, and be there.',
-    body: 'Video call it from your phone and your face lights up its screen, so whoever’s at the desk sees you, not just hears you.',
-    alt: 'PebbleRobo on a video call, a person’s face on its screen, talking',
-  },
-  {
-    loop: 'loop-dance', mode: 'dance', tag: 'Dance',
-    title: 'And when it’s time to have fun.',
-    body: 'Ask it to dance and it sways, bobs on the beat and grins the whole way through. Music notes included.',
-    alt: 'PebbleRobo dancing, swaying and bobbing, music notes on its screen',
-  },
-]
+const CLIPS = [1, 2, 3, 4]
+const ROTATION_MS = 5500
+const position = (index: number, selected: number) => ['front', 'right', 'back', 'left'][(index - selected + 4) % 4]
 
 export default function Showcase() {
-  const tryIt = (mode: string) => {
-    window.dispatchEvent(new CustomEvent('pebble:demo', { detail: mode }))
-    track(EV.demoModeChosen, { mode, location: 'showcase' })
-    smoothScrollTo('does')
-  }
+  const [selected, setSelected] = useState(0)
+  const [sound, setSound] = useState<number | null>(null)
+  const [paused, setPaused] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const [reduced, setReduced] = useState(false)
+  const [unavailable, setUnavailable] = useState<number[]>([])
+  const root = useRef<HTMLDivElement>(null)
+  const videos = useRef<(HTMLVideoElement | null)[]>([])
+  const inView = useRef(false)
+  const dragStart = useRef<number | null>(null)
+  const swiped = useRef(false)
 
-  return (
-    <section id="showcase" className="section scroll-mt-16" style={{ paddingTop: 0 }}>
-      <div className="wrap">
-        <Stagger className="grid md:grid-cols-2 gap-4 md:gap-6">
-          {MOMENTS.map((m) => (
-            <StaggerItem key={m.loop} as="article" className="group">
-              <div className="media" style={{ aspectRatio: '4 / 3', background: 'var(--surface-2)' }}>
-                <Clip src={`/media/render/${m.loop}`} poster={`/media/render/${m.loop}.webp`}
-                      alt={m.alt} className="absolute inset-0" />
-                <span className="absolute left-4 top-4 t-mono text-[11px] px-2 py-1 rounded"
-                      style={{ background: 'rgba(17,17,17,.78)', color: '#fff' }}>{m.tag}</span>
-                <span className="tag absolute right-4 bottom-4">Render</span>
-              </div>
-              <h3 className="t-display t-h3 mt-5 mb-2">{m.title}</h3>
-              <p className="text-[16px] leading-[1.55] text-[var(--muted)] m-0 max-w-[46ch]">{m.body}</p>
-              <button type="button" onClick={() => tryIt(m.mode)}
-                      className="link text-[14.5px] mt-4 bg-transparent border-0 p-0 cursor-pointer">
-                Try it on the robot <span aria-hidden="true">↓</span>
-              </button>
-            </StaggerItem>
-          ))}
-        </Stagger>
+  const silence = useCallback(() => {
+    videos.current.forEach(v => { if (v) v.muted = true })
+    setSound(null)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updateMotion = () => setReduced(mq.matches)
+    updateMotion(); mq.addEventListener('change', updateMotion)
+    const playback = () => {
+      const running = inView.current && !document.hidden
+      setVisible(running)
+      if (!running) silence()
+      videos.current.forEach(v => {
+        if (!v) return
+        if (running) void v.play().catch(() => {})
+        else v.pause()
+      })
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      inView.current = entry.isIntersecting; playback()
+    }, { threshold: .15 })
+    if (root.current) observer.observe(root.current)
+    document.addEventListener('visibilitychange', playback)
+    const otherFilm = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== 'feature-gallery') silence()
+    }
+    window.addEventListener('sc:film', otherFilm)
+    return () => {
+      observer.disconnect(); mq.removeEventListener('change', updateMotion)
+      document.removeEventListener('visibilitychange', playback)
+      window.removeEventListener('sc:film', otherFilm)
+      videos.current.forEach(v => { if (v) { v.muted = true; v.pause() } })
+    }
+  }, [silence])
+
+  const rotating = visible && !paused && !reduced && sound === null
+  useEffect(() => {
+    if (!rotating) return
+    const timer = setInterval(() => setSelected(n => (n + 1) % 4), ROTATION_MS)
+    return () => clearInterval(timer)
+  }, [rotating, selected])
+
+  const choose = (n: number, listen = false) => {
+    n = (n + 4) % 4
+    silence(); setSelected(n)
+    if (listen) {
+      const v = videos.current[n]
+      if (v) {
+        // Mute every other video before enabling sound, in the user's click.
+        v.muted = false; v.volume = 1; setSound(n)
+        window.dispatchEvent(new CustomEvent('sc:film', { detail: 'feature-gallery' }))
+        void v.play().catch(() => silence())
+      }
+    }
+    videos.current.forEach(v => { if (v?.muted && inView.current) void v.play().catch(() => {}) })
+  }
+  const toggleRotation = () => {
+    if (sound !== null) { silence(); setPaused(false); return }
+    setPaused(p => !p)
+  }
+  const status = sound !== null ? 'Sound on · rotation held' : paused || reduced ? 'Manual browsing · sound off' : 'Auto-playing · sound off'
+
+  return <section id="films" className="section video-gallery scroll-mt-16"><div className="wrap">
+    <div className="gallery-heading"><div><p className="t-label">See it for yourself</p><h2 className="t-display t-h2">A little personality.<br />In every frame.</h2></div><p className="t-lead">Four films, always in motion.<br />Tap a card to listen.</p></div>
+    <div ref={root} className="film-deck" aria-roledescription="carousel" aria-label="PebbleRobo video gallery">
+      <div className="film-deck-top"><span className="t-mono"><i aria-hidden="true" /> PebbleRobo / In motion</span><span className="film-deck-status">{status}</span></div>
+      <div className="film-deck-stage" onPointerDown={e => { swiped.current = false; dragStart.current = e.clientX }} onPointerUp={e => {
+        if (dragStart.current === null) return
+        const delta = e.clientX - dragStart.current; dragStart.current = null
+        if (Math.abs(delta) > 45) { swiped.current = true; choose(selected + (delta < 0 ? 1 : -1)) }
+      }} onPointerCancel={() => { dragStart.current = null }}>
+        {CLIPS.map((n, i) => <article key={n} className="film-deck-card" data-position={position(i, selected)} role="group" aria-label={`Video ${n} of 4`}>
+          <video ref={el => { videos.current[i] = el }} src={`/media/films/pebble-${n}.mp4`} autoPlay muted={sound !== i} loop playsInline preload="auto" aria-label={`PebbleRobo product film ${n}`}
+            onError={() => setUnavailable(old => old.includes(i) ? old : [...old, i])} />
+          <button className="film-deck-hit" aria-label={sound === i ? `Mute video ${n}` : `Watch video ${n} with sound`} onClick={() => { if (swiped.current) { swiped.current = false; return }; sound === i ? silence() : choose(i, true) }}>
+            <span className="film-card-index">FILM 0{n}</span>
+            <span className="film-card-listen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z" />{sound === i ? <><path d="M15 8c3 2 3 6 0 8M18 5c5 4 5 10 0 14" /></> : <path d="m16 9 6 6m0-6-6 6" />}</svg>{sound === i ? 'Sound on' : 'Tap for sound'}</span>
+          </button>
+          {unavailable.includes(i) && <span className="film-load-error">Video unavailable. Refresh to retry.</span>}
+        </article>)}
       </div>
-    </section>
-  )
+      <div className="film-deck-bottom">
+        <div className="film-deck-navigation"><button onClick={() => choose(selected - 1)} aria-label="Previous video">←</button><div className="film-deck-dots" role="group" aria-label="Choose a film">{CLIPS.map((n,i) => <button key={n} onClick={() => choose(i)} aria-label={`Show video ${n}`} aria-pressed={selected === i}><span /></button>)}</div><button onClick={() => choose(selected + 1)} aria-label="Next video">→</button></div>
+        <span className="t-mono film-deck-count">0{selected + 1} <span>/ 04</span></span>
+        <button className="film-deck-pause" onClick={toggleRotation} aria-label={sound !== null || paused ? 'Resume automatic rotation' : 'Pause automatic rotation'}>{sound !== null || paused ? '▷ Auto rotate' : 'Ⅱ Pause rotation'}</button>
+      </div>
+      <p className="film-deck-note">All films play silently. Choose one for sound; it stays in front while you listen.</p>
+    </div>
+  </div></section>
 }

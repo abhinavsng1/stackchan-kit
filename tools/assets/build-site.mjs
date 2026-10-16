@@ -57,43 +57,43 @@ const SHOTS = [
   {
     out: 'public/media/render/role-answers', widths: [1600, 800], ground: 'stage', w: 1600, h: 1200,
     dir: [0.5, 0.12, 0.86], fill: 0.95,
-    units: [{ shell: SHELL.signal, mood: 'listening', pan: -4, tilt: 10, gaze: { x: 0.5, y: -0.5 } }],
-    alt: 'PebbleRobo in Signal, looking up, listening',
+    units: [{ shell: SHELL.bone, mood: 'listening', pan: -4, tilt: 10, gaze: { x: 0.5, y: -0.5 } }],
+    alt: 'PebbleRobo in white, looking up, listening',
   },
   // A performer: head turned mid-line, pleased with itself.
   {
     out: 'public/media/render/role-performer', widths: [1600, 800], ground: 'stage', w: 1600, h: 1000,
     dir: [-0.6, 0.16, 0.78], fill: 1.0,
-    units: [{ shell: SHELL.ember, mood: 'pleased', pan: -30, tilt: 6 }],
-    alt: 'PebbleRobo in Ember, head turned, smiling',
+    units: [{ shell: SHELL.graphite, mood: 'pleased', pan: -30, tilt: 6 }],
+    alt: 'PebbleRobo in black, head turned, smiling',
   },
   // A puppet: turned to follow someone off to the side.
   {
     out: 'public/media/render/role-puppet', widths: [1600, 800], ground: 'stage', w: 1600, h: 1000,
     dir: [0.9, 0.1, 0.42], fill: 1.0,
-    units: [{ shell: SHELL.moss, mood: 'awake', pan: 36, tilt: 2, gaze: { x: 1, y: 0 } }],
-    alt: 'PebbleRobo in Moss, turning its head',
+    units: [{ shell: SHELL.bone, mood: 'awake', pan: 36, tilt: 2, gaze: { x: 1, y: 0 } }],
+    alt: 'PebbleRobo in white, turning its head',
   },
   // A pet: from above, dozing.
   {
     out: 'public/media/render/role-pet', widths: [1600, 800], ground: 'studio', w: 1600, h: 1200,
     dir: [0.4, 0.62, 0.68], fill: 1.0,
-    units: [{ shell: SHELL.moss, mood: 'resting', pan: -6, tilt: 0 }],
-    alt: 'PebbleRobo in Moss, seen from above, resting',
+    units: [{ shell: SHELL.bone, mood: 'resting', pan: -6, tilt: 0 }],
+    alt: 'PebbleRobo in white, seen from above, resting',
   },
   // What's inside: the stack pulled apart, servos out to the sides.
   {
     out: 'public/media/render/role-yours', widths: [1600, 800], ground: 'studio', w: 1200, h: 1500,
     dir: [0.62, 0.3, 0.72], fill: 0.95,
-    units: [{ shell: SHELL.ember, mood: 'thinking', pan: -8, tilt: 0, explode: 0.6 }],
+    units: [{ shell: SHELL.graphite, mood: 'thinking', pan: -8, tilt: 0, explode: 0.6 }],
     alt: 'PebbleRobo pulled apart: base, neck with both servos, head and controller',
   },
   // Meet it: the live turntable's first frame (lib/live-turntable.ts), its stand-in.
   {
     out: 'public/media/render/meet-face.webp', ground: 'studio', w: 1080, h: 1350,
     dir: [0, Math.sin(12 * Math.PI / 180), Math.cos(12 * Math.PI / 180)], fit: 'sweep', margin: 0.9,
-    units: [{ shell: SHELL.ember, mood: 'pleased', yaw: 28, pan: 0, tilt: 4 }],
-    alt: 'PebbleRobo in Ember, smiling, on a turntable',
+    units: [{ shell: SHELL.graphite, mood: 'pleased', yaw: 28, pan: 0, tilt: 4 }],
+    alt: 'PebbleRobo in black, smiling, on a turntable',
   },
   // The buy gallery: five angles on one robot.
   ...[
@@ -104,37 +104,37 @@ const SHOTS = [
     ['high', [0.4, 0.55, 0.72], 'listening', 6, 8],
   ].map(([name, dir, mood, pan, tilt]) => ({
     out: `public/media/render/gallery-${name}.webp`, ground: 'studio', w: 1080, h: 1350,
-    dir, fill: 0.9, units: [{ shell: SHELL.ember, mood, pan, tilt }],
-    alt: `PebbleRobo in Ember, ${{ hero: 'three-quarter', front: 'front', right: 'from the right', profile: 'in profile', high: 'from above' }[name]} view`,
+    dir, fill: 0.9, units: [{ shell: SHELL.graphite, mood, pan, tilt }],
+    alt: `PebbleRobo in black, ${{ hero: 'three-quarter', front: 'front', right: 'from the right', profile: 'in profile', high: 'from above' }[name]} view`,
   })),
-  // All five in a shallow arc, each facing the middle: the live lineup's
+  // Both colours side by side, each facing the middle: the live lineup's
   // stand-in (lib/live-lineup.ts ARC and VIEW), so the two match.
   {
     out: 'public/media/render/lineup', widths: [2400, 1200], ground: 'studio', w: 2400, h: 1000,
     dir: [Math.sin(6 * Math.PI / 180) * Math.cos(15 * Math.PI / 180), Math.sin(15 * Math.PI / 180), Math.cos(6 * Math.PI / 180) * Math.cos(15 * Math.PI / 180)],
     fit: 'box', margin: 0.96,
-    units: ['graphite', 'bone', 'ember', 'signal', 'moss'].map((id, i) => {
-      const a = (i - 2) * 16.5 * Math.PI / 180
+    units: ['bone', 'graphite'].map((id, i) => {
+      const a = (i - 0.5) * 16.5 * Math.PI / 180
       return {
-        shell: SHELL[id], mood: ['pleased', 'awake', 'listening', 'pleased', 'awake'][i],
+        shell: SHELL[id], mood: ['awake', 'pleased'][i],
         x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
       }
     }),
-    alt: 'Five PebbleRobos standing in an arc, one in each shell colour, all looking the same way',
+    alt: 'Two PebbleRobos side by side, one white and one black',
   },
-  // The same five, closed up and staggered for a phone (lib/live-lineup.ts
+  // The same two, closer, for a phone (lib/live-lineup.ts
   // ARC_COMPACT, VIEW_COMPACT): the live lineup's stand-in below 640 px.
   {
     out: 'public/media/render/lineup-compact', widths: [1600], ground: 'studio', w: 1600, h: 900,
     dir: [0, Math.sin(14 * Math.PI / 180), Math.cos(14 * Math.PI / 180)], fit: 'box', margin: 0.99,
-    units: ['graphite', 'bone', 'ember', 'signal', 'moss'].map((id, i) => {
-      const a = (i - 2) * 10.5 * Math.PI / 180
+    units: ['bone', 'graphite'].map((id, i) => {
+      const a = (i - 0.5) * 12 * Math.PI / 180
       return {
-        shell: SHELL[id], mood: ['pleased', 'awake', 'listening', 'pleased', 'awake'][i],
-        x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)) + (i % 2 === 0 ? 30 : -30), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
+        shell: SHELL[id], mood: ['awake', 'pleased'][i],
+        x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
       }
     }),
-    alt: 'Five PebbleRobos standing close together, one in each shell colour',
+    alt: 'Two PebbleRobos standing close together, one white and one black',
   },
 ]
 
@@ -162,7 +162,7 @@ const LOOPS = [
     pose: (p) => {
       const talking = (p > 0.06 && p < 0.42) || (p > 0.56 && p < 0.92)
       return {
-        shell: SHELL.signal, screen: 'caller', clock: 4000 + p * 7000,
+        shell: SHELL.bone, screen: 'caller', clock: 4000 + p * 7000,
         talk: talking ? speech(p * 7) : 0,
         pan: 8 + 3 * Math.sin(Math.PI * 2 * p),
         tilt: up(8 + (p > 0.44 && p < 0.56 ? 6 * Math.sin(Math.PI * (p - 0.44) / 0.12) : 0)),
@@ -174,11 +174,11 @@ const LOOPS = [
     // music notes drifting up its screen. Four bars, then round again.
     out: 'public/media/render/loop-dance', w: 1200, h: 900, frames: 192,
     dir: [0.45, 0.12, 0.89], fill: 0.84,
-    frameAt: { shell: SHELL.ember, mood: 'happy', pan: 30, tilt: 14 },
+    frameAt: { shell: SHELL.graphite, mood: 'happy', pan: 30, tilt: 14 },
     pose: (p) => {
       const beat = p * 16
       return {
-        shell: SHELL.ember, mood: p > 0.5 && p < 0.56 ? 'surprised' : 'happy', clock: 600 + p * 200,
+        shell: SHELL.graphite, mood: p > 0.5 && p < 0.56 ? 'surprised' : 'happy', clock: 600 + p * 200,
         notes: beat,
         pan: 28 * Math.sin(Math.PI * 2 * p * 2),
         tilt: up(6 + 8 * Math.abs(Math.sin(Math.PI * beat))),
@@ -190,10 +190,10 @@ const LOOPS = [
     // the Lite — held long enough to see each part, then back together.
     out: 'public/media/render/loop-inside', w: 896, h: 1120, frames: 168, dir: [0.6, 0.26, 0.76], fill: 0.98,
     // Framed on the fully exploded pose, so nothing leaves the frame.
-    frameAt: { shell: SHELL.ember, mood: 'thinking', explode: 1, pan: -10 },
+    frameAt: { shell: SHELL.graphite, mood: 'thinking', explode: 1, pan: -10 },
     pose: (p) => {
       const e = between(p, 0.14, 0.38, 0, 1) - between(p, 0.72, 0.94, 0, 1)
-      return { shell: SHELL.ember, mood: e > 0.5 ? 'thinking' : 'awake', clock: p * 7000,
+      return { shell: SHELL.graphite, mood: e > 0.5 ? 'thinking' : 'awake', clock: p * 7000,
         explode: e, pan: -10 + 8 * Math.sin(Math.PI * 2 * p), tilt: 0 }
     },
   },
@@ -206,7 +206,7 @@ const LOOPS = [
       const turn = between(p, 0.12, 0.24, 0, 1) - between(p, 0.86, 0.98, 0, 1)
       const talking = p > 0.42 && p < 0.84
       return {
-        shell: SHELL.signal, clock: 1000 + p * 7000,
+        shell: SHELL.bone, clock: 1000 + p * 7000,
         mood: p < 0.12 || p > 0.9 ? 'awake' : talking ? 'awake' : 'listening',
         // From this camera, negative pan looks away and positive turns to you.
         pan: -24 * (1 - turn) + 14 * turn,
@@ -221,7 +221,7 @@ const LOOPS = [
     out: 'public/media/render/loop-performer', w: 1280, h: 800, frames: 120, ground: 'stage',
     dir: [-0.6, 0.16, 0.78], fill: 1.0,
     pose: (p) => ({
-      shell: SHELL.ember, mood: 'pleased', clock: 900 + p * 3200,
+      shell: SHELL.graphite, mood: 'pleased', clock: 900 + p * 3200,
       pan: -24 * Math.sin(Math.PI * 2 * p), tilt: up(4 + 5 * Math.sin(Math.PI * 2 * 4 * p)),
       speak: p < 0.8 ? speech(p * 5) : 0,
     }),
@@ -231,7 +231,7 @@ const LOOPS = [
     out: 'public/media/render/loop-puppet', w: 1280, h: 800, frames: 120, ground: 'stage',
     dir: [0.9, 0.1, 0.42], fill: 1.0,
     pose: (p) => ({
-      shell: SHELL.moss, mood: 'awake', clock: 2000 + p * 5000,
+      shell: SHELL.bone, mood: 'awake', clock: 2000 + p * 5000,
       pan: 36 + between(p, 0.1, 0.25, 0, -30) + between(p, 0.45, 0.6, 0, 52) + between(p, 0.8, 0.95, 0, -22),
       tilt: 2 + between(p, 0.1, 0.25, 0, 8) + between(p, 0.45, 0.6, 0, 10) - between(p, 0.8, 0.95, 0, 18),
       gaze: { x: 1 + between(p, 0.1, 0.25, 0, -1) + between(p, 0.45, 0.6, 0, 1) - between(p, 0.8, 0.95, 0, 1), y: 0 },
@@ -240,13 +240,13 @@ const LOOPS = [
   {
     out: 'public/media/render/loop-alive', w: 720, h: 900, frames: 120, dir: [0.42, 0.12, 0.9], fill: 0.86,
     // Breathing, a blink, and the smallest sway: alive while doing nothing.
-    pose: (p) => ({ shell: SHELL.ember, mood: 'awake', clock: 2600 + p * 5000,
+    pose: (p) => ({ shell: SHELL.graphite, mood: 'awake', clock: 2600 + p * 5000,
       pan: 6 + Math.sin(Math.PI * 2 * p) * 3, tilt: 3 + Math.sin(Math.PI * 4 * p) * 1.2 }),
   },
   {
     out: 'public/media/render/loop-look', w: 720, h: 900, frames: 144, dir: [0.2, 0.12, 1], fill: 0.86,
     // A glance one way, then the other; the eyes lead the head.
-    pose: (p) => ({ shell: SHELL.ember, mood: 'awake', clock: p * 6000,
+    pose: (p) => ({ shell: SHELL.graphite, mood: 'awake', clock: p * 6000,
       pan: Math.sin(Math.PI * 2 * p) * 38, tilt: 3 + Math.sin(Math.PI * 4 * p) * 3,
       gaze: { x: Math.sin(Math.PI * 2 * p + 0.5) * 1, y: 0 } }),
   },
@@ -254,7 +254,7 @@ const LOOPS = [
     out: 'public/media/render/loop-nod', w: 720, h: 900, frames: 120, dir: [0.5, 0.1, 0.86], fill: 0.86,
     // Two nods, a pause, and back. It rests looking a little up, so a nod
     // comes down to level, which is as far as the hinge goes.
-    pose: (p) => ({ shell: SHELL.ember, mood: 'pleased', clock: 900 + p * 3000,
+    pose: (p) => ({ shell: SHELL.graphite, mood: 'pleased', clock: 900 + p * 3000,
       pan: 8, tilt: 10 - (p < 0.7 ? 10 * up(Math.sin(Math.PI * 2 * (p / 0.35))) * (1 - ease(p / 0.7) * 0.2) : 0) }),
   },
   {
@@ -277,7 +277,7 @@ const LOOPS = [
       if (atHand > 0.5) mood = 'thinking'
       if (t >= SPEAKING[1][0] && t < CHAT_LOOP - 1.4) mood = 'pleased'
       return {
-        shell: SHELL.signal, mood, clock: 1000 + t * 1000,
+        shell: SHELL.bone, mood, clock: 1000 + t * 1000,
         // From this camera, negative pan looks away and positive turns to you.
         pan: -24 * (1 - turn) + 12 * turn - 14 * atHand,
         tilt: up(2 + 10 * turn - 9 * atHand + 4 * curious + (speaking >= 0 ? 2.5 * Math.sin(Math.PI * 3 * t) : 0)),

@@ -3,6 +3,7 @@ import { markPaid } from '@/lib/preorders'
 import { sendPaymentReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion } from '@/lib/x-conversions'
+import { sendPaymentConfirmed } from '@/lib/mixpanel-server'
 
 /**
  * The authoritative record of a payment.
@@ -105,6 +106,13 @@ export async function POST(request: Request) {
       city: result.city,
       pincode: result.pincode,
       paymentId: payment.id,
+    }))
+    // The sale, in Mixpanel, from where it is known to have happened. No
+    // personal data; see lib/mixpanel-server.ts.
+    afterResponse(sendPaymentConfirmed({
+      orderId: payment.order_id, paymentId: payment.id, email: result.email,
+      edition: result.edition, qty: result.qty, amountPaise: result.amountPaise,
+      balanceDuePaise: result.balanceDuePaise, source: 'webhook',
     }))
     // The sale, reported to X. Whichever of this and the browser callback
     // settles the order sends it, exactly once. Razorpay made this request,

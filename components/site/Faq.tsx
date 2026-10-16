@@ -3,7 +3,7 @@
 import { useId, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { EASE, Reveal } from '@/components/site/motion'
-import { FAQS, CONTACT } from '@/lib/kit'
+import { FAQS as DEFAULT_FAQS, CONTACT, type Faq as Item } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 
 /**
@@ -12,7 +12,10 @@ import { EV, track } from '@/lib/analytics'
  * own. The height animates; the text is in the DOM either way for search and
  * for find-in-page.
  */
-export default function Faq() {
+export default function Faq({ faqs: FAQS = DEFAULT_FAQS, title = 'Good to know.' }: {
+  faqs?: Item[]
+  title?: string
+} = {}) {
   const [open, setOpen] = useState<Set<number>>(() => new Set([0]))
   const base = useId()
 
@@ -30,7 +33,7 @@ export default function Faq() {
       <div className="wrap grid lg:grid-cols-12 gap-x-10 gap-y-12">
         <Reveal className="lg:col-span-4">
           <p className="t-label m-0 mb-6">Questions</p>
-          <h2 className="t-display t-h2 m-0">Good to know.</h2>
+          <h2 className="t-display t-h2 m-0">{title}</h2>
           <p className="text-[16px] text-[var(--muted)] mt-6 mb-0 max-w-[30ch]">
             Something we haven’t answered?{' '}
             <a href={`mailto:${CONTACT.email}`} className="link">{CONTACT.email}</a>

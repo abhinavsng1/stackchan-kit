@@ -1,404 +1,168 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { AnimatePresence, motion } from 'motion/react'
 import { useLiveScene } from '@/components/site/useLiveScene'
-import ShellPicker from '@/components/site/ShellPicker'
-import { EASE } from '@/components/site/motion'
-import { MODES, EXPRESSIONS, TOUCHES, CUSTOM_FACES, STATUS_LABEL, type Mode, type Step } from '@/lib/demo-modes'
-import { MOODS } from '@/lib/companion-face'
-import { shellById } from '@/lib/shells'
 import { useShell } from '@/lib/shell-store'
-import { rendered } from '@/lib/renders'
-import { EV, track } from '@/lib/analytics'
+import { shellById } from '@/lib/shells'
 import type { Demo } from '@/lib/live-demo'
 
-/**
- * "What it does": every capability, demonstrated by one live robot rather
- * than described in a grid of cards.
- *
- * Pick a mode and the robot does it — follows you, holds a conversation,
- * pulls a face, moves, reacts to touch, takes orders from a phone, or wears a
- * custom face. The words and scripts live in lib/demo-modes.ts; the robot's
- * movement in lib/live-demo.ts; this file only connects the two.
- *
- * Without WebGL, with reduced motion or Save-Data, the robot is its render
- * and every mode still says what it does: scripts are shown in full, so no
- * information lives only in an animation.
- */
-type Line = { who: 'you' | 'robot' | 'note'; text: string; key: string }
+type Mode = 'camera' | 'dance' | 'assistant'
+const TABS: [Mode, string][] = [['camera', 'Camera & movement'], ['dance', 'Dance'], ['assistant', 'AI assistant']]
+const ANSWERS = [
+  ['Help me plan my day', 'Let’s start with one thing that matters most. Give it your freshest hour, leave room for a break, then take the small tasks one at a time.'],
+  ['Tell me something interesting', 'An octopus has three hearts. Two pump blood to its gills, and one keeps it flowing to the rest of its body. A little reminder that nature is wonderfully inventive.'],
+  ['I need a little encouragement', 'One small step counts. Pick something you can finish in five minutes. I’ll keep you company while you get started.'],
+]
 
-export default function DemoStage({ initial = 'meet' }: { initial?: string }) {
-  const [modeId, setModeId] = useState(initial)
-  const mode = MODES.find((m) => m.id === modeId) ?? MODES[0]
+export default function DemoStage() {
+  const [mode, setMode] = useState<Mode>('camera')
+  const modeRef = useRef<Mode>(mode)
+  modeRef.current = mode
+  const cameraRequest = useRef(0)
+  const [cameraOn, setCameraOn] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [playing, setPlaying] = useState(false)
+  const [answer, setAnswer] = useState('Pick a conversation to hear PebbleRobo’s voice and see its expressions.')
+  const [point, setPoint] = useState({ x: 50, y: 65 })
   const host = useRef<HTMLDivElement>(null)
+  const video = useRef<HTMLVideoElement | null>(null)
+  const stream = useRef<MediaStream | null>(null)
   const api = useRef<Demo | null>(null)
-  const shellId = useShell()
-  const [lines, setLines] = useState<Line[]>([])
-  // Set when the visitor takes over (taps a face): the script stops and the
-  // robot does what they asked until they choose to play it again.
-  const [paused, setPaused] = useState(false)
-  const [reduce, setReduce] = useState(false)
-  // On a phone the stage is small: only the latest two lines, so the robot
-  // stays in view while it talks.
-  const [phone, setPhone] = useState(false)
-
-  useEffect(() => {
-    setReduce(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-    const mq = window.matchMedia('(max-width: 639px)')
-    const read = () => setPhone(mq.matches)
-    read()
-    mq.addEventListener('change', read)
-    return () => mq.removeEventListener('change', read)
-  }, [])
-
+  const audio = useRef<AudioContext | null>(null)
+  const beat = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mounted = useRef(true)
+  const shell = useShell()
   const live = useLiveScene(host, async (el) => {
     const { startDemo } = await import('@/lib/live-demo')
-    const demo = await startDemo(el, { shell: shellById(shellId) })
-    api.current = demo
-    return { dispose: () => { api.current = null; demo.dispose() } }
+    const d = await startDemo(el, { shell: shellById(shell) })
+    api.current = d; d.framing('centre'); d.look(0, 8); d.mood('happy')
+    return { dispose: () => { d.dispose(); api.current = null } }
   })
-
-  // The colour follows every other picker on the page.
-  useEffect(() => { api.current?.setShell(shellById(shellId)) }, [shellId, live])
-
-  // Another section can ask for a mode: "Try it" links dispatch this.
+  const stopCamera = () => {
+    cameraRequest.current++
+    stream.current?.getTracks().forEach(t => t.stop()); stream.current = null
+    api.current?.camera(null)
+    if (video.current) { video.current.pause(); video.current.srcObject = null; video.current = null }
+    setCameraOn(false)
+  }
+  const stopMusic = () => {
+    if (beat.current) clearInterval(beat.current)
+    beat.current = null; void audio.current?.close(); audio.current = null
+    api.current?.notes(false); api.current?.look(0, 8); setPlaying(false)
+  }
+  useEffect(() => { api.current?.setShell(shellById(shell)) }, [shell, live])
+  useEffect(() => { mounted.current = true; return () => {
+    mounted.current = false
+    stream.current?.getTracks().forEach(t => t.stop())
+    if (beat.current) clearInterval(beat.current)
+    void audio.current?.close(); window.speechSynthesis?.cancel()
+  } }, [])
   useEffect(() => {
-    const onAsk = (e: Event) => {
+    const requested = (e: Event) => {
       const id = (e as CustomEvent<string>).detail
-      if (MODES.some((m) => m.id === id)) { setModeId(id); setPaused(false) }
+      setMode(id === 'dance' ? 'dance' : id === 'call' ? 'camera' : 'assistant')
     }
-    window.addEventListener('pebble:demo', onAsk)
-    return () => window.removeEventListener('pebble:demo', onAsk)
+    window.addEventListener('pebble:demo', requested)
+    return () => window.removeEventListener('pebble:demo', requested)
   }, [])
-
-  /* --------------------------- running a script --------------------------- */
-
   useEffect(() => {
-    const d = api.current
-    d?.onTap(null)
-    d?.hush()
-    // Only Meet has a conversation to land under the robot; every other mode
-    // fills the stage with it. Notes on its screen only while it dances.
-    d?.framing(mode.id === 'meet' ? 'chat' : 'centre')
-    d?.notes(mode.id === 'dance')
-    setLines([])
-    if (!mode.script) {
-      // Modes without a script start from a friendly, level pose.
-      d?.look(0, 8)
-      d?.mood(mode.id === 'yours' ? 'heart' : mode.id === 'touch' ? 'awake' : 'happy')
-      return
-    }
-
-    // Reduced motion, or no robot yet: the whole exchange, still.
-    if (reduce || !live) {
-      setLines(scriptLines(mode.script, 'static'))
-      return
-    }
-    if (paused) return
-
-    let timers: ReturnType<typeof setTimeout>[] = []
-    let round = 0
-    const run = () => {
-      round++
-      setLines([])
-      for (const step of mode.script!) {
-        timers.push(setTimeout(() => apply(step, api.current, setLines, round), step.at * 1000))
-      }
-      if (mode.loop) timers.push(setTimeout(run, mode.loop * 1000))
-    }
-    run()
-    return () => { for (const t of timers) clearTimeout(t); timers = [] }
-  }, [mode, live, reduce, paused])
-
-  const choose = (m: Mode) => {
-    if (m.id === modeId) return
-    setPaused(false)
-    setModeId(m.id)
-    track(EV.demoModeChosen, { mode: m.id })
+    if (mode !== 'camera') stopCamera()
+    if (mode !== 'dance') stopMusic()
+    window.speechSynthesis?.cancel(); api.current?.hush(); api.current?.mood('happy')
+  // Media resources are owned by their mode, and never continue in a hidden tab.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
+  const startCamera = async () => {
+    const request = ++cameraRequest.current
+    setBusy(true); setMessage('')
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      if (!mounted.current || modeRef.current !== 'camera' || request !== cameraRequest.current) { s.getTracks().forEach(t => t.stop()); return }
+      stream.current = s
+      const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.srcObject = s
+      video.current = v; await v.play()
+      if (!mounted.current || modeRef.current !== 'camera' || request !== cameraRequest.current) { s.getTracks().forEach(t => t.stop()); v.pause(); v.srcObject = null; return }
+      api.current?.camera(v); setCameraOn(true)
+    } catch { stopCamera(); setMessage('Camera unavailable. Allow camera access in your browser, or keep exploring with the trackpad.') }
+    finally { if (mounted.current) setBusy(false) }
   }
-
-  return (
-    <div className="demo-fill">
-      {/* The modes: every one visible at once — a grid of short chips on a
-          phone, one row on a wide screen. Nothing hides off to the side. */}
-      <div role="tablist" aria-label="What it does"
-           className="grid grid-cols-5 gap-1.5 sm:flex sm:flex-wrap mb-3 sm:mb-5">
-        {MODES.map((m) => {
-          const on = m.id === modeId
-          return (
-            <button key={m.id} role="tab" type="button" aria-selected={on} aria-controls="demo-panel"
-                    id={`demo-tab-${m.id}`} onClick={() => choose(m)}
-                    className="demo-tab shrink-0 cursor-pointer" data-on={on}>
-              <span className="sm:hidden">{m.short}</span>
-              <span className="hidden sm:inline">{m.label}</span>
-            </button>
-          )
-        })}
+  const move = (x: number, y: number) => {
+    x = Math.min(100, Math.max(0, x)); y = Math.min(100, Math.max(0, y))
+    setPoint({ x, y }); api.current?.look((x - 50) * 1.1, (100 - y) * .3)
+  }
+  const startMusic = async () => {
+    if (playing) { stopMusic(); return }
+    if (audio.current) return
+    const ctx = new AudioContext(); audio.current = ctx
+    try { await ctx.resume() } catch { stopMusic(); return }
+    if (!mounted.current || modeRef.current !== 'dance') { stopMusic(); return }
+    let n = 0
+    const tick = () => {
+      const notes = [261.63, 329.63, 392, 523.25, 392, 329.63, 293.66, 349.23]
+      const osc = ctx.createOscillator(), gain = ctx.createGain()
+      osc.type = 'sine'; osc.frequency.value = notes[n % notes.length]
+      gain.gain.setValueAtTime(0, ctx.currentTime); gain.gain.linearRampToValueAtTime(.12, ctx.currentTime + .02)
+      gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .25)
+      osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + .28)
+      api.current?.look(Math.sin(n * 1.1) * 34, 8 + (n % 2) * 15); api.current?.nod(1); n++
+    }
+    api.current?.notes(true); api.current?.mood('happy'); tick()
+    beat.current = setInterval(tick, 300); setPlaying(true)
+  }
+  const speak = (text: string) => {
+    setAnswer(text); api.current?.mood('happy'); api.current?.nod(1)
+    if (!('speechSynthesis' in window)) return
+    window.speechSynthesis.cancel()
+    const voice = new SpeechSynthesisUtterance(text); voice.rate = .95
+    voice.onstart = () => api.current?.say(60)
+    voice.onend = voice.onerror = () => api.current?.hush()
+    window.speechSynthesis.speak(voice)
+  }
+  return <div className="demo-fill">
+    <div role="tablist" aria-label="Capability demonstrations" className="capability-tabs">
+      {TABS.map(([id, label]) => <button key={id} id={`demo-tab-${id}`} role="tab" aria-selected={mode === id} aria-controls="demo-panel" className="demo-tab" data-on={mode === id} onClick={() => setMode(id)}>{label}</button>)}
+    </div>
+    <div id="demo-panel" role="tabpanel" aria-labelledby={`demo-tab-${mode}`} className="capability-layout">
+      <div className="media capability-stage">
+        <Image src={`/media/shots/float-shell-${shell}.webp`} fill sizes="(max-width: 900px) 92vw, 800px" alt="Interactive PebbleRobo demonstration" className="object-contain p-10" style={{ opacity: live ? 0 : 1 }} />
+        <div ref={host} className="absolute inset-0" data-testid="demo-robot" />
+        <span className="tag absolute left-4 top-4">Interactive demo</span>
+        {cameraOn && <span className="tag absolute left-4 bottom-4">Your camera · local preview</span>}
+        {!live && <span className="tag absolute right-4 bottom-4">Static preview</span>}
       </div>
-
-      <div id="demo-panel" role="tabpanel" aria-labelledby={`demo-tab-${modeId}`}
-           className="demo-panel grid lg:grid-cols-12 gap-x-10 gap-y-3 sm:gap-y-6 items-stretch">
-        {/* The stage. Its height is held inside the window on a wide screen,
-            so the robot, the tabs and the words are all in view at once;
-            taller on a phone, so the conversation has room. */}
-        <div className="lg:col-span-8 min-w-0 demo-stage-col">
-          <div className="media demo-screen" style={{ background: 'var(--stage-2)' }}>
-            <Image src={rendered(`/media/shots/float-shell-${shellId}.webp`)} fill
-                   sizes="(max-width: 1024px) 92vw, 820px" alt={`PebbleRobo in ${shellById(shellId).name}`}
-                   className="object-contain p-[6%]"
-                   style={{ opacity: live ? 0 : 1, transition: 'opacity 600ms var(--ease)' }} />
-            <div ref={host} className="absolute inset-0" data-testid="demo-robot" />
-
-            <span className="absolute left-4 top-4 t-mono text-[11px] px-2 py-1 rounded"
-                  style={{ background: 'rgba(255,255,255,.08)', color: 'var(--stage-ink)' }}>
-              {STATUS_LABEL[mode.status]}
-            </span>
-            {!live && <span className="tag absolute right-4 top-4">Render</span>}
-
-
-            {/* Dancing: a small "now playing" pill, so the floor of the stage
-                says what is happening rather than sitting empty. */}
-            {mode.id === 'dance' && (
-              <div className="dance-pill" aria-hidden="true">
-                <span className="dance-bars"><i /><i /><i /><i /></span>
-                Dancing
-              </div>
-            )}
-
-            {/* The conversation, over the floor of the stage. */}
-            {lines.length > 0 && (
-              <div className="absolute inset-x-0 bottom-0 px-4 sm:px-6 pb-4 sm:pb-5 pt-16 pointer-events-none"
-                   style={{ background: 'linear-gradient(to top, var(--stage-2) 10%, transparent)' }}>
-                <ol className="list-none p-0 m-0 grid gap-2" aria-live="polite">
-                  <AnimatePresence initial={false} mode="popLayout">
-                    {/* Playing: the latest few lines. Still (no robot, or less motion):
-                        the opening exchange, so the conversation reads from its start. */}
-                    {(live && !reduce ? lines.slice(phone ? -2 : -4) : lines.filter((l) => l.who !== 'note').slice(0, 4)).map((l) => (
-                      <motion.li key={l.key} layout
-                                 initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                                 exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                                 transition={{ duration: 0.4, ease: EASE }}
-                                 className={l.who === 'you' ? 'justify-self-end' : 'justify-self-start'}>
-                        <Bubble line={l} />
-                      </motion.li>
-                    ))}
-                  </AnimatePresence>
-                </ol>
-              </div>
-            )}
+      <div className="capability-controls">
+        {mode === 'camera' && <>
+          <p className="t-label">A face on its screen. A room to explore.</p>
+          <h3 className="t-display t-h3">You’re in the picture.</h3>
+          <p>Turn its head with the trackpad. Switch on your camera to see your own video on the robot’s display.</p>
+          <button className="btn btn-brand" disabled={busy || !live} onClick={() => cameraOn ? stopCamera() : void startCamera()}>{busy ? 'Opening camera…' : cameraOn ? 'Turn camera off' : 'Try my camera'}</button>
+          <div className="head-trackpad" role="group" tabIndex={0} aria-label="Head movement trackpad. Use arrow keys or drag to turn the robot."
+            onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); const r = e.currentTarget.getBoundingClientRect(); move((e.clientX-r.left)/r.width*100, (e.clientY-r.top)/r.height*100) }}
+            onPointerMove={e => { if (!e.currentTarget.hasPointerCapture(e.pointerId)) return; const r=e.currentTarget.getBoundingClientRect(); move((e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100) }}
+            onKeyDown={e => { const delta: Record<string, [number,number]> = { ArrowLeft: [-5,0], ArrowRight: [5,0], ArrowUp: [0,-5], ArrowDown: [0,5] }; if (delta[e.key]) { e.preventDefault(); move(point.x+delta[e.key][0],point.y+delta[e.key][1]) } }}>
+            <span style={{ left: `${point.x}%`, top: `${point.y}%` }} /><small>Drag to look around ↔</small>
           </div>
-        </div>
-
-        {/* The words for this mode, and its controls. Swapped at once and
-            faded in — never held back waiting for the old ones to leave, so
-            the text can never be left showing the previous mode. */}
-        <motion.div key={mode.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, ease: EASE }}
-                    className="lg:col-span-4 flex flex-col gap-3 sm:gap-5 lg:justify-center">
-          <div>
-            <h3 className="t-display t-h3 m-0">{mode.title}</h3>
-            <p className="text-[15px] sm:text-[16px] leading-[1.5] sm:leading-[1.6] text-[var(--muted)] mt-2 sm:mt-3 mb-0 max-w-[44ch]">{mode.body}</p>
-            {/* On a phone the video-call note moves into the panel's own header. */}
-            {mode.fine && <p className={`t-mono text-[10.5px] sm:text-[11.5px] text-[var(--muted-2)] mt-2 sm:mt-3 mb-0 ${mode.id === 'call' ? 'hidden sm:block' : ''}`}>{mode.fine}</p>}
-          </div>
-          <Controls mode={mode} api={api} live={live}
-                    paused={paused} onTakeOver={() => { setPaused(true); setLines([]) }}
-                    onResume={() => setPaused(false)} />
-        </motion.div>
+          <p className="t-mono text-[11px]">Camera stays in this browser. Nothing is recorded or uploaded. This previews the companion app experience.</p>
+          {message && <p role="status">{message}</p>}
+        </>}
+        {mode === 'dance' && <>
+          <p className="t-label">A desk-sized dance floor</p><h3 className="t-display t-h3">Press play. Watch it groove.</h3>
+          <p>A little head tilt, a happy face, and a rhythm to move to. Try its pan-and-tilt dance with an original little tune.</p>
+          <button className="btn btn-brand" disabled={!live} onClick={() => void startMusic()}>{playing ? 'Stop music & dance' : 'Play music & dance'}</button>
+          <div className={`music-meter ${playing ? 'is-playing' : ''}`} aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{animationDelay:`${i*.11}s`}} />)}</div>
+          <p className="t-mono text-[11px]">Sound starts only when you press play.</p>
+        </>}
+        {mode === 'assistant' && <>
+          <p className="t-label">Conversation, with character</p><h3 className="t-display t-h3">More than a voice.</h3>
+          <p>Meet the expressive side of an AI assistant. Choose a sample conversation and watch its face come alive as it speaks.</p>
+          <div className="grid gap-2">{ANSWERS.map(([q,a])=><button className="demo-chip text-left" key={q} onClick={()=>speak(a)}>{q} ↗</button>)}</div>
+          <p className="assistant-answer" role="status">{answer}</p>
+          <button className="link text-left" onClick={()=>{window.speechSynthesis?.cancel();api.current?.hush()}}>Stop voice</button>
+          <p className="t-mono text-[11px]">Sample responses with your browser’s voice. The physical robot’s AI conversations use Wi-Fi and the companion app.</p>
+        </>}
       </div>
     </div>
-  )
-}
-
-/* ------------------------------------------------------------------------ */
-
-function apply(step: Step, d: Demo | null, setLines: React.Dispatch<React.SetStateAction<Line[]>>, round: number) {
-  const key = `${round}-${step.at}`
-  if ('you' in step) setLines((l) => [...l, { who: 'you', text: step.you, key: `${key}-y` }])
-  else if ('robot' in step) { setLines((l) => [...l, { who: 'robot', text: step.robot, key: `${key}-r` }]); d?.say(step.for) }
-  else if ('note' in step) setLines((l) => [...l, { who: 'note', text: step.note, key: `${key}-n` }])
-  else if ('mood' in step) d?.mood(step.mood)
-  else if ('look' in step) d?.look(step.look[0], step.look[1])
-  else if ('nod' in step) d?.nod(step.nod)
-  else if ('shake' in step) d?.shake()
-  else if ('follow' in step) d?.follow(true)
-  else if ('clear' in step) setLines([])
-}
-
-function scriptLines(script: Step[], prefix: string): Line[] {
-  return script.flatMap((s, i): Line[] =>
-    'you' in s ? [{ who: 'you' as const, text: s.you, key: `${prefix}${i}` }]
-      : 'robot' in s ? [{ who: 'robot' as const, text: s.robot, key: `${prefix}${i}` }]
-      : 'note' in s ? [{ who: 'note' as const, text: s.note, key: `${prefix}${i}` }] : [])
-}
-
-function Bubble({ line }: { line: Line }) {
-  if (line.who === 'note') {
-    return (
-      <span className="t-mono text-[12px] flex items-center gap-2 py-0.5" style={{ color: 'var(--stage-ink)' }}>
-        <span className="inline-block w-4 h-px" style={{ background: 'var(--accent)' }} aria-hidden="true" />
-        {line.text}
-      </span>
-    )
-  }
-  return (
-    <span className="inline-block px-3.5 py-2 text-[14.5px] sm:text-[15.5px] leading-snug max-w-[30ch]"
-          style={line.who === 'you'
-            ? { background: 'var(--stage-ink)', color: 'var(--stage)', borderRadius: '16px 16px 4px 16px' }
-            : { background: 'rgba(255,255,255,.1)', color: 'var(--stage-ink)', border: '1px solid var(--stage-line)', borderRadius: '16px 16px 16px 4px' }}>
-      <span className="sr-only">{line.who === 'you' ? 'You: ' : 'PebbleRobo: '}</span>
-      {line.text}
-    </span>
-  )
-}
-
-/* ------------------------------ the controls ------------------------------ */
-
-function Controls({ mode, api, live, paused, onTakeOver, onResume }: {
-  mode: Mode; api: React.RefObject<Demo | null>; live: boolean
-  paused: boolean; onTakeOver: () => void; onResume: () => void
-}) {
-  if (mode.id === 'meet') return <FacePicker api={api} paused={paused} onTakeOver={onTakeOver} onResume={onResume} />
-  if (mode.id === 'touch') return <TouchPad api={api} live={live} />
-  if (mode.id === 'call') return <PhonePanel api={api} />
-  if (mode.id === 'yours') return <Customise api={api} />
-  return null
-}
-
-function Chip({ on, onClick, children }: { on?: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} aria-pressed={on}
-            className="demo-chip cursor-pointer" data-on={Boolean(on)}>
-      {children}
-    </button>
-  )
-}
-
-/** The faces, to try one at a time. A tap takes over from the script. */
-function FacePicker({ api, paused, onTakeOver, onResume }: {
-  api: React.RefObject<Demo | null>; paused: boolean; onTakeOver: () => void; onResume: () => void
-}) {
-  const [face, setFace] = useState<string | null>(null)
-  const show = (id: string) => {
-    const e = EXPRESSIONS.find((x) => x.id === id)!
-    onTakeOver()
-    setFace(id)
-    const d = api.current
-    d?.hush(); d?.mood(id); d?.look(e.look[0], e.look[1])
-    if (e.gesture === 'nod') d?.nod(2)
-    if (e.gesture === 'shake') d?.shake()
-  }
-  return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Try a face">
-        {EXPRESSIONS.map((e) => (
-          <Chip key={e.id} on={paused && face === e.id} onClick={() => show(e.id)}>{e.label}</Chip>
-        ))}
-      </div>
-      {paused && (
-        <button type="button" onClick={() => { setFace(null); onResume() }}
-                className="link text-[14px] self-start bg-transparent border-0 p-0 cursor-pointer w-fit">
-          Play it again
-        </button>
-      )}
-    </div>
-  )
-}
-
-function TouchPad({ api, live }: { api: React.RefObject<Demo | null>; live: boolean }) {
-  const [last, setLast] = useState<string | null>(null)
-  const touch = useCallback((id: string) => {
-    const t = TOUCHES.find((x) => x.id === id)!
-    setLast(id)
-    const d = api.current
-    d?.mood(t.mood); d?.look(t.look[0], t.look[1])
-    if (t.gesture === 'nod') d?.nod(2)
-    if (t.gesture === 'shake') d?.shake()
-  }, [api])
-  // Tapping the robot itself is tapping its screen.
-  useEffect(() => {
-    if (!live) return
-    api.current?.onTap(() => touch('screen'))
-    return () => api.current?.onTap(null)
-  }, [api, live, touch])
-  return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Touch">
-      {TOUCHES.map((t) => <Chip key={t.id} on={last === t.id} onClick={() => touch(t.id)}>{t.label}</Chip>)}
-    </div>
-  )
-}
-
-/** A stand-in for the companion app: a joystick for the head and a row of faces. */
-function PhonePanel({ api }: { api: React.RefObject<Demo | null> }) {
-  const pad = useRef<HTMLDivElement>(null)
-  const [knob, setKnob] = useState({ x: 0, y: 0 })
-  const [face, setFace] = useState('happy')
-  const drag = useRef(false)
-
-  const steer = (clientX: number, clientY: number) => {
-    const r = pad.current!.getBoundingClientRect()
-    let x = ((clientX - r.left) / r.width) * 2 - 1
-    let y = ((clientY - r.top) / r.height) * 2 - 1
-    const m = Math.hypot(x, y)
-    if (m > 1) { x /= m; y /= m }
-    setKnob({ x, y })
-    // Up on the pad is up for the head; the hinge does not go below level.
-    api.current?.look(x * 55, Math.max(0, -y) * 30)
-  }
-  const keys = (e: React.KeyboardEvent) => {
-    const d = { ArrowLeft: [-0.25, 0], ArrowRight: [0.25, 0], ArrowUp: [0, -0.25], ArrowDown: [0, 0.25] }[e.key]
-    if (!d) return
-    e.preventDefault()
-    const x = Math.max(-1, Math.min(1, knob.x + d[0])), y = Math.max(-1, Math.min(1, knob.y + d[1]))
-    setKnob({ x, y })
-    api.current?.look(x * 55, Math.max(0, -y) * 30)
-  }
-
-  return (
-    <div className="phone-panel" aria-label="Companion app, simulated">
-      <div className="flex items-center justify-between mb-3">
-        <span className="t-mono text-[11px]" style={{ color: 'var(--stage-muted)' }}>
-          Video call · PebbleRobo<span className="sm:hidden"> · simulated</span>
-        </span>
-        <span className="live-dot" aria-hidden="true" />
-      </div>
-      <p className="t-mono text-[10.5px] m-0 mb-2" style={{ color: 'var(--stage-muted)' }}>Drag to look around</p>
-      <div ref={pad} className="joy" tabIndex={0} role="slider" aria-label="Turn its head"
-           aria-valuetext={`pan ${Math.round(knob.x * 55)} degrees, tilt ${Math.round(Math.max(0, -knob.y) * 30)} degrees`}
-           onKeyDown={keys}
-           onPointerDown={(e) => { drag.current = true; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); steer(e.clientX, e.clientY) }}
-           onPointerMove={(e) => { if (drag.current) steer(e.clientX, e.clientY) }}
-           onPointerUp={() => { drag.current = false }}
-           onPointerCancel={() => { drag.current = false }}>
-        <span className="joy-knob" style={{ transform: `translate(${knob.x * 34}px, ${knob.y * 34}px)` }} />
-      </div>
-      <div className="flex gap-1.5 mt-3" role="group" aria-label="Its face">
-        {['happy', 'surprised', 'sleepy'].map((id) => (
-          <button key={id} type="button" aria-pressed={face === id}
-                  onClick={() => { setFace(id); api.current?.mood(id) }}
-                  className="demo-chip demo-chip-sm cursor-pointer" data-on={face === id}>
-            {MOODS.find((m) => m.id === id)?.name}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function Customise({ api }: { api: React.RefObject<Demo | null> }) {
-  const [face, setFace] = useState<string>('heart')
-  return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Custom faces">
-        {CUSTOM_FACES.map((id) => (
-          <Chip key={id} on={face === id} onClick={() => { setFace(id); api.current?.mood(id); api.current?.nod(1) }}>
-            {MOODS.find((m) => m.id === id)?.name}
-          </Chip>
-        ))}
-      </div>
-      <ShellPicker location="demo" size={20} label={false} />
-    </div>
-  )
+  </div>
 }

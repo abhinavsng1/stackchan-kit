@@ -1,11 +1,8 @@
 'use client'
 
-import { smoothScrollTo } from '@/lib/smooth-scroll'
-
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import HeroRobot from '@/components/site/HeroRobot'
-import FaceIcon from '@/components/site/FaceIcon'
 import { SplitHeadline, EASE } from '@/components/site/motion'
 import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
@@ -27,21 +24,6 @@ export default function Hero() {
   const robotY = useTransform(scrollYProgress, [0, 1], ['0%', '14%'])
   const textY = useTransform(scrollYProgress, [0, 1], ['0%', '-10%'])
   const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0])
-
-  // Five things it does, each a small robot that opens that demo below.
-  // [face, label, short label for a phone, demo mode]
-  const facts: [string, string, string, string][] = [
-    ['listening', 'Talks with you', 'Talks', 'meet'],
-    ['happy', 'Dances', 'Dances', 'dance'],
-    ['surprised', 'Video calls', 'Video calls', 'call'],
-    ['sad', 'Shows how it feels', 'Feelings', 'meet'],
-    ['curious', 'Feels your touch', 'Touch', 'touch'],
-  ]
-  const tryIt = (mode: string) => {
-    window.dispatchEvent(new CustomEvent('pebble:demo', { detail: mode }))
-    track(EV.demoModeChosen, { mode, location: 'hero' })
-    smoothScrollTo('does')
-  }
 
   return (
     // Exactly one screen tall on a wide display: the robot row sits on the
@@ -90,7 +72,7 @@ export default function Hero() {
           <motion.div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center sm:gap-3 mt-7 lg:mt-9"
                       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.8, delay: 0.9, ease: EASE }}>
-            <a href="#buy" className="btn btn-brand hero-cta"
+            <a href="#reserve" className="btn btn-brand hero-cta"
                onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>
               Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
             </a>
@@ -104,31 +86,6 @@ export default function Hero() {
         </motion.div>
       </div>
 
-      {/* Small robots along the bottom of the first screen: what it does, at a glance. */}
-      <motion.div className="wrap mt-8 lg:mt-auto pb-6"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8, delay: 1.15 }}>
-        {/* All five visible at once: a face over a word on a phone, a face
-            beside a label on a wide screen. Nothing to swipe to find. */}
-        <ul className="hero-row list-none p-0 m-0 border-t" style={{ borderColor: 'var(--line)' }}>
-          {facts.map(([mood, label, short, mode], i) => (
-            <li key={label} className={i > 0 ? 'lg:border-l' : ''} style={{ borderColor: 'var(--line)' }}>
-              <button type="button" onClick={() => tryIt(mode)}
-                      className="hero-try group w-full flex items-center gap-3 text-left bg-transparent border-0 cursor-pointer">
-                <FaceIcon mood={mood} size={44} />
-                <span className="min-w-0">
-                  <span className="block text-[12.5px] sm:text-[15px] font-medium tracking-[-0.01em] leading-tight">
-                    <span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span>
-                  </span>
-                  <span className="hidden sm:block t-mono text-[11.5px] text-[var(--muted)] mt-1 transition-colors">
-                    See it <span aria-hidden="true">↓</span>
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </motion.div>
     </section>
   )
 }

@@ -22,7 +22,7 @@ const INCLUDED_ROBOT: [string, string][] = [
   ['Support', `Real people at ${CONTACT.email}`],
 ]
 
-function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
+export function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
   return (
     <table className="spec-grid">
       <thead><tr><th scope="col">Specification</th><th scope="col">Detail</th></tr></thead>

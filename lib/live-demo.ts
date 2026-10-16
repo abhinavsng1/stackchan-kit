@@ -25,6 +25,7 @@ const VIEW = { az: 24, el: 9 }
 const IDLE_AFTER_MS = 4000
 
 export type Demo = {
+  camera: (video: HTMLVideoElement | null) => void
   setShell: (way: Colourway) => void
   /** follow the pointer (and wander when it is idle), or hold a set pose. */
   follow: (on: boolean) => void
@@ -125,6 +126,7 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
   }
   canvas.addEventListener('pointerdown', onDown)
 
+  let cameraVideo: HTMLVideoElement | null = null
   let notes = false
 
   stage.loop((dt, now) => {
@@ -168,6 +170,13 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
     drawCompanion(robot.ctx, mood, now, speak, gaze)
     // Dancing: music notes drift up its screen, four to the second.
     if (notes) drawNotes(robot.ctx, now / 250)
+    if (cameraVideo && cameraVideo.readyState >= 2) {
+      const ctx = robot.ctx, w = ctx.canvas.width, h = ctx.canvas.height
+      const v = cameraVideo, scale = Math.max(w / v.videoWidth, h / v.videoHeight)
+      ctx.save(); ctx.translate(w, 0); ctx.scale(-1, 1)
+      ctx.drawImage(v, (w - v.videoWidth * scale) / 2, (h - v.videoHeight * scale) / 2, v.videoWidth * scale, v.videoHeight * scale)
+      ctx.restore()
+    }
     robot.update()
   })
 
@@ -175,6 +184,7 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
   window.addEventListener('resize', onResize)
 
   return {
+    camera: (video) => { cameraVideo = video },
     setShell: robot.setShell,
     follow: (on) => { following = on },
     look: (p, t = 6) => {

@@ -16,15 +16,21 @@ import { useEdition } from '@/lib/edition-store'
  * The links are written for a buyer, not an org chart: what it is, what it
  * does, who has one, and the questions.
  */
-export default function SiteNav({ stories }: { stories: boolean }) {
+export default function SiteNav({ stories = false, links: own, home = '#top' }: {
+  stories?: boolean
+  /** In-page links for pages other than the home page. */
+  links?: [string, string][]
+  /** Where the wordmark goes. */
+  home?: string
+}) {
   const [compact, setCompact] = useState(false)
   const [open, setOpen] = useState(false)
   const edition = useEdition()
 
-  const links: [string, string][] = [
+  const links: [string, string][] = own ?? [
     ['What it does', '#does'],
     ['Colours', '#explore'],
-    ['Where it fits', '#everyday'],
+    ['Watch it', '#films'],
     ...(stories ? [['Stories', '#stories'] as [string, string]] : []),
     ['FAQ', '#faq'],
   ]
@@ -56,7 +62,7 @@ export default function SiteNav({ stories }: { stories: boolean }) {
     <>
       <header className="nav" data-compact={compact}>
         <div className="nav-bar">
-          <a href="#top" className="shrink-0 no-underline text-[var(--ink)]" aria-label="PebbleRobo, home">
+          <a href={home} className="shrink-0 no-underline text-[var(--ink)]" aria-label="PebbleRobo, home">
             <Wordmark size={compact ? 20 : 24} />
           </a>
 
@@ -67,7 +73,7 @@ export default function SiteNav({ stories }: { stories: boolean }) {
           </nav>
 
           <div className="ml-auto lg:ml-0 flex items-center gap-2">
-            <a href="#buy" onClick={buy('nav')} className="btn btn-brand btn-sm hidden sm:inline-flex">
+            <a href="#reserve" onClick={buy('nav')} className="btn btn-brand btn-sm hidden sm:inline-flex">
               Book for {PRICE.deposit}
             </a>
             <button
@@ -127,7 +133,7 @@ export default function SiteNav({ stories }: { stories: boolean }) {
             <motion.div className="mt-auto grid gap-3"
                         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.45, duration: 0.5, ease: EASE }}>
-              <a href="#buy" onClick={buy('menu')} className="btn btn-brand btn-lg w-full">
+              <a href="#reserve" onClick={buy('menu')} className="btn btn-brand btn-lg w-full">
                 Book PebbleRobo for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
               </a>
               <p className="t-mono text-[12px] text-center text-[var(--muted)] m-0">

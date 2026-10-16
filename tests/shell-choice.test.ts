@@ -31,13 +31,15 @@ describe('the order schema', () => {
   })
 
   it('keeps the colour the buyer actually chose', () => {
-    const r = preorderSchema.safeParse({ ...valid, shell: 'ember' })
-    expect(r.success && r.data.shell).toBe('ember')
+    const r = preorderSchema.safeParse({ ...valid, shell: 'bone' })
+    expect(r.success && r.data.shell).toBe('bone')
   })
 
   it('refuses a colour that is not made', () => {
     // A colour nobody prints is an order nobody can pack.
     expect(preorderSchema.safeParse({ ...valid, shell: 'chartreuse' }).success).toBe(false)
+    // The colours that were dropped, black and white being all that is printed.
+    for (const gone of ['ember', 'signal', 'moss']) expect(preorderSchema.safeParse({ ...valid, shell: gone }).success).toBe(false)
   })
 
   it('never blocks an order over the colour', () => {

@@ -12,22 +12,23 @@ installed (Playwright drives it), because only Chrome ships an H.264 encoder.
 ## One robot, everywhere
 
 `lib/robot-body.ts` is the robot: the printed parts from
-`public/models/stackchan-body.glb`, the CoreS3 Lite with its curved cover
-glass, both SCS0009 servos, the horns, the bus adapter and its 5.5 x 2.1 mm DC
+`public/models/stackchan-body.glb` (black or white, lib/shells.ts), the CoreS3
+Lite in its own grey housing with its curved cover glass, both SCS0009 servos, the horns, the bus adapter and its 5.5 x 2.1 mm DC
 socket, the shell's clear-coated finish and the studio it is lit in (feathered
 softboxes, a key light with a real shadow, a cool rim). The live hero
 (`lib/live-robot.ts`) and every render (`stage-site.html`) build it from that
 one file, so they cannot drift apart.
 
-`lib/companion-face.ts` draws the face: pixel eyes, warm cheeks, the moods,
-the blink and the talking mouth.
+`lib/companion-face.ts` draws the face the way the firmware shows it: white
+strokes on the panel's deep blue, the moods, the blink and the talking mouth.
 
 ## What each script does
 
-`build-body.mjs` splits `assets-src/stl/assembled_v3.stl` into its seven
-parts, keeps each where the CAD assembled it, groups them by servo
-(`Base`, `Neck_Pan`, `Head_Tilt` at the hinge, 51.7 mm up) and writes a
-Draco-compressed GLB with positions only. Normals are rebuilt at load with a
+`build-body.mjs` splits `assets-src/stl/assembled_v4.stl` (the v4 body:
+head, neck, pivot pin, base, bottom cover) into its five parts, keeps each
+where the CAD assembled it, groups them by servo (`Base`, `Neck_Pan`,
+`Head_Tilt` at the hinge, 51.7 mm up) and writes a Draco-compressed GLB with
+positions only, through the WASM encoder. Normals are rebuilt at load with a
 crease angle.
 
 `build-site.mjs` compiles the face, the body and the colourways from `lib/`,

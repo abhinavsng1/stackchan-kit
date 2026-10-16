@@ -8,6 +8,7 @@ import { pricing, type Variant } from '@/lib/variants'
 import { SHELLS } from '@/lib/shells'
 import { useShell, setShell } from '@/lib/shell-store'
 import Swatch from '@/components/site/Swatch'
+import EditionPicker from '@/components/EditionPicker'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 import { useEdition } from '@/lib/edition-store'
 import { storedTwclid, xEvent } from '@/lib/x-pixel'
@@ -29,7 +30,14 @@ type State =
 
 const EMPTY: Record<string, string> = {}
 
-export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
+export default function ReserveForm({ variant, chooseEdition = false }: {
+  variant?: Variant
+  /**
+   * Offer the robot or the kit inside the form. Off on the home page, which
+   * sells the robot; on at /kit, where both are on sale side by side.
+   */
+  chooseEdition?: boolean
+} = {}) {
   /**
    * What this buyer actually owes on delivery.
    *
@@ -338,18 +346,28 @@ export default function ReserveForm({ variant }: { variant?: Variant } = {}) {
 
   const busy = state.kind === 'submitting' || state.kind === 'paying'
 
-  const onFirstTouch = () => {
+  /**
+   * Started means typing, or about to: focus landing on a text field, the
+   * address box or the quantity. The colour swatches are buttons inside the
+   * form, and counting a tap on one as starting the form made the step look
+   * far busier than it was.
+   */
+  const onFirstTouch = (e: React.FocusEvent<HTMLFormElement>) => {
     if (started.current) return
+    if (!isEntryField(e.target)) return
     started.current = true
     track(EV.reserveFormStarted)
   }
 
   return (
     <form onSubmit={onSubmit} onFocusCapture={onFirstTouch} noValidate className="max-w-[600px]">
-      {/* One thing to buy: the robot, ready to use. The field is still sent,
-          because the order records it and an order without one is stored as
-          the kit (see README). */}
-      <input type="hidden" name="edition" value={DEFAULT_EDITION} />
+      {/* On the home page, one thing to buy: the robot, ready to use. The
+          field is still sent, because the order records it and an order
+          without one is stored as the kit (see README). At /kit the buyer
+          picks, and the picker's checked radio is what posts. */}
+      {chooseEdition
+        ? <div className="mb-6"><EditionPicker name="edition" location="form" disabled={busy} /></div>
+        : <input type="hidden" name="edition" value={DEFAULT_EDITION} />}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field name="name" label="Name" autoComplete="name" error={errors.name} disabled={busy} />
@@ -508,6 +526,16 @@ function Field({
       {error && <Err id={`${name}-err`}>{error}</Err>}
     </div>
   )
+}
+
+/** A field someone fills in, as opposed to a button or a radio inside the form. */
+const NOT_TYPED = new Set(['button', 'submit', 'reset', 'radio', 'checkbox', 'hidden', 'image', 'file', 'range', 'color'])
+function isEntryField(el: EventTarget | null): boolean {
+  if (!el || typeof (el as Element).tagName !== 'string') return false
+  const tag = (el as Element).tagName.toLowerCase()
+  if (tag === 'textarea' || tag === 'select') return true
+  if (tag !== 'input') return false
+  return !NOT_TYPED.has(((el as HTMLInputElement).type || 'text').toLowerCase())
 }
 
 /** A random id for one order, for matching the two reports of it at X. */

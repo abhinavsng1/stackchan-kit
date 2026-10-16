@@ -8,15 +8,14 @@ import { test, expect } from '@playwright/test'
  */
 
 test('every mode can be chosen, and says what it does without the 3D robot', async ({ page }) => {
-  // Eight modes in one test: under a full parallel run this can pass 30 s
-  // without anything being wrong.
+  // Capability controls remain available as text when WebGL is unavailable.
   test.setTimeout(60_000)
   await page.goto('/')
   const panel = page.locator('#demo-panel')
   for (const [tab, heading] of [
-    ['Meet', 'It talks, listens and feels.'], ['Touch', 'It notices your touch.'],
-    ['Dance', 'It dances.'], ['Video call', 'Video call it from anywhere.'],
-    ['Make it yours', 'Make it look like yours.'],
+    ['Camera & movement', 'You’re in the picture.'],
+    ['Dance', 'Press play. Watch it groove.'],
+    ['AI assistant', 'More than a voice.'],
   ] as const) {
     await page.getByRole('tab', { name: new RegExp(`^${tab}`) }).click()
     await expect(page.getByRole('tab', { name: new RegExp(`^${tab}`) })).toHaveAttribute('aria-selected', 'true')
@@ -24,14 +23,25 @@ test('every mode can be chosen, and says what it does without the 3D robot', asy
   }
 })
 
-test('a scripted conversation is shown in full, and labelled as an illustration', async ({ page }) => {
-  await page.goto('/')
-  // The conversation is part of Meet, which is where the demo opens.
+test('assistant samples are interactive and explicitly labelled', async ({ page }) => {
+  await page.goto('/#does')
+  await page.getByRole('tab', { name: 'AI assistant', exact: true }).click()
   const panel = page.locator('#demo-panel')
-  await expect(panel.getByText('I can’t decide what to cook tonight.')).toBeVisible()
-  await expect(panel.getByText(/That’s a frittata/)).toBeVisible()
-  await expect(panel.getByText(/not a recording or a live AI/)).toBeVisible()
-  await expect(panel.getByText('Faces built in · talking over Wi-Fi')).toBeVisible()
+  await expect(panel.getByText(/Sample responses with your browser/)).toBeVisible()
+  await panel.getByRole('button', { name: 'Help me plan my day', exact: false }).click()
+  await expect(panel.getByRole('status')).toContainText('Give it your freshest hour')
+  await panel.getByRole('button', { name: 'Stop voice', exact: true }).click()
+})
+
+test('gallery has four selectable videos and old duplicate sections are absent', async ({ page }) => {
+  await page.goto('/#films')
+  const gallery = page.getByLabel('PebbleRobo video gallery', { exact: true })
+  for (let n = 1; n <= 4; n++) {
+    await gallery.getByRole('button', { name: `Show video ${n}`, exact: true }).click()
+    await expect(gallery.getByRole('group', { name: `Video ${n} of 4`, exact: true })).toBeVisible()
+  }
+  await expect(page.locator('#everyday')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'No renders here.' })).toHaveCount(0)
 })
 
 test('nothing on the page claims what does not ship, or talks to developers', async ({ page }) => {
@@ -46,19 +56,19 @@ test('nothing on the page claims what does not ship, or talks to developers', as
 test('a colour picked anywhere is the colour the order form sends', async ({ page }) => {
   await page.goto('/')
   const form = page.locator('#reserve form input[name="shell"]')
-  await expect(form).toHaveValue('ember')
+  await expect(form).toHaveValue('graphite')
 
   // Picked in the hero…
-  await page.locator('#hero').getByRole('radio', { name: 'Moss' }).click()
-  await expect(form).toHaveValue('moss')
+  await page.locator('#hero').getByRole('radio', { name: 'White' }).click()
+  await expect(form).toHaveValue('bone')
   // …it shows as chosen in the explorer and the buy box too.
-  await expect(page.locator('#explore').getByRole('radio', { name: 'Moss' })).toHaveAttribute('aria-checked', 'true')
-  await expect(page.locator('#buybox').getByRole('radio', { name: 'Moss' })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('#explore').getByRole('radio', { name: 'White' })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('#buybox').getByRole('radio', { name: 'White' })).toHaveAttribute('aria-checked', 'true')
 
   // Changed in the buy box with the keyboard, the form follows.
-  await page.locator('#buybox').getByRole('radio', { name: 'Moss' }).focus()
+  await page.locator('#buybox').getByRole('radio', { name: 'White' }).focus()
   await page.keyboard.press('ArrowLeft')
-  await expect(form).toHaveValue('signal')
+  await expect(form).toHaveValue('graphite')
 })
 
 test('no em dashes anywhere a visitor can read', async ({ page }) => {

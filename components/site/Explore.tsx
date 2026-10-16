@@ -33,8 +33,7 @@ export default function Explore() {
               <p className="t-label m-0 mb-6">Explore it</p>
               <h2 className="t-display t-h2 m-0">Turn it round.<br />Pick its colour.</h2>
               <p className="t-lead mt-6 mb-0 max-w-[38ch]">
-                Five colours, each one chosen to look good on a desk. Same robot,
-                same price.
+                Two colours: black and white. Same robot, same price.
               </p>
             </Reveal>
 
@@ -49,7 +48,7 @@ export default function Explore() {
           </div>
         </div>
 
-        {/* All five at once, every one of them watching you. */}
+        {/* Both at once, each of them watching you. */}
         <Reveal className="mt-20 md:mt-28" y={40}>
           <LiveLineup />
         </Reveal>

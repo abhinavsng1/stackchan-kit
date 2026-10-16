@@ -4,8 +4,8 @@ import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
 import { aimAt, frameBox, gazeFor, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
 
 /**
- * All five colourways standing in a shallow arc, every one of them turning
- * its head to the cursor.
+ * Both colourways standing side by side, each of them turning its head to
+ * the cursor.
  *
  * Each robot aims from where it stands, so they do not turn as one: the ones
  * at the ends turn further than the one in the middle, and their servos are
@@ -24,7 +24,7 @@ import { aimAt, frameBox, gazeFor, makeStage, Servo, wanderer, watchPointer } fr
  * the same way collide, staggered 60 mm they clear at any angle.
  */
 export const ARC = { radius: 300, step: 16.5, stagger: 0 }
-export const ARC_COMPACT = { radius: 300, step: 10.5, stagger: 30 }
+export const ARC_COMPACT = { radius: 300, step: 12, stagger: 0 }
 /** Below this width, in CSS pixels, the row goes compact. */
 export const COMPACT_BELOW = 640
 
@@ -42,7 +42,7 @@ const VIEW = { az: 6, el: 15 }
 const VIEW_COMPACT = { az: 0, el: 14 }
 
 export async function startLineup(host: HTMLElement, {
-  shells, moods = ['pleased', 'awake', 'listening', 'pleased', 'awake'],
+  shells, moods = ['awake', 'pleased'],
 }: { shells: Colourway[]; moods?: string[] }): Promise<{ dispose: () => void }> {
   const parts = await loadBody()
   const stage = makeStage(host, { shadow: 0.22, budget: 1_500_000 })

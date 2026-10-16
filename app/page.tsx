@@ -6,7 +6,6 @@ import Hero from '@/components/site/Hero'
 import Meet from '@/components/site/Meet'
 import Showcase from '@/components/site/Showcase'
 import Demo from '@/components/site/Demo'
-import Everyday from '@/components/site/Everyday'
 import Explore from '@/components/site/Explore'
 import Stories from '@/components/site/Stories'
 import Buy from '@/components/site/Buy'
@@ -21,22 +20,7 @@ import { visibleProof } from '@/lib/proof'
  */
 const SHOW_STORIES = false
 
-/**
- * One page, told as a story, one question per section:
- *
- *   what is it?                     →  hero: AI, with a face
- *   why does it feel different?     →  why it feels alive
- *   show me                         →  a video call and a dance
- *   what does it actually do?       →  the live demo, on the robot
- *   where does it fit in my day?    →  a day with it
- *   what does it look like?         →  explore: spin it, pick a colour
- *   who already has one?            →  stories (real content only, in production)
- *   how do I get one?               →  buy, order — price and terms said once
- *   what else?                      →  questions
- *
- * Specs and part numbers never lead. They are in the buy section, folded,
- * for the people who want them.
- */
+/** Product story, four films, interactive capabilities, colours and ordering. */
 export default function Page() {
   const proof = visibleProof()
 
@@ -50,7 +34,6 @@ export default function Page() {
         <Meet />
         <Showcase />
         <Demo />
-        <Everyday />
         <Explore />
         {SHOW_STORIES && <Stories proof={proof} />}
         <Buy />

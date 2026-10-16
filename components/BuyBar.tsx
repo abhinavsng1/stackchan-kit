@@ -14,7 +14,7 @@ import { useEdition } from '@/lib/edition-store'
  * a section below the hero — exactly what the nav links do — produced no
  * callback at all and the bar never appeared.
  */
-export default function BuyBar() {
+export default function BuyBar({ location = 'buybar' }: { location?: string } = {}) {
   const [show, setShow] = useState(false)
   const edition = useEdition()
 
@@ -24,10 +24,10 @@ export default function BuyBar() {
     const measure = () => {
       frame = 0
       const hero = document.getElementById('hero')
-      const buy = document.getElementById('buy')
+      const buy = document.getElementById('buy') ?? document.getElementById('editions')
       const demo = document.getElementById('does')
       const reserve = document.getElementById('reserve')
-      if (!hero || !buy || !reserve) return
+      if (!hero || !reserve) return
 
       const heroGone = hero.getBoundingClientRect().bottom < 0
       const over = (el: HTMLElement) => {
@@ -43,7 +43,7 @@ export default function BuyBar() {
         const r = el.getBoundingClientRect()
         return r.top < window.innerHeight / 2 && r.bottom > window.innerHeight / 2
       }
-      setShow(heroGone && !over(buy) && !over(reserve) && !(demo && centred(demo)))
+      setShow(heroGone && !(buy && over(buy)) && !over(reserve) && !(demo && centred(demo)))
     }
 
     const onScroll = () => {
@@ -78,13 +78,13 @@ export default function BuyBar() {
     <div className="buybar" data-show={show} aria-hidden={!show}>
       <div className="flex items-center gap-3">
         <div className="min-w-0">
-          <div className="text-[15px] font-medium leading-tight">Book PebbleRobo for {PRICE.deposit}</div>
+          <div className="text-[15px] font-medium leading-tight">Book {edition === 'kit' ? 'the kit' : 'PebbleRobo'} for {PRICE.deposit}</div>
           <div className="t-mono text-[11.5px] text-[var(--muted)] mt-0.5 truncate">
             {PRICE.now} to buy · rest on delivery · free shipping
           </div>
         </div>
-        <a href="#buy" className="btn btn-brand ml-auto shrink-0"
-           onClick={() => track(EV.reserveCtaClicked, { location: 'buybar', edition })}
+        <a href="#reserve" className="btn btn-brand ml-auto shrink-0"
+           onClick={() => track(EV.reserveCtaClicked, { location, edition })}
            tabIndex={show ? undefined : -1}>
           Book <span className="arrow" aria-hidden="true">→</span>
         </a>

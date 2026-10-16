@@ -12,18 +12,21 @@ import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
  * that disagree read as two different products, so neither has its own copy.
  *
  * The printed parts come from public/models/stackchan-body.glb, which is the
- * assembled v3 preview split by servo (tools/assets/build-body.mjs). Everything
- * bought is modelled here, in the places the CAD leaves for it:
+ * assembled v4 preview split by servo (tools/assets/build-body.mjs): head,
+ * neck, pivot pin, base and bottom cover. Everything bought is modelled here,
+ * in the places the CAD leaves for it:
  *
- *   - the CoreS3 Lite on the head's front frame, its housing finished like the
- *     shell, with a curved cover glass over a true-black panel
+ *   - the CoreS3 Lite on the head's front frame, in its own grey housing (it is
+ *     a bought module, so it is the same grey on a black robot and a white
+ *     one), with a curved cover glass over the panel, which shows the face in
+ *     white on the display's deep blue
  *   - the pan SCS0009 standing in the neck, shaft down into the base's horn
  *   - the tilt SCS0009 across the top of the neck, driving the horn plate
  *   - the bus-servo adapter in the base, its 5.5 x 2.1 mm DC socket in the
  *     base's back window, marked 5V 3A
  *
  * Finish: the shell is a satin plastic under a clear coat; the neck is satin;
- * the glass is black and glossy and picks up the studio's softboxes along its
+ * the Lite's housing is a satin grey; the glass is black and glossy and picks up the studio's softboxes along its
  * curved edges. The studio is a dark room with feathered softboxes, a key
  * light that casts a real shadow, and a rim from behind.
  *
@@ -101,7 +104,7 @@ async function fetchBody(url: string, dracoPath: string): Promise<Template> {
       geo.computeBoundingSphere()
       parts[mesh.name] = geo
     })
-    for (const name of ['head', 'neck', 'neck_cover', 'horn_plate', 'pivot_plate', 'base', 'bottom_cover']) {
+    for (const name of ['head', 'neck', 'pivot_pin', 'base', 'bottom_cover']) {
       if (!parts[name]) throw new Error(`stackchan-body.glb is missing ${name}`)
     }
     return parts
@@ -124,7 +127,11 @@ function makeShared() {
     jack: new THREE.MeshPhysicalMaterial({ color: '#0b0b0c', roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.2 }),
     hole: new THREE.MeshBasicMaterial({ color: '#000000' }),
     port: new THREE.MeshStandardMaterial({ color: '#060607', roughness: 0.65 }),
-    grove: new THREE.MeshStandardMaterial({ color: '#d8d4cc', roughness: 0.55 }),
+    // Port A on the CoreS3 is the red Grove socket.
+    grove: new THREE.MeshStandardMaterial({ color: '#c4432c', roughness: 0.5 }),
+    // The CoreS3 Lite's housing and the bezel round its glass.
+    lite: new THREE.MeshPhysicalMaterial({ color: '#a8abb0', roughness: 0.42, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.25 }),
+    liteButton: new THREE.MeshPhysicalMaterial({ color: '#8d9095', roughness: 0.4, clearcoat: 0.3 }),
     blue: new THREE.MeshStandardMaterial({ color: '#2a63c9', roughness: 0.45 }),
     wires: ['#16161a', '#c8322d', '#e9e6df'].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 })),
   }
@@ -264,11 +271,11 @@ function buildServo(id: string) {
   return g
 }
 
-/** A 20T cross horn, arms set as an x. Local frame: hub along +Y. */
-function buildHorn() {
+/** A 20T cross horn, arms set as an x (or a + for the tilt horn). Local frame: hub along +Y. */
+function buildHorn(cross: 'x' | '+' = 'x') {
   const m = shared!
   const g = new THREE.Group(), arms = new THREE.Group()
-  arms.rotation.y = Math.PI / 4; g.add(arms)
+  arms.rotation.y = cross === 'x' ? Math.PI / 4 : 0; g.add(arms)
   const hub = new THREE.Mesh(new THREE.CylinderGeometry(3, 3.2, 3.4, 24), m.white); hub.position.y = 1.7; g.add(hub)
   for (const r of [0, Math.PI / 2]) {
     const a = new THREE.Mesh(new RoundedBoxGeometry(20, 1.6, 4.2, 2, 0.7), m.white)
@@ -303,10 +310,18 @@ export function buildRobot(parts: Template, way: Colourway): Robot {
   printed('base', baseG, mats.base).receiveShadow = false
   printed('bottom_cover', baseG, mats.base).receiveShadow = false
   printed('neck', pan, mats.neck)
-  printed('neck_cover', pan, mats.neck)
+  // The pin is pressed into the neck; the head pivots on it.
+  printed('pivot_pin', pan, mats.neck)
   printed('head', tilt, mats.head)
-  printed('horn_plate', tilt, mats.neck)
-  printed('pivot_plate', tilt, mats.neck)
+  // The inside of the head is in its own shadow: the vents and the open back
+  // show dark, not the room behind the robot.
+  {
+    const hb = new THREE.Box3().setFromBufferAttribute(parts.head.getAttribute('position') as THREE.BufferAttribute)
+    const s = hb.getSize(new THREE.Vector3()).subScalar(4.8), c = hb.getCenter(new THREE.Vector3())
+    const inside = new THREE.Mesh(new THREE.BoxGeometry(s.x, s.y, s.z), m.port)
+    inside.position.copy(c); inside.name = 'head_inside'
+    tilt.add(inside)
+  }
 
   /* ---- the face: drawn by the caller into ctx, laid into the glass ---- */
   const faceCanvas = document.createElement('canvas')
@@ -318,12 +333,17 @@ export function buildRobot(parts: Template, way: Colourway): Robot {
   gctx.imageSmoothingEnabled = false
   const faceTex = new THREE.CanvasTexture(glassCanvas)
   faceTex.colorSpace = THREE.SRGBColorSpace
-  faceTex.magFilter = THREE.NearestFilter
   faceTex.anisotropy = 8
+  gctx.imageSmoothingEnabled = true
   const update = () => {
     gctx.fillStyle = '#000'
     gctx.fillRect(0, 0, GLASS.px, GLASS.px)
     gctx.drawImage(faceCanvas, GLASS.ax, GLASS.ay)
+    // The round touch button printed in the glass's black border, below the panel.
+    gctx.strokeStyle = 'rgba(150,154,162,0.55)'; gctx.lineWidth = 3
+    gctx.beginPath(); gctx.arc(GLASS.px / 2, GLASS.ay + FACE.h + (GLASS.px - GLASS.ay - FACE.h) / 2 + 2, 11, 0, Math.PI * 2); gctx.stroke()
+    gctx.fillStyle = 'rgba(150,154,162,0.5)'
+    gctx.fillRect(GLASS.px / 2 - 1.5, GLASS.ay + FACE.h + (GLASS.px - GLASS.ay - FACE.h) / 2 - 6, 3, 8)
     faceTex.needsUpdate = true
   }
 
@@ -340,7 +360,7 @@ export function buildRobot(parts: Template, way: Colourway): Robot {
       { depth: LITE_D - 2 * b, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 7, curveSegments: 16 })
     hg.translate(0, 0, b)
     hg = toCreasedNormals(hg, THREE.MathUtils.degToRad(50))
-    const housing = new THREE.Mesh(hg, mats.head); housing.castShadow = housing.receiveShadow = true
+    const housing = new THREE.Mesh(hg, m.lite); housing.castShadow = housing.receiveShadow = true
     lite.add(housing)
 
     const GW = GLASS.mm, GR = 3.4
@@ -357,7 +377,7 @@ export function buildRobot(parts: Template, way: Colourway): Robot {
     put(new THREE.BoxGeometry(0.12, 6.4, 0.7), m.metal, side - 0.1, -10, 8)
     put(new RoundedBoxGeometry(0.6, 8.2, 5, 2, 0.4), m.grove, side + 0.15, 9, 8)
     put(new THREE.BoxGeometry(0.2, 6.6, 3), m.port, side - 0.2, 9, 8)
-    put(new RoundedBoxGeometry(0.9, 4, 2, 2, 0.45), mats.neck, side + 0.1, 21, 8)
+    put(new RoundedBoxGeometry(0.9, 4, 2, 2, 0.45), m.liteButton, side + 0.1, 21, 8)
     // Speaker grille (+X).
     const holes = new THREE.InstancedMesh(new THREE.CircleGeometry(0.42, 14), m.port, 30)
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)), one = new THREE.Vector3(1, 1, 1)
@@ -371,14 +391,16 @@ export function buildRobot(parts: Template, way: Colourway): Robot {
   /* ---- servos and horns ---- */
   // Pan: shaft down (-Y) on the pan axis, body running back (-Z), top face 21.8 mm up.
   const panServo = buildServo('ID 1 · PAN')
-  panServo.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, -1, 0), new THREE.Vector3(-1, 0, 0)).setPosition(0, 21.8, 0))
+  panServo.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, -1, 0), new THREE.Vector3(-1, 0, 0)).setPosition(0, 24.1, 0))
   pan.add(panServo)
   // Tilt: shaft toward the speaker side (+X) on the hinge, body running back.
+  // v4 moves it 3 mm toward that side, so the head's fork can be small.
   const tiltServo = buildServo('ID 2 · TILT')
-  tiltServo.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, -1, 0)).setPosition(12.6, TILT_Y, 0))
+  tiltServo.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, -1, 0)).setPosition(15.6, TILT_Y, 0))
   pan.add(tiltServo)
   const panHorn = buildHorn(); panHorn.position.y = 16.8; baseG.add(panHorn)
-  const tiltHorn = buildHorn(); tiltHorn.rotation.z = -Math.PI / 2; tiltHorn.position.set(16, 0, 0); tilt.add(tiltHorn)
+  // The tilt horn sits in the head's fork as a +, one arm forward.
+  const tiltHorn = buildHorn('+'); tiltHorn.rotation.z = -Math.PI / 2; tiltHorn.position.set(19, 0, 0); tilt.add(tiltHorn)
 
   /* ---- bus adapter and the DC socket ---- */
   {

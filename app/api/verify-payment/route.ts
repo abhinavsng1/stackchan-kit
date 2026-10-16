@@ -4,6 +4,7 @@ import { markPaid } from '@/lib/preorders'
 import { sendPaymentReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion, requestIdentity } from '@/lib/x-conversions'
+import { sendPaymentConfirmed } from '@/lib/mixpanel-server'
 
 const MAX_BODY_BYTES = 1024
 
@@ -116,6 +117,15 @@ export async function POST(request: Request) {
       paymentId: result.data.razorpay_payment_id,
     })
     try { waitUntil(receipt) } catch { void receipt.catch(() => {}) }
+
+    // The sale, in Mixpanel, from the server. No personal data; see
+    // lib/mixpanel-server.ts. Fire-and-forget: it never holds up the reply.
+    const confirmed = sendPaymentConfirmed({
+      orderId: result.data.razorpay_order_id, paymentId: result.data.razorpay_payment_id,
+      email: settled.email, edition: settled.edition, qty: settled.qty,
+      amountPaise: settled.amountPaise, balanceDuePaise: settled.balanceDuePaise, source: 'verify',
+    })
+    try { waitUntil(confirmed) } catch { void confirmed.catch(() => {}) }
 
     // The sale, reported to X from where it is known to have happened. The
     // payment id is the conversion_id the browser sends too, so X counts it

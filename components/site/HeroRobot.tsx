@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { AnimatePresence, motion } from 'motion/react'
-import { SHELLS, type Shell } from '@/lib/shells'
+import { LEAD_SHELL, SHELLS, type Shell } from '@/lib/shells'
 import ShellPicker from '@/components/site/ShellPicker'
 import { useShell } from '@/lib/shell-store'
 import { rendered } from '@/lib/renders'
@@ -94,7 +94,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
               src={rendered(`/media/shots/float-shell-${s.id}.webp`)}
               alt={i === shell ? `PebbleRobo in ${s.name}` : ''}
               aria-hidden={i !== shell}
-              width={1400} height={1400} preload={s.id === 'ember'} loading={s.id === 'ember' ? 'eager' : 'lazy'}
+              width={1400} height={1400} preload={s.id === LEAD_SHELL} loading={s.id === LEAD_SHELL ? 'eager' : 'lazy'}
               sizes="(max-width: 1024px) 92vw, 640px"
               className="absolute inset-0 w-full h-full object-contain"
               style={{

@@ -13,15 +13,14 @@ export default function Demo() {
       <div className="wrap demo-fill">
         <div className="grid lg:grid-cols-12 gap-x-10 gap-y-4 mb-4 sm:mb-7 items-end">
           <Reveal className="lg:col-span-7">
-            <p className="t-label m-0 mb-3 sm:mb-4">What it does</p>
+            <p className="t-label m-0 mb-3 sm:mb-4">Try PebbleRobo</p>
             <h2 className="t-display m-0" style={{ fontSize: 'clamp(30px, 4.2vw, 60px)' }}>
-              Don’t read about it. <span className="accent">Watch it.</span>
+              A little hands-on time.
             </h2>
           </Reveal>
           <Reveal className="hidden sm:block lg:col-span-4 lg:col-start-9" delay={0.1}>
             <p className="text-[16.5px] leading-[1.55] text-[var(--muted)] m-0">
-              Pick one and the robot does it, with the same face and the same moves
-              as the one you’ll unbox.
+              Turn its head, put yourself on its screen, or start a dance. Explore its capabilities in an interactive browser demo.
             </p>
           </Reveal>
         </div>

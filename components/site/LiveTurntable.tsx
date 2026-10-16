@@ -32,7 +32,6 @@ export default function LiveTurntable() {
              alt={`PebbleRobo in ${shellById(shellId).name}`} className="object-contain p-[8%]"
              style={{ opacity: live ? 0 : 1, transition: 'opacity 600ms var(--ease)' }} />
       <div ref={host} className="absolute inset-0" data-testid="live-turntable" />
-      {!live && <span className="tag absolute right-3 bottom-3 pointer-events-none">Render</span>}
     </div>
   )
 }

@@ -87,6 +87,25 @@ function metaValue(standard: string, props?: Props): Props {
   }
 }
 
+/* ------------------------------- internal ------------------------------- */
+
+/**
+ * Our own visits, marked so reports can leave them out. Visit any page with
+ * ?internal=1 once and this browser stays marked; ?internal=0 clears it.
+ */
+const INTERNAL_KEY = 'pebble:internal'
+
+export function isInternal(): boolean {
+  try {
+    const flag = new URLSearchParams(window.location.search).get('internal')
+    if (flag === '1') localStorage.setItem(INTERNAL_KEY, '1')
+    else if (flag === '0') localStorage.removeItem(INTERNAL_KEY)
+    return localStorage.getItem(INTERNAL_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 /* -------------------------------- loading ------------------------------- */
 
 export function analyticsConfigured(): boolean {
@@ -135,6 +154,9 @@ export async function initAnalytics(): Promise<void> {
       landing_path: window.location.pathname,
       referrer_host: document.referrer ? new URL(document.referrer).host : 'direct',
     })
+    // Super properties persist, so clearing the flag has to clear this too.
+    if (isInternal()) instance.register({ internal: true })
+    else instance.unregister('internal')
 
     mp = instance
     for (const [name, props] of queue.splice(0)) instance.track(name, props)
