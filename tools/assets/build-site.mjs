@@ -37,7 +37,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 // renders read the same definitions as the site.
 await run(join(ROOT, 'node_modules/.bin/tsc'), ['lib/companion-face.ts', 'lib/robot-body.ts', 'lib/shells.ts', 'lib/talk-script.ts', 'lib/screen-scenes.ts', '--ignoreConfig',
   '--target', 'es2020', '--module', 'es2020', '--moduleResolution', 'bundler', '--outDir', 'tools/assets/.gen', '--skipLibCheck'], { cwd: ROOT })
-const { SHELLS } = await import('./.gen/shells.js')
+const { SHELLS, LINEUP } = await import('./.gen/shells.js')
 const SHELL = Object.fromEntries(SHELLS.map((s) => [s.id, s]))
 const { SCRIPT, SPEAKING, CHAT_LOOP } = await import('./.gen/talk-script.js')
 
@@ -107,34 +107,34 @@ const SHOTS = [
     dir, fill: 0.9, units: [{ shell: SHELL.graphite, mood, pan, tilt }],
     alt: `PebbleRobo in black, ${{ hero: 'three-quarter', front: 'front', right: 'from the right', profile: 'in profile', high: 'from above' }[name]} view`,
   })),
-  // Both colours side by side, each facing the middle: the live lineup's
+  // Five in a shallow arc, black and white in turn, each facing the middle: the live lineup's
   // stand-in (lib/live-lineup.ts ARC and VIEW), so the two match.
   {
     out: 'public/media/render/lineup', widths: [2400, 1200], ground: 'studio', w: 2400, h: 1000,
     dir: [Math.sin(6 * Math.PI / 180) * Math.cos(15 * Math.PI / 180), Math.sin(15 * Math.PI / 180), Math.cos(6 * Math.PI / 180) * Math.cos(15 * Math.PI / 180)],
     fit: 'box', margin: 0.96,
-    units: ['bone', 'graphite'].map((id, i) => {
-      const a = (i - 0.5) * 16.5 * Math.PI / 180
+    units: LINEUP.map((id, i) => {
+      const a = (i - 2) * 16.5 * Math.PI / 180
       return {
-        shell: SHELL[id], mood: ['awake', 'pleased'][i],
+        shell: SHELL[id], mood: ['pleased', 'awake', 'listening', 'pleased', 'awake'][i],
         x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
       }
     }),
-    alt: 'Two PebbleRobos side by side, one white and one black',
+    alt: 'Five PebbleRobos standing in an arc, black and white in turn',
   },
-  // The same two, closer, for a phone (lib/live-lineup.ts
+  // The same five, closed up and staggered for a phone (lib/live-lineup.ts
   // ARC_COMPACT, VIEW_COMPACT): the live lineup's stand-in below 640 px.
   {
     out: 'public/media/render/lineup-compact', widths: [1600], ground: 'studio', w: 1600, h: 900,
     dir: [0, Math.sin(14 * Math.PI / 180), Math.cos(14 * Math.PI / 180)], fit: 'box', margin: 0.99,
-    units: ['bone', 'graphite'].map((id, i) => {
-      const a = (i - 0.5) * 12 * Math.PI / 180
+    units: LINEUP.map((id, i) => {
+      const a = (i - 2) * 10.5 * Math.PI / 180
       return {
-        shell: SHELL[id], mood: ['awake', 'pleased'][i],
-        x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
+        shell: SHELL[id], mood: ['pleased', 'awake', 'listening', 'pleased', 'awake'][i],
+        x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)) + (i % 2 === 0 ? 30 : -30), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
       }
     }),
-    alt: 'Two PebbleRobos standing close together, one white and one black',
+    alt: 'Five PebbleRobos standing close together, black and white in turn',
   },
 ]
 

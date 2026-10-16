@@ -29,3 +29,5 @@ export const DEFAULT_SHELL = 'graphite';
  */
 export const LEAD_SHELL = 'graphite';
 export const shellById = (id) => SHELLS.find((s) => s.id === id) ?? SHELLS[0];
+/** The live lineup and its renders: five robots, black and white in turn. */
+export const LINEUP = ['graphite', 'bone', 'graphite', 'bone', 'graphite'];

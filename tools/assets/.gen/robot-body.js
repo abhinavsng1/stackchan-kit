@@ -310,16 +310,6 @@ export function buildRobot(parts, way) {
     // The pin is pressed into the neck; the head pivots on it.
     printed('pivot_pin', pan, mats.neck);
     printed('head', tilt, mats.head);
-    // The inside of the head is in its own shadow: the vents and the open back
-    // show dark, not the room behind the robot.
-    {
-        const hb = new THREE.Box3().setFromBufferAttribute(parts.head.getAttribute('position'));
-        const s = hb.getSize(new THREE.Vector3()).subScalar(4.8), c = hb.getCenter(new THREE.Vector3());
-        const inside = new THREE.Mesh(new THREE.BoxGeometry(s.x, s.y, s.z), m.port);
-        inside.position.copy(c);
-        inside.name = 'head_inside';
-        tilt.add(inside);
-    }
     /* ---- the face: drawn by the caller into ctx, laid into the glass ---- */
     const faceCanvas = document.createElement('canvas');
     faceCanvas.width = FACE.w;
