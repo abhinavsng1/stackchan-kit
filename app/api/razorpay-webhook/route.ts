@@ -3,7 +3,7 @@ import { markPaid, markBalancePaid, createSettledBooking } from '@/lib/preorders
 import { sendPaymentReceiptEmail, sendBalanceReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion } from '@/lib/x-conversions'
-import { sendPaymentConfirmed } from '@/lib/mixpanel-server'
+import { sendPaymentConfirmed, sendBuyerProfile } from '@/lib/mixpanel-server'
 import { readMagicCustomer, readMagicPayment, type MagicOrder } from '@/lib/magic'
 
 /**
@@ -162,14 +162,39 @@ export async function POST(request: Request) {
     })
 
     if (written.status === 'paid') {
+      const qty = Number(payment.notes.kits ?? 1) || 1
       afterResponse(sendPaymentReceiptEmail({
-        name: customer.name, email: customer.email, qty: 1,
+        name: customer.name, email: customer.email, qty,
         edition: 'assembled', amountPaise: outcome.paidPaise,
         balanceDuePaise: outcome.balanceDuePaise,
         phone: customer.phone, address: customer.address,
         city: customer.city, pincode: customer.pincode,
         paymentId: payment.id,
       }))
+
+      // The sale, reported the way every other sale is. A one-tap buyer never
+      // touches our form, so the browser cannot identify them and this is the
+      // only place their profile can be written at all — without it the sale
+      // lands in Mixpanel as an event belonging to nobody.
+      afterResponse(sendPaymentConfirmed({
+        orderId: payment.order_id, paymentId: payment.id, email: customer.email,
+        edition: 'assembled', qty, amountPaise: outcome.paidPaise,
+        balanceDuePaise: outcome.balanceDuePaise, source: 'webhook',
+      }))
+      afterResponse(sendBuyerProfile({
+        email: customer.email, name: customer.name, phone: customer.phone,
+        city: customer.city, pincode: customer.pincode, qty,
+        edition: 'assembled', balanceDuePaise: outcome.balanceDuePaise,
+      }))
+
+      // Nothing at all for a buyer whose browser asked not to be tracked.
+      if (payment.notes.ad_opt_out !== '1') {
+        afterResponse(sendXConversion({
+          event: 'purchase',
+          conversionId: payment.id,
+          identity: { email: customer.email, phone: customer.phone, twclid: null },
+        }))
+      }
     }
 
     return Response.json({ status: written.status }, { status: 200 })

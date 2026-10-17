@@ -189,3 +189,31 @@ describe('with the flag on', () => {
     expect((await call(shipping, {})).status).toBe(200)
   })
 })
+
+describe('what a one-tap sale reports', () => {
+  it('builds a profile under the same id the browser would have used', async () => {
+    const { buildBuyerProfile, buyerDistinctId } = await import('@/lib/mixpanel-server')
+    const built = buildBuyerProfile('tok', {
+      email: 'Asha@Example.com', name: 'Asha Rao', phone: '+919876543210',
+      city: 'Bengaluru', pincode: '560078', qty: 1, edition: 'assembled',
+    })
+    expect(built.$distinct_id).toBe(buyerDistinctId('asha@example.com'))
+    expect(built.$set).toMatchObject({
+      $email: 'Asha@Example.com', $name: 'Asha Rao', $phone: '+919876543210',
+      $city: 'Bengaluru', Pincode: '560078', 'Bought With': 'one-tap',
+    })
+  })
+
+  it('records an unpaid balance in rupees, where a person reads it', async () => {
+    const { buildBuyerProfile } = await import('@/lib/mixpanel-server')
+    const built = buildBuyerProfile('tok', { email: 'a@b.com', balanceDuePaise: 450_000 })
+    expect(built.$set['Balance Due']).toBe(4500)
+  })
+
+  it('leaves out what it was never told, rather than writing blanks', async () => {
+    const { buildBuyerProfile } = await import('@/lib/mixpanel-server')
+    const built = buildBuyerProfile('tok', { email: 'a@b.com' })
+    expect(built.$set).not.toHaveProperty('$name')
+    expect(built.$set).not.toHaveProperty('$phone')
+  })
+})

@@ -74,6 +74,10 @@ export async function POST(request: Request) {
       // Read by the webhook: a Magic order has no booking row to find, so it
       // has to be told to create one rather than look one up.
       payment_type: 'magic',
+      // The buyer's browser said "do not track" on this very request. The
+      // webhook never sees their browser, so the signal has to travel with
+      // the order or it is lost between here and the sale.
+      ...(request.headers.get('sec-gpc') === '1' ? { ad_opt_out: '1' } : {}),
       ...(couponCode ? { coupon: couponCode } : {}),
       ...(discountPaise ? { discount_paise: String(discountPaise) } : {}),
     },

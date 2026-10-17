@@ -95,3 +95,82 @@ export async function sendPaymentConfirmed(input: PaymentConfirmed): Promise<Mix
     return { ok: false, reason: 'unreachable' }
   }
 }
+
+/* --------------------------- the buyer's profile ------------------------- */
+
+const ENGAGE = 'https://api.mixpanel.com/engage'
+
+export type BuyerProfileInput = {
+  email: string
+  name?: string | null
+  phone?: string | null
+  city?: string | null
+  pincode?: string | null
+  qty?: number
+  edition?: Edition
+  /** What is still owed at the door, so an unpaid balance sits on the profile. */
+  balanceDuePaise?: number
+  at?: Date
+}
+
+/**
+ * Writes a buyer's profile from the server.
+ *
+ * The browser does this for anybody who fills in the order form, because it
+ * knows who they are. One-tap checkout does not: Razorpay collects the name,
+ * phone and address inside its own window, and our page never sees them. So
+ * for those buyers this is the only moment a profile can be written at all,
+ * and without it a one-tap sale shows up in Mixpanel as an event belonging to
+ * nobody.
+ *
+ * Same distinct_id as the browser uses — SHA-256 of the lowercased email — so
+ * a buyer who browsed anonymously first, then bought in one tap, is one
+ * person rather than two.
+ */
+export function buildBuyerProfile(token: string, input: BuyerProfileInput) {
+  const now = (input.at ?? new Date()).toISOString()
+  const set: Record<string, string | number> = {
+    $email: input.email,
+    'Last Order At': now,
+    'Bought With': 'one-tap',
+  }
+  if (input.name) set.$name = input.name
+  if (input.phone) set.$phone = input.phone
+  if (input.city) set.$city = input.city
+  if (input.pincode) set.Pincode = input.pincode
+  if (input.qty) set['Kits Ordered'] = input.qty
+  if (input.edition) set.Edition = input.edition
+  if (input.balanceDuePaise !== undefined) set['Balance Due'] = input.balanceDuePaise / 100
+
+  return {
+    $token: token,
+    $distinct_id: buyerDistinctId(input.email),
+    // Mixpanel creates the profile on first write; this is also what makes
+    // the person appear in the Users view at all.
+    $set: set,
+  }
+}
+
+export async function sendBuyerProfile(input: BuyerProfileInput): Promise<MixpanelResult> {
+  const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN
+  if (!token) return { ok: false, reason: 'no_token' }
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
+    return { ok: false, reason: 'not_production' }
+  }
+  try {
+    const res = await fetch(ENGAGE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'text/plain' },
+      body: JSON.stringify([buildBuyerProfile(token, input)]),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) {
+      console.error('[mixpanel] profile refused', { status: res.status })
+      return { ok: false, reason: 'refused' }
+    }
+    return { ok: true }
+  } catch {
+    console.error('[mixpanel] profile unreachable')
+    return { ok: false, reason: 'unreachable' }
+  }
+}
