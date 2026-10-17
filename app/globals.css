@@ -787,19 +787,22 @@ p { text-wrap: pretty; }
 @media (min-width: 640px) { .demo-section { padding-block: clamp(72px, 9vh, 104px) clamp(40px, 6vh, 72px); } }
 @media (max-width: 639px) {
   .demo-tab { font-size: 13.5px; padding: 9px 4px; text-align: center; justify-content: center; }
-  /* Exactly one screen: everything above and below the stage keeps its
-     natural height, and the stage takes what is left — so a mode with more
-     controls simply gets a slightly smaller robot, never a scroll. */
-  .demo-section { height: 100svh; min-height: 0; }
-  .demo-fill { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-  .demo-panel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-  .demo-stage-col { flex: 1 1 auto; min-height: 150px; display: flex; }
-  .demo-screen { aspect-ratio: auto; height: auto; flex: 1 1 auto; }
-  .phone-panel { width: 100%; display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: center; padding: 10px; border-radius: 18px; }
-  .phone-panel > :first-child, .phone-panel > p { grid-column: 1 / -1; margin: 0; }
-  .phone-panel .joy { height: 72px; margin: 0; }
-  .phone-panel > p { display: none; }
-  .phone-panel > div:last-child { margin: 0; flex-wrap: wrap; }
+  /*
+   * The section grows to its content on a phone.
+   *
+   * It used to be pinned to `height: 100svh`, with a flex chain that let the
+   * stage shrink so everything still fitted one screen. That chain referred to
+   * .demo-stage-col, .demo-screen and .phone-panel — classes the rebuilt demo
+   * no longer renders — so all that survived was the fixed height and the
+   * clipping: on a phone the AI assistant's controls were cut off 269px below
+   * the fold, mid-sentence, with no way to scroll to them.
+   *
+   * One screen was a nice idea and it is not worth a cropped paragraph.
+   */
+  .demo-section { height: auto; min-height: 0; }
+  .demo-fill { display: flex; flex-direction: column; }
+  .capability-stage { height: clamp(260px, 42svh, 360px); }
+  .capability-controls { padding-bottom: 8px; }
 }
 
 /* "A day with it" on a phone: a list, not a sideways rail — face on the left,
