@@ -5,10 +5,10 @@
 
    Studio white and one signal colour. The ground is a cool, neutral studio
    grey, the way a product is shot against a sweep; type is near-black; and
-   there is exactly one accent, blue, used consistently throughout the site.
+   there is exactly one accent, ember orange, used consistently throughout.
 
    Rules, so the page stays designed rather than assembled:
-   - Blue is for the one thing on a screen that matters: the primary action,
+   - Orange is for the one thing on a screen that matters: the primary action,
      or the single word in a headline that carries the idea. Never a fill
      behind body text, never a gradient.
    - Separation comes from space and a hairline, not from boxes. A card is
@@ -26,10 +26,10 @@
   --paper:     #ffffff;
   --mist:      #e9e9e6;
   --graphite:  #111111;
-  --ember:     #294fc4;
-  /* A deeper blue keeps small accent text legible on light surfaces. */
-  --ember-ink: #2443a2;
-  --ember-wash: rgba(41, 79, 196, .08);
+  --ember:     #d2552f;
+  /* A deeper ember keeps small accent text legible on light surfaces. */
+  --ember-ink: #b0421e;
+  --ember-wash: rgba(210, 85, 47, .08);
 
   --bg:        var(--studio);
   --surface:   var(--paper);
@@ -805,7 +805,7 @@ p { text-wrap: pretty; }
 .feature-intro h2,.feature-intro p { margin:0 }
 .feature-intro .t-lead { max-width:32ch;justify-self:end }
 .feature-images { display:grid;grid-template-columns:1fr 1fr;gap:40px 24px }
-.feature-card-0 { grid-column:1/-1;display:grid;grid-template-columns:1.6fr 1fr;align-items:center;background:#e8edf4;border-radius:28px;overflow:hidden }
+.feature-card-0 { grid-column:1/-1;display:grid;grid-template-columns:1.6fr 1fr;align-items:center;background:var(--surface-2);border-radius:28px;overflow:hidden }
 .feature-photo { position:relative;aspect-ratio:3/2;overflow:hidden;border-radius:24px }
 .feature-photo img { object-fit:cover }
 .feature-card-0 .feature-photo { border-radius:0 }
@@ -816,7 +816,7 @@ p { text-wrap: pretty; }
 .feature-disclosure { font-size:11px;color:var(--muted);margin-top:24px }
 .gallery-heading { display:flex;align-items:end;justify-content:space-between;gap:30px;margin-bottom:40px }
 .gallery-heading h2 { margin:0 }
-.film-carousel { display:grid;grid-template-columns:1.15fr 1fr;gap:60px;padding:32px;background:#e8edf4;border-radius:28px;align-items:center }
+.film-carousel { display:grid;grid-template-columns:1.15fr 1fr;gap:60px;padding:32px;background:var(--surface-2);border-radius:28px;align-items:center }
 .film-current { background:#0e0e0e;border-radius:20px;overflow:hidden;height:620px }
 .film-current>div { height:100% }
 .film-current video { width:100%;height:100%;object-fit:contain }
@@ -835,11 +835,11 @@ p { text-wrap: pretty; }
 .capability-controls>p { color:var(--muted);line-height:1.6 }
 .capability-controls .btn { width:fit-content;font-size:14px;min-height:46px }
 .capability-controls button:disabled { opacity:.5;cursor:wait }
-.head-trackpad { height:160px;position:relative;touch-action:none;border:1px solid var(--stage-line);border-radius:18px;background:radial-gradient(ellipse,#303443,#202129);cursor:grab }
-.head-trackpad>span { position:absolute;width:24px;height:24px;border-radius:50%;background:#f3f3f1;transform:translate(-50%,-50%);box-shadow:0 0 25px #8faaff55;pointer-events:none }
+.head-trackpad { height:160px;position:relative;touch-action:none;border:1px solid var(--stage-line);border-radius:18px;background:radial-gradient(ellipse,#2e2c29,#1e1d1b);cursor:grab }
+.head-trackpad>span { position:absolute;width:24px;height:24px;border-radius:50%;background:#f3f3f1;transform:translate(-50%,-50%);box-shadow:0 0 25px #d2552f55;pointer-events:none }
 .head-trackpad small { position:absolute;bottom:12px;width:100%;text-align:center;color:#aaa;font-size:11px;pointer-events:none }
 .music-meter { height:90px;display:flex;align-items:center;gap:7px }
-.music-meter i { width:8px;height:12px;background:#8ba8ff;border-radius:4px }
+.music-meter i { width:8px;height:12px;background:var(--accent);border-radius:4px }
 .music-meter.is-playing i { animation:music-pulse .6s ease-in-out infinite alternate }
 @keyframes music-pulse { to { height:70px } }
 .assistant-answer { padding:16px;border:1px solid var(--stage-line);border-radius:16px;font-size:14px }
@@ -861,13 +861,13 @@ p { text-wrap: pretty; }
 .on-stage .capability-controls .btn-brand:hover:not(:disabled) { --btn-fg:#ffffff; }
 
 /* Four live video cards, arranged around one foreground portrait. */
-.film-deck { position:relative;isolation:isolate;background:linear-gradient(145deg,#e8edf4,#f1f3f7);border-radius:32px;padding:28px 32px 20px;overflow:hidden }
+.film-deck { position:relative;isolation:isolate;background:linear-gradient(145deg,#eceae4,#f5f4f1);border-radius:32px;padding:28px 32px 20px;overflow:hidden }
 .film-deck-top { display:flex;align-items:center;justify-content:space-between;gap:16px;position:relative;z-index:5 }
 .film-deck-top>.t-mono { display:flex;align-items:center;gap:9px;font-size:11px;text-transform:uppercase;letter-spacing:.08em }
-.film-deck-top i { width:6px;height:6px;background:#3758a4;border-radius:50% }
+.film-deck-top i { width:6px;height:6px;background:var(--accent);border-radius:50% }
 .film-deck-status { font-size:12px;color:var(--muted) }
 .film-deck-stage { position:relative;height:620px;max-width:1080px;margin:12px auto 0;perspective:1400px;touch-action:pan-y }
-.film-deck-card { position:absolute;top:30px;left:50%;width:300px;height:534px;overflow:hidden;border-radius:23px;background:#121212;box-shadow:0 24px 60px -24px #17203866;border:4px solid #ffffffdd;transition:transform 900ms cubic-bezier(.22,.7,.2,1),opacity 650ms,filter 650ms;transform-origin:center 65%;will-change:transform }
+.film-deck-card { position:absolute;top:30px;left:50%;width:300px;height:534px;overflow:hidden;border-radius:23px;background:#121212;box-shadow:0 24px 60px -24px rgba(17,17,17,.38);border:4px solid #ffffffdd;transition:transform 900ms cubic-bezier(.22,.7,.2,1),opacity 650ms,filter 650ms;transform-origin:center 65%;will-change:transform }
 .film-deck-card video { width:100%;height:100%;object-fit:cover;display:block;pointer-events:none }
 .film-deck-card[data-position=front] { transform:translateX(-50%) translateY(0) rotateY(0deg) scale(1);z-index:4;opacity:1;filter:none }
 .film-deck-card[data-position=left] { transform:translateX(-126%) translateY(26px) rotate(-9deg) rotateY(12deg) scale(.84);z-index:2;opacity:.92;filter:brightness(.78) }
@@ -881,13 +881,13 @@ p { text-wrap: pretty; }
 .film-deck-hit:focus-visible { outline:3px solid white;outline-offset:-8px }
 .film-deck-bottom { display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;position:relative;z-index:5;max-width:850px;margin:0 auto }
 .film-deck-navigation { display:flex;align-items:center;gap:12px }
-.film-deck-navigation>button { background:#ffffff80;border:1px solid #17203820;width:42px;height:42px;border-radius:50%;cursor:pointer }
+.film-deck-navigation>button { background:#ffffff80;border:1px solid var(--line);width:42px;height:42px;border-radius:50%;cursor:pointer }
 .film-deck-dots { display:flex;align-items:center;gap:2px }
 .film-deck-dots button { border:0;background:transparent;width:26px;height:36px;display:grid;place-items:center;cursor:pointer }
-.film-deck-dots span { display:block;width:6px;height:6px;border-radius:50%;background:#8691a5;transition:width .25s,background .25s }
-.film-deck-dots button[aria-pressed=true] span { width:19px;border-radius:5px;background:#1f3158 }
-.film-deck-count { font-size:12px;letter-spacing:.06em }.film-deck-count>span { color:#7d8594 }
-.film-deck-pause { justify-self:end;cursor:pointer;border:1px solid #17203820;border-radius:99px;padding:11px 15px;background:#ffffff80;font-size:12px }
+.film-deck-dots span { display:block;width:6px;height:6px;border-radius:50%;background:var(--muted-2);transition:width .25s,background .25s }
+.film-deck-dots button[aria-pressed=true] span { width:19px;border-radius:5px;background:var(--ink) }
+.film-deck-count { font-size:12px;letter-spacing:.06em }.film-deck-count>span { color:var(--muted-2) }
+.film-deck-pause { justify-self:end;cursor:pointer;border:1px solid var(--line);border-radius:99px;padding:11px 15px;background:#ffffff80;font-size:12px }
 .film-deck-note { text-align:center;color:var(--muted);font-size:11px;margin:20px 0 0;line-height:1.6 }
 .film-load-error { position:absolute;top:40%;left:10%;right:10%;text-align:center;color:#fff;font-size:13px;pointer-events:none }
 @media(max-width:760px) {
