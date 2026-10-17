@@ -113,3 +113,28 @@ export function quote(
 export function rupees(paise: number): string {
   return `₹${Math.round(paise / 100).toLocaleString('en-IN')}`
 }
+
+/* -------------------- paying the balance before dispatch ------------------ */
+
+/**
+ * What it costs to settle the balance online instead of in cash at the door.
+ *
+ * A courier collecting cash costs money, and a parcel refused at the door
+ * costs much more, so there is room to pay a buyer a little for doing it
+ * early. BALANCE_PREPAY_DISCOUNT_PAISE is that incentive: unset means no
+ * discount, and the page simply offers the convenience instead.
+ *
+ * The incentive can never exceed the balance, and never takes the payment
+ * below what the gateway will accept.
+ */
+export function prepayBalance(balanceDuePaise: number, incentivePaise?: number): {
+  duePaise: number
+  incentivePaise: number
+  nowPaise: number
+} {
+  const due = Math.max(0, Math.floor(balanceDuePaise))
+  const configured = incentivePaise ?? Number(process.env.BALANCE_PREPAY_DISCOUNT_PAISE ?? 0)
+  const wanted = Number.isFinite(configured) ? Math.max(0, Math.floor(configured)) : 0
+  const incentive = Math.min(wanted, Math.max(0, due - MIN_ORDER_PAISE))
+  return { duePaise: due, incentivePaise: incentive, nowPaise: due - incentive }
+}

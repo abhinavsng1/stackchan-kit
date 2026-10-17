@@ -492,3 +492,154 @@ export async function setCoupon(
     returning id`
   return done.length > 0
 }
+
+/* ------------------------------------------------------------------------ *
+ * The balance, paid online instead of at the door
+ *
+ * A second payment against a booking that is already settled. It has its own
+ * order id column and its own settle function, because the deposit's row
+ * guard — `paid_at is null` — is the opposite of what is wanted here: this
+ * only applies to a booking that *has* been paid for and still owes cash.
+ * ------------------------------------------------------------------------ */
+
+export type BalancePayable = {
+  id: number
+  name: string
+  email: string
+  qty: number
+  edition: Edition
+  balanceDuePaise: number
+  /** Already settled online, so the page can say so rather than charge twice. */
+  balancePaidAt: Date | null
+  /** Null until the deposit settles; there is no balance before that. */
+  paidAt: Date | null
+}
+
+export async function findBalanceByToken(token: string): Promise<BalancePayable | null> {
+  const sql = client()
+  if (!sql) return null
+  const rows = await sql`
+    select id, name, email, qty, edition, balance_due_paise, balance_paid_at, paid_at
+      from preorders where payment_token = ${token} limit 1`
+  const r = rows[0]
+  if (!r) return null
+  return {
+    id: Number(r.id), name: String(r.name), email: String(r.email),
+    qty: Number(r.qty), edition: editionOf(r.edition),
+    balanceDuePaise: Number(r.balance_due_paise ?? 0),
+    balancePaidAt: r.balance_paid_at ? new Date(r.balance_paid_at as string) : null,
+    paidAt: r.paid_at ? new Date(r.paid_at as string) : null,
+  }
+}
+
+/** Records which Razorpay order is this booking's balance payment. */
+export async function attachBalanceOrder(preorderId: number, orderId: string): Promise<void> {
+  const sql = client()
+  if (!sql) return
+  await sql`
+    update preorders set balance_order_id = ${orderId}
+     where id = ${preorderId} and balance_paid_at is null`
+}
+
+export type BalancePaidResult =
+  | {
+      status: 'paid'
+      name: string; email: string; qty: number; edition: Edition
+      amountPaise: number
+      phone: string | null; address: string | null; city: string | null; pincode: string | null
+    }
+  | { status: 'already_paid' }
+  | { status: 'unknown_order' }
+
+/**
+ * Settles the balance, and sets what is owed at the door to zero.
+ *
+ * Zeroing `balance_due_paise` is the point of the whole feature: that column
+ * is what a courier is told to collect, and a buyer who has already paid
+ * online being asked for cash again is the worst outcome this code can
+ * produce. It happens in the same statement as the settlement, guarded by
+ * `balance_paid_at is null`, so a redelivered webhook cannot double-count and
+ * cannot un-zero it.
+ *
+ * Unlike the deposit, the amount is not re-derived from a price: the buyer was
+ * quoted whatever was outstanding on their own row, less the incentive, and
+ * that figure is checked against the capture here.
+ */
+export async function markBalancePaid(input: {
+  orderId: string
+  paymentId: string
+  paidPaise?: number
+  /** The same incentive the payment screen offered. */
+  incentivePaise?: number
+}): Promise<BalancePaidResult> {
+  const sql = client()
+  if (!sql) return { status: 'unknown_order' }
+
+  const rows = await sql`
+    select id, name, email, qty, edition, phone, address, city, pincode,
+           balance_due_paise, balance_paid_at
+      from preorders where balance_order_id = ${input.orderId} limit 1`
+
+  const row = rows[0]
+  if (!row) return { status: 'unknown_order' }
+  if (row.balance_paid_at) return { status: 'already_paid' }
+
+  const settled = input.paidPaise ?? Number(row.balance_due_paise ?? 0)
+
+  const done = await sql`
+    update preorders
+       set balance_paid_at    = now(),
+           balance_payment_id = ${input.paymentId},
+           balance_due_paise  = 0
+     where balance_order_id = ${input.orderId} and balance_paid_at is null
+    returning id`
+
+  if (done.length === 0) return { status: 'already_paid' }
+
+  const text = (v: unknown) => (v === null || v === undefined ? null : String(v))
+  return {
+    status: 'paid',
+    name: String(row.name), email: String(row.email),
+    qty: Number(row.qty), edition: editionOf(row.edition),
+    amountPaise: settled,
+    phone: text(row.phone), address: text(row.address),
+    city: text(row.city), pincode: text(row.pincode),
+  }
+}
+
+/** Bookings that have paid a deposit and still owe cash at the door. */
+export type BalanceOwing = {
+  id: number
+  name: string
+  email: string
+  token: string
+  qty: number
+  edition: Edition
+  balanceDuePaise: number
+  askedAt: Date | null
+}
+
+export async function bookingsOwingBalance(limit = 200): Promise<BalanceOwing[]> {
+  const sql = client()
+  if (!sql) return []
+  const rows = await sql`
+    select id, name, email, payment_token, qty, edition, balance_due_paise, balance_asked_at
+      from preorders
+     where paid_at is not null
+       and balance_paid_at is null
+       and balance_due_paise > 0
+     order by paid_at
+     limit ${Math.max(1, Math.min(500, limit))}`
+  return rows.map((r) => ({
+    id: Number(r.id), name: String(r.name), email: String(r.email),
+    token: String(r.payment_token), qty: Number(r.qty), edition: editionOf(r.edition),
+    balanceDuePaise: Number(r.balance_due_paise ?? 0),
+    askedAt: r.balance_asked_at ? new Date(r.balance_asked_at as string) : null,
+  }))
+}
+
+export async function markBalanceAsked(preorderId: number): Promise<void> {
+  const sql = client()
+  if (!sql) return
+  await sql`update preorders set balance_asked_at = now() where id = ${preorderId}`
+}

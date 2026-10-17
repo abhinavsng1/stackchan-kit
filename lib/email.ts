@@ -459,3 +459,165 @@ export async function sendRecoveryEmail(r: Recovery): Promise<SendResult> {
     html: recoveryHtml(r),
   })
 }
+
+/* ------------------------ the balance, paid online ----------------------- */
+
+export type BalanceReceipt = {
+  name: string
+  email: string
+  qty: number
+  edition?: Edition
+  /** What was actually captured for the balance. */
+  amountPaise: number
+  phone: string | null
+  address: string | null
+  city: string | null
+  pincode: string | null
+  paymentId: string
+}
+
+export function balanceReceiptSubject() {
+  return 'Paid in full — nothing to pay on delivery'
+}
+
+/**
+ * The one line that matters here is the one about the door.
+ *
+ * Somebody who has just paid online and is then asked for cash by a courier
+ * has been charged twice as far as they are concerned, and no amount of
+ * apology afterwards undoes that. So the receipt says it plainly, in the
+ * subject and again in the body, and it is worth showing to the courier.
+ */
+export function balanceReceiptText(r: BalanceReceipt) {
+  const what = `${editionOf(r.edition).name}${r.qty > 1 ? ` × ${r.qty}` : ''}`
+  return `Hi ${firstName(r.name)},
+
+That's the balance of ${rupees(r.amountPaise)} paid. Your ${what} is paid for in
+full — nothing is collected when it is delivered.
+
+If a courier asks for money at the door, show them this email and write to
+${CONTACT.email}.
+
+Payment id   ${r.paymentId}
+Paid online  ${rupees(r.amountPaise)}
+Due at door  ₹0
+
+— Pebble Robo
+`
+}
+
+export function balanceReceiptHtml(r: BalanceReceipt) {
+  const what = `${editionOf(r.edition).name}${r.qty > 1 ? ` × ${r.qty}` : ''}`
+  return `<!doctype html>
+<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
+  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Paid in full</p>
+  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Nothing to pay at the door, ${esc(firstName(r.name))}.</h1>
+
+  <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
+    That’s the balance of <strong>${esc(rupees(r.amountPaise))}</strong> paid. Your
+    ${esc(what)} is paid for in full and the courier collects nothing.
+  </p>
+
+  <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+    <tr><td style="padding:6px 0;font-size:13px;color:#5a6672">Paid online</td>
+        <td style="padding:6px 0;font-size:14px;text-align:right;font-weight:600">${esc(rupees(r.amountPaise))}</td></tr>
+    <tr><td style="padding:6px 0;font-size:13px;color:#5a6672">Due on delivery</td>
+        <td style="padding:6px 0;font-size:14px;text-align:right;font-weight:600">₹0</td></tr>
+    <tr><td style="padding:6px 0;font-size:13px;color:#5a6672">Payment id</td>
+        <td style="padding:6px 0;font-size:13px;text-align:right;font-family:ui-monospace,monospace">${esc(r.paymentId)}</td></tr>
+  </table>
+
+  <p style="margin:0;color:#8a8a85;font-size:13px;line-height:1.6">
+    If a courier asks for money at the door, show them this email and write to
+    <a href="mailto:${CONTACT.email}" style="color:#0b0f14">${CONTACT.email}</a>.
+  </p>
+</div>
+</body></html>`
+}
+
+export async function sendBalanceReceiptEmail(r: BalanceReceipt): Promise<SendResult> {
+  return deliver({
+    to: r.email,
+    subject: balanceReceiptSubject(),
+    text: balanceReceiptText(r),
+    html: balanceReceiptHtml(r),
+  })
+}
+
+/* --------------------- asking for the balance early ---------------------- */
+
+export type BalanceRequest = {
+  name: string
+  email: string
+  token: string
+  qty: number
+  edition?: Edition
+  duePaise: number
+  /** Taken off if they pay online now. Zero means no incentive is offered. */
+  incentivePaise: number
+}
+
+export function balanceRequestSubject() {
+  return 'Your PebbleRobo ships soon — pay the balance now, or at the door'
+}
+
+export function balanceRequestText(r: BalanceRequest) {
+  const now = r.duePaise - r.incentivePaise
+  return `Hi ${firstName(r.name)},
+
+Your PebbleRobo is about to ship. ${rupees(r.duePaise)} is due when it arrives,
+in cash.
+
+${r.incentivePaise > 0
+    ? `If you'd rather settle it now, pay ${rupees(now)} online and save ${rupees(r.incentivePaise)}:`
+    : 'If you would rather settle it now and skip the cash at the door:'}
+${balanceUrl(r.token)}
+
+Either is fine. If you do nothing, the courier collects ${rupees(r.duePaise)} in cash
+as agreed.
+
+— Pebble Robo
+${CONTACT.email}
+`
+}
+
+export function balanceRequestHtml(r: BalanceRequest) {
+  const now = r.duePaise - r.incentivePaise
+  return `<!doctype html>
+<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
+  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">Shipping soon</p>
+  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Pay now, or at the door.</h1>
+
+  <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d4752">
+    Your PebbleRobo is about to ship. <strong>${esc(rupees(r.duePaise))}</strong> is due
+    when it arrives, in cash.
+  </p>
+
+  <p style="margin:0 0 22px">
+    <a href="${balanceUrl(r.token)}"
+       style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;
+              padding:13px 22px;border-radius:999px;font-weight:500;font-size:15px">
+      ${r.incentivePaise > 0
+        ? `Pay ${esc(rupees(now))} now and save ${esc(rupees(r.incentivePaise))}`
+        : `Pay ${esc(rupees(now))} now`}
+    </a>
+  </p>
+
+  <p style="margin:0;color:#8a8a85;font-size:13px;line-height:1.6">
+    Either is fine. Do nothing and the courier collects ${esc(rupees(r.duePaise))} in cash,
+    exactly as agreed.
+  </p>
+</div>
+</body></html>`
+}
+
+export async function sendBalanceRequestEmail(r: BalanceRequest): Promise<SendResult> {
+  return deliver({
+    to: r.email,
+    subject: balanceRequestSubject(),
+    text: balanceRequestText(r),
+    html: balanceRequestHtml(r),
+  })
+}

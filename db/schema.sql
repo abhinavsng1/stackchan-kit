@@ -198,3 +198,16 @@ create table if not exists coupons (
 -- Which orders used which code, for counting per-email use and for reading
 -- back what a given code actually sold.
 create index if not exists preorders_coupon on preorders (coupon_code) where coupon_code is not null;
+
+-- ---------------------------------------------------------------------------
+-- Paying the balance online, before dispatch. Additive and safe to re-run.
+--
+-- A second Razorpay order against the same booking, so it needs its own id
+-- column: razorpay_order_id belongs to the deposit, and overwriting it would
+-- lose the link between a booking and the payment that created it.
+alter table preorders add column if not exists balance_order_id text;
+create unique index if not exists preorders_balance_order_id_key
+  on preorders (balance_order_id) where balance_order_id is not null;
+
+-- When the "pay it now instead" email went out, so nobody is asked twice.
+alter table preorders add column if not exists balance_asked_at timestamptz;

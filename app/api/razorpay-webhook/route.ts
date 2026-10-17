@@ -1,6 +1,6 @@
 import { verifyWebhookSignature } from '@/lib/razorpay'
-import { markPaid } from '@/lib/preorders'
-import { sendPaymentReceiptEmail } from '@/lib/email'
+import { markPaid, markBalancePaid } from '@/lib/preorders'
+import { sendPaymentReceiptEmail, sendBalanceReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion } from '@/lib/x-conversions'
 import { sendPaymentConfirmed } from '@/lib/mixpanel-server'
@@ -31,7 +31,10 @@ function afterResponse(work: Promise<unknown>) {
   }
 }
 
-type Entity = { id?: string; order_id?: string; amount?: number; status?: string }
+type Entity = {
+  id?: string; order_id?: string; amount?: number; status?: string
+  notes?: Record<string, string>
+}
 
 export async function POST(request: Request) {
   const signature = request.headers.get('x-razorpay-signature')
@@ -70,6 +73,40 @@ export async function POST(request: Request) {
   const payment = event.payload?.payment?.entity
   if (!payment?.id || !payment.order_id || typeof payment.amount !== 'number') {
     return Response.json({ status: 'ignored', reason: 'incomplete' }, { status: 200 })
+  }
+
+  /**
+   * Which of the two payments this is.
+   *
+   * A booking deposit and a balance payment are both captures against the
+   * same buyer, and for a ₹4,500 balance on a ₹4,500 cash balance they can
+   * even be the same amount. The note is set when the order is created and is
+   * the only thing that tells them apart, so it is read before anything else.
+   */
+  if (payment.notes?.payment_type === 'balance') {
+    const balance = await markBalancePaid({
+      orderId: payment.order_id,
+      paymentId: payment.id,
+      paidPaise: payment.amount,
+    })
+
+    if (balance.status === 'paid') {
+      afterResponse(sendBalanceReceiptEmail({
+        name: balance.name, email: balance.email, qty: balance.qty,
+        edition: balance.edition, amountPaise: balance.amountPaise,
+        phone: balance.phone, address: balance.address,
+        city: balance.city, pincode: balance.pincode,
+        paymentId: payment.id,
+      }))
+    }
+
+    if (balance.status === 'unknown_order') {
+      console.error('[razorpay] balance payment for an order we never issued', {
+        order_id: payment.order_id,
+      })
+    }
+
+    return Response.json({ status: balance.status }, { status: 200 })
   }
 
   const result = await markPaid({

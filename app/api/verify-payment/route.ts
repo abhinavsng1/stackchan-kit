@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { verifyPaymentSignature } from '@/lib/razorpay'
-import { markPaid } from '@/lib/preorders'
-import { sendPaymentReceiptEmail } from '@/lib/email'
+import { markPaid, markBalancePaid } from '@/lib/preorders'
+import { sendPaymentReceiptEmail, sendBalanceReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion, requestIdentity } from '@/lib/x-conversions'
 import { sendPaymentConfirmed } from '@/lib/mixpanel-server'
@@ -82,6 +82,34 @@ export async function POST(request: Request) {
     orderId: result.data.razorpay_order_id,
     paymentId: result.data.razorpay_payment_id,
   })
+
+  // A balance payment is signed exactly like a deposit and arrives at the same
+  // callback. markPaid looks it up by the booking's deposit order id and finds
+  // nothing, so that verdict is where the second kind of payment is tried —
+  // rather than asking the browser to say which kind it just made.
+  if (settled.status === 'unknown_order') {
+    const balance = await markBalancePaid({
+      orderId: result.data.razorpay_order_id,
+      paymentId: result.data.razorpay_payment_id,
+    })
+    if (balance.status === 'paid') {
+      // Whichever of this and the webhook settles first sends the receipt.
+      // Without this the browser could settle the balance and the webhook,
+      // arriving second, would find it already paid and send nothing at all —
+      // leaving the buyer with no proof that the door is settled.
+      const receipt = sendBalanceReceiptEmail({
+        name: balance.name, email: balance.email, qty: balance.qty,
+        edition: balance.edition, amountPaise: balance.amountPaise,
+        phone: balance.phone, address: balance.address,
+        city: balance.city, pincode: balance.pincode,
+        paymentId: result.data.razorpay_payment_id,
+      })
+      try { waitUntil(receipt) } catch { void receipt.catch(() => {}) }
+    }
+    if (balance.status === 'paid' || balance.status === 'already_paid') {
+      return json({ status: 'verified', payment_id: result.data.razorpay_payment_id }, 200)
+    }
+  }
 
   if (settled.status === 'unknown_order') {
     console.error('[verify-payment] no reservation holds this order', {
