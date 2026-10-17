@@ -97,11 +97,25 @@ function rowToCoupon(r: Record<string, unknown>): Coupon {
   }
 }
 
+/**
+ * A lookup that cannot take an order down with it.
+ *
+ * Throwing here would reach the order route, which validates a code before
+ * writing the booking — so a database hiccup, or a deploy that has not run
+ * the migration yet, would cost a buyer their whole order over an optional
+ * field. Failing soft means the worst case is a code that quietly does not
+ * apply, which the buyer can see and we can fix.
+ */
 export async function findCoupon(code: string): Promise<Coupon | null> {
   const sql = client()
   if (!sql) return null
-  const rows = await sql`select * from coupons where code = ${normaliseCode(code)} limit 1`
-  return rows[0] ? rowToCoupon(rows[0] as Record<string, unknown>) : null
+  try {
+    const rows = await sql`select * from coupons where code = ${normaliseCode(code)} limit 1`
+    return rows[0] ? rowToCoupon(rows[0] as Record<string, unknown>) : null
+  } catch (e) {
+    console.error('[coupons] could not read the table', { error: String(e) })
+    return null
+  }
 }
 
 /**
@@ -165,13 +179,20 @@ export async function validateCoupon(input: {
   if (coupon.perEmailLimit !== null && input.email) {
     // Settled orders only. A booking that was never paid for has not used
     // anybody's allowance.
-    const used = await sql`
+    try {
+      const used = await sql`
       select count(*)::int n from preorders
        where coupon_code = ${code}
          and email = ${input.email.trim().toLowerCase()}
          and paid_at is not null`
-    if (Number(used[0]?.n ?? 0) >= coupon.perEmailLimit) {
-      return { valid: false, reason: 'already_used' }
+      if (Number(used[0]?.n ?? 0) >= coupon.perEmailLimit) {
+        return { valid: false, reason: 'already_used' }
+      }
+    } catch (e) {
+      // The limit could not be checked. Refusing the code would punish a
+      // buyer for our outage; honouring it risks one extra redemption. The
+      // cheaper mistake wins.
+      console.error('[coupons] could not check the per-buyer limit', { error: String(e) })
     }
   }
 
@@ -197,7 +218,11 @@ export async function validateCoupon(input: {
 export async function recordRedemption(code: string): Promise<void> {
   const sql = client()
   if (!sql) return
-  await sql`update coupons set redeemed = redeemed + 1 where code = ${normaliseCode(code)}`
+  try {
+    await sql`update coupons set redeemed = redeemed + 1 where code = ${normaliseCode(code)}`
+  } catch (e) {
+    console.error('[coupons] could not count a redemption', { code, error: String(e) })
+  }
 }
 
 /* --------------------------------- admin -------------------------------- */
@@ -205,8 +230,15 @@ export async function recordRedemption(code: string): Promise<void> {
 export async function listCoupons(): Promise<Coupon[]> {
   const sql = client()
   if (!sql) return []
-  const rows = await sql`select * from coupons order by created_at desc limit 200`
-  return rows.map((r) => rowToCoupon(r as Record<string, unknown>))
+  try {
+    const rows = await sql`select * from coupons order by created_at desc limit 200`
+    return rows.map((r) => rowToCoupon(r as Record<string, unknown>))
+  } catch (e) {
+    // An empty list, so the admin page renders and says so, rather than a
+    // 500 that looks like the whole back office is broken.
+    console.error('[coupons] could not list', { error: String(e) })
+    return []
+  }
 }
 
 export type NewCoupon = {

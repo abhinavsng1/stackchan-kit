@@ -156,3 +156,17 @@ describe('validating a code against one order', () => {
     expect(verdict).toMatchObject({ valid: true, discountPaise: PRICE.balancePaise })
   })
 })
+
+describe('when the table cannot be read at all', () => {
+  it('treats the code as simply not applying, rather than failing the order', async () => {
+    vi.resetModules()
+    vi.doMock('@neondatabase/serverless', () => ({
+      neon: () => async () => { throw new Error('relation "coupons" does not exist') },
+    }))
+    const { validateCoupon } = await import('@/lib/coupons')
+    expect(await validateCoupon({ code: 'SAVE', plan: 'deposit', qty: 1 }))
+      .toEqual({ valid: false, reason: 'unknown' })
+    vi.doUnmock('@neondatabase/serverless')
+    vi.resetModules()
+  })
+})

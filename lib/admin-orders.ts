@@ -110,7 +110,8 @@ function toOrder(r: Record<string, unknown>): AdminOrder {
 export async function listOrders(limit = 500): Promise<AdminOrder[]> {
   const sql = client()
   if (!sql) return []
-  const rows = await sql`
+  try {
+    const rows = await sql`
     select id, name, email, phone, city, pincode, qty, edition, plan, shell,
            coupon_code, discount_paise, variant, amount_paid_paise, balance_due_paise,
            created_at, paid_at, balance_paid_at, balance_asked_at, recovery_sent_at,
@@ -118,7 +119,13 @@ export async function listOrders(limit = 500): Promise<AdminOrder[]> {
       from preorders
      order by created_at desc
      limit ${Math.max(1, Math.min(2000, limit))}`
-  return rows.map((r) => toOrder(r as Record<string, unknown>))
+    return rows.map((r) => toOrder(r as Record<string, unknown>))
+  } catch (e) {
+    // Most often a deployment where db/schema.sql has not been run yet. An
+    // empty table that says so beats a 500 that does not.
+    console.error('[admin-orders] could not read the order book', { error: String(e) })
+    return []
+  }
 }
 
 export function tally(orders: AdminOrder[]): Record<Group, number> {

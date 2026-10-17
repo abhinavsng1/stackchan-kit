@@ -290,7 +290,7 @@ All optional. Each one switches on exactly one thing.
 | `ADMIN_PASSWORD` | Server | `/admin/*` is locked for everybody, including you |
 | `BALANCE_PREPAY_DISCOUNT_PAISE` | Server | No "pay online and save" incentive; the page still offers the convenience |
 | `RAZORPAY_NOCOST_EMI_OFFER_ID` | Server | No offer is attached to full-price orders (`offer_Toy0FZZfGZReRl`, ICICI, to 31 Dec 2026) |
-| `MAGIC_CHECKOUT` | Server | Every `/api/magic/*` route answers 404 and the one-tap button is never rendered |
+| `MAGIC_CHECKOUT` | Server | Every `/api/magic/*` route answers 404 and the one-tap button is never rendered. **The button is decided at build time** — the home page is static, so flipping this in Vercel needs a redeploy to show it. The API routes read it per request |
 | `NEXT_PUBLIC_EMI_FROM_MONTHLY_PAISE` | Browser | No monthly figure appears anywhere. **Never computed** — take it from what the gateway quotes |
 | `NEXT_PUBLIC_AFFORDABILITY_WIDGET` | Browser | Razorpay's affordability widget is not loaded |
 
