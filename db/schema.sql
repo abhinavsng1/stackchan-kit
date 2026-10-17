@@ -211,3 +211,21 @@ create unique index if not exists preorders_balance_order_id_key
 
 -- When the "pay it now instead" email went out, so nobody is asked twice.
 alter table preorders add column if not exists balance_asked_at timestamptz;
+
+-- ---------------------------------------------------------------------------
+-- Which plan people choose. Additive and safe to re-run.
+--
+-- The same shape as variant_views, and for the same reason: a counter, not a
+-- log. Day and plan, nothing else — no address, no agent string, nothing to
+-- join a person to.
+--
+-- Counted on the server when a payment is started, because that is the moment
+-- a plan is actually chosen. Mixpanel already carries `plan` on its events,
+-- but an ad blocker that swallows the browser's beacon would quietly bias the
+-- comparison, and this is the number the decision gets made on.
+create table if not exists plan_chosen (
+  day   date    not null,
+  plan  text    not null,
+  count integer not null default 0,
+  primary key (day, plan)
+);

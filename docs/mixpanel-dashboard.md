@@ -131,3 +131,42 @@ it moves before anyone emails support.
 The same failures are logged to Vercel with a `[create-order]` or
 `[verify-payment]` prefix, so they can be found without Mixpanel. Amount
 mismatches log under `[razorpay]` and leave the order unpaid deliberately.
+
+## Paying in full, or booking with a deposit
+
+Two plans sell the same robot: `deposit` (₹499 now, the rest in cash on
+delivery) and `full` (the whole price online, nothing at the door). Every
+payment event carries `plan`, so any report already breaks down by it.
+
+| Event | Fires when | Use it for |
+|---|---|---|
+| `Payment Opened` | The payment window opens | Attempts, per plan |
+| `Payment Succeeded` | Money actually moved | **Take-up, per plan** |
+| `Payment Dismissed` | The window was closed | Hesitation, per plan |
+| `Coupon Applied` | A valid code is accepted | Which codes do anything |
+
+### The number Mixpanel cannot be trusted for
+
+Take-up between the two plans is counted **in Postgres**, not here:
+
+* `plan_chosen` — day, plan, count. Written by `create-order` the moment a
+  payment is started on a plan.
+* `preorders.plan` — what each booking actually settled under.
+
+`lib/plan-views.ts` joins the two into chosen / orders / paid per plan.
+
+The reason is bias rather than accuracy. An ad blocker that swallows a browser
+event does not remove a random visitor: it removes a particular kind of
+visitor, and if those people prefer one plan the comparison tilts without
+anybody noticing. The server sees every attempt. Use Mixpanel to ask *where*
+people hesitate, and Postgres to ask *which plan wins*.
+
+### Board rows worth adding
+
+1. **Take-up** — `Payment Succeeded` broken down by `plan`, weekly.
+2. **Abandonment by plan** — `Payment Opened` → `Payment Succeeded` funnel,
+   broken down by `plan`. A plan that opens often and settles rarely is a
+   pricing problem, not a checkout problem.
+3. **Balance recovered early** — `Payment Succeeded` where `from = balance_link`,
+   against the count of bookings still owing cash. This is the one that says
+   whether the prepay incentive pays for itself.

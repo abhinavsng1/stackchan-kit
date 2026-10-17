@@ -5,6 +5,7 @@ import { PLANS, quote, type Plan } from '@/lib/plans'
 import { EDITION } from '@/lib/kit'
 import { validateCoupon } from '@/lib/coupons'
 import { noCostEmiOfferId } from '@/lib/emi'
+import { recordPlanChosen } from '@/lib/plan-views'
 
 /** A token and at most the name of a plan. */
 const MAX_BODY_BYTES = 256
@@ -177,6 +178,17 @@ export async function POST(request: Request) {
   // reservation this order belongs to. An order id we never issued matches no
   // row and settles nothing.
   await attachOrder(reservation.id, order.orderId)
+
+  // The denominator for "how many people pay in full". Counted here because
+  // this is the moment a plan is acted on, and counted on the server because
+  // an ad blocker eating the browser's event would bias the comparison
+  // towards whichever plan the blocked visitors happened to prefer.
+  try {
+    await recordPlanChosen(plan)
+  } catch (e) {
+    // A counter is never worth failing a payment over.
+    console.error('[create-order] could not count the plan', { error: String(e) })
+  }
 
   return json({
     key_id: order.keyId,
