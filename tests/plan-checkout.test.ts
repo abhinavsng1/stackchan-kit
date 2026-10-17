@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PRICE } from '@/lib/kit'
 
 /**
@@ -14,7 +14,7 @@ const preorders = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/preorders', () => preorders)
 
-type OrderCall = { amountPaise: number; notes?: Record<string, string> }
+type OrderCall = { amountPaise: number; notes?: Record<string, string>; offers?: string[] }
 const createOrder = vi.hoisted(() => vi.fn(async (_input: OrderCall) => ({
   status: 'created' as const, orderId: 'order_1', amountPaise: 0, currency: 'INR' as const, keyId: 'rzp_test',
 })))
@@ -128,5 +128,29 @@ describe('bookings that cannot be paid for', () => {
     preorders.findByPaymentToken.mockResolvedValue(null)
     expect((await post({ token: TOKEN })).status).toBe(404)
     expect((await post({ token: 'nope' })).status).toBe(400)
+  })
+})
+
+describe('the No-Cost EMI offer', () => {
+  afterEach(() => { delete process.env.RAZORPAY_NOCOST_EMI_OFFER_ID })
+
+  it('is attached when the whole price is being charged', async () => {
+    process.env.RAZORPAY_NOCOST_EMI_OFFER_ID = 'offer_test'
+    preorders.findByPaymentToken.mockResolvedValue(booking({ plan: 'full' }))
+    await post({ token: TOKEN })
+    expect(createOrder.mock.calls[0]![0]).toMatchObject({ offers: ['offer_test'] })
+  })
+
+  it('is left off a deposit, which is below the offer’s own floor', async () => {
+    process.env.RAZORPAY_NOCOST_EMI_OFFER_ID = 'offer_test'
+    preorders.findByPaymentToken.mockResolvedValue(booking({ plan: 'deposit' }))
+    await post({ token: TOKEN })
+    expect(createOrder.mock.calls[0]![0]).not.toHaveProperty('offers')
+  })
+
+  it('attaches nothing when no offer is configured', async () => {
+    preorders.findByPaymentToken.mockResolvedValue(booking({ plan: 'full' }))
+    await post({ token: TOKEN })
+    expect(createOrder.mock.calls[0]![0]).not.toHaveProperty('offers')
   })
 })

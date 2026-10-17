@@ -4,6 +4,7 @@ import { findByPaymentToken, attachOrder, setPlan, setCoupon } from '@/lib/preor
 import { PLANS, quote, type Plan } from '@/lib/plans'
 import { EDITION } from '@/lib/kit'
 import { validateCoupon } from '@/lib/coupons'
+import { noCostEmiOfferId } from '@/lib/emi'
 
 /** A token and at most the name of a plan. */
 const MAX_BODY_BYTES = 256
@@ -126,8 +127,19 @@ export async function POST(request: Request) {
 
   const q = quote(plan, reservation.qty, reservation.variant, discountPaise)
 
+  /**
+   * The No-Cost EMI offer, on full-price orders only.
+   *
+   * It is a three-month ICICI credit-card offer on orders of ₹4,999 and
+   * above, so attaching it to a ₹499 deposit would advertise an instalment
+   * plan the gateway then refuses. Unset means no offer is attached and
+   * whatever the dashboard shows by default applies.
+   */
+  const offer = plan === 'full' ? noCostEmiOfferId() : null
+
   const order = await createOrder({
     amountPaise: q.nowPaise,
+    ...(offer ? { offers: [offer] } : {}),
     /* Visible in the Razorpay dashboard, where somebody reconciling a payment
        needs to know whether this was a deposit or the whole price. */
     notes: {

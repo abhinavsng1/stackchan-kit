@@ -5,6 +5,7 @@ import CheckoutButton from '@/components/CheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import { PRICE } from '@/lib/kit'
 import type { Plan } from '@/lib/plans'
+import { EMI_TERMS, emiFromLine } from '@/lib/emi'
 
 /**
  * The payment page's interactive half: how to pay, a code, and the button.
@@ -58,7 +59,7 @@ export default function CheckoutPanel({ token, qty = 1 }: { token: string; qty?:
         {option('deposit', `Book for ${rupees(PRICE.depositPaise * qty)}`,
           `${rupees(PRICE.balancePaise * qty)} in cash when it is delivered`)}
         {option('full', `Pay ${rupees(list)} now`,
-          'Nothing to pay at the door. EMI available on eligible credit cards.')}
+          `Nothing to pay at the door. ${EMI_TERMS.availability}`)}
       </div>
 
       <div className="flex items-baseline justify-between gap-4 pb-4 mb-4"
@@ -89,6 +90,12 @@ export default function CheckoutPanel({ token, qty = 1 }: { token: string; qty?:
       </p>
 
       <CheckoutButton token={token} qty={qty} plan={plan} coupon={applied?.code ?? null} />
+
+      {plan === 'full' && emiFromLine() && (
+        <p className="text-[13px] mt-3 mb-0" style={{ color: 'var(--muted)' }}>
+          {emiFromLine()}. {EMI_TERMS.noCost}
+        </p>
+      )}
 
       <CouponField plan={plan} qty={qty} onApplied={setApplied} />
     </div>

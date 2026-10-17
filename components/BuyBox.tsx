@@ -1,6 +1,7 @@
 'use client'
 
 import { smoothScrollTo } from '@/lib/smooth-scroll'
+import EmiNote from '@/components/EmiNote'
 
 import { useState } from 'react'
 import { EDITION, PRICE } from '@/lib/kit'
@@ -65,6 +66,8 @@ export default function BuyBox() {
         <strong className="font-medium">Pay {PRICE.deposit} now to book yours.</strong>
         <span className="text-[var(--muted)]"> The remaining {PRICE.balance} is charged after booking, in cash when it’s delivered.</span>
       </p>
+      {/* Only renders when a monthly figure has actually been configured. */}
+      <EmiNote amountPaise={PRICE.nowPaise} />
       <p className="text-[14px] text-[var(--muted)] mt-2 mb-0 flex items-center gap-2">
         <span className="dot" aria-hidden="true" />Free delivery in India · {PRICE.ship}
       </p>
