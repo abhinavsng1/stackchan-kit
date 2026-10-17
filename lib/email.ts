@@ -107,7 +107,7 @@ export function reservationHtml(r: PreorderRecord) {
     `<td style="padding:6px 0;color:#0b0f14;font-size:14px">${esc(v)}</td></tr>`
 
   return `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
 
   <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">Reserved</p>
@@ -291,7 +291,7 @@ export function receiptHtml(r: Receipt) {
     </tr>`
 
   return `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
   <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Booking confirmed</p>
   <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your PebbleRobo is reserved, ${esc(firstName(r.name))}.</h1>
@@ -419,7 +419,7 @@ ${CONTACT.email}
 export function recoveryHtml(r: Recovery) {
   const what = `${editionOf(r.edition).name}${r.qty > 1 ? ` × ${r.qty}` : ''}`
   return `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
   <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">Still open</p>
   <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your booking is waiting, ${esc(firstName(r.name))}.</h1>
@@ -509,7 +509,7 @@ Due at door  ₹0
 export function balanceReceiptHtml(r: BalanceReceipt) {
   const what = `${editionOf(r.edition).name}${r.qty > 1 ? ` × ${r.qty}` : ''}`
   return `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
   <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0f6b47">Paid in full</p>
   <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Nothing to pay at the door, ${esc(firstName(r.name))}.</h1>
@@ -585,7 +585,7 @@ ${CONTACT.email}
 export function balanceRequestHtml(r: BalanceRequest) {
   const now = r.duePaise - r.incentivePaise
   return `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
   <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">Shipping soon</p>
   <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Pay now, or at the door.</h1>

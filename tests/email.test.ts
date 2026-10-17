@@ -146,3 +146,27 @@ describe('the receipt names what is coming', () => {
     expect(receiptText(paid)).toContain('PebbleRobo build kit')
   })
 })
+
+describe('every email declares its encoding', () => {
+  it('because the price is written in rupees', async () => {
+    const m = await import('@/lib/email')
+    const order = {
+      name: 'Asha Rao', email: 'asha@example.com', qty: 1, edition: 'assembled' as const,
+      amountPaise: 49_900, balanceDuePaise: 450_000, paymentId: 'pay_X',
+      phone: null, address: null, city: null, pincode: null,
+    }
+    const pages = [
+      m.reservationHtml({ name: 'Asha Rao', email: 'asha@example.com', qty: 1 }),
+      m.receiptHtml(order),
+      m.balanceReceiptHtml(order),
+      m.recoveryHtml({ name: 'Asha', email: 'a@b.com', token: 'x', qty: 1, nowPaise: 49_900, balancePaise: 450_000 }),
+      m.balanceRequestHtml({ name: 'Asha', email: 'a@b.com', token: 'x', qty: 1, duePaise: 450_000, incentivePaise: 0 }),
+    ]
+    for (const html of pages) {
+      // Without this, a client that guesses latin-1 renders ₹4,500 as â‚¹4,500
+      // — which is what the preview of these actually did.
+      expect(html).toContain('<meta charset="utf-8">')
+      expect(html).toContain('₹')
+    }
+  })
+})
