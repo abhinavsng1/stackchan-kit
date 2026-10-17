@@ -348,3 +348,114 @@ export async function sendPaymentReceiptEmail(r: Receipt): Promise<SendResult> {
     html: receiptHtml(r),
   })
 }
+
+/* ------------------------- unpaid-booking recovery ----------------------- */
+
+/**
+ * Where links in email point.
+ *
+ * A booking's payment link is useless if it points at localhost, so this
+ * prefers an explicitly configured site URL, then whatever Vercel says this
+ * deployment is, and only then the production domain. Set SITE_URL in
+ * production: VERCEL_URL is the deployment's own hostname, which changes with
+ * every deploy and is not where a buyer should be sent.
+ */
+export function siteUrl(): string {
+  const configured = process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL
+  if (configured) return configured.replace(/\/+$/, '')
+  if (process.env.VERCEL_ENV === 'production') return 'https://pebblerobo.com'
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'https://pebblerobo.com'
+}
+
+export const checkoutUrl = (token: string) => `${siteUrl()}/checkout?t=${token}`
+export const balanceUrl = (token: string) => `${siteUrl()}/pay-balance?t=${token}`
+
+export type Recovery = {
+  name: string
+  email: string
+  token: string
+  qty: number
+  edition?: Edition
+  /** What they would pay now to confirm it. */
+  nowPaise: number
+  /** What is left for the door, or zero if they chose to pay in full. */
+  balancePaise: number
+}
+
+export function recoverySubject() {
+  return 'Your PebbleRobo booking is still open'
+}
+
+/**
+ * One reminder, and it reads like one.
+ *
+ * No countdown, no invented scarcity, no second mail. Someone who filled in
+ * the form meant to order; the most useful thing we can do is hand them the
+ * link again and get out of the way.
+ */
+export function recoveryText(r: Recovery) {
+  const what = `${editionOf(r.edition).name}${r.qty > 1 ? ` × ${r.qty}` : ''}`
+  return `Hi ${firstName(r.name)},
+
+You started booking a ${what} and the payment didn't go through — or the tab
+closed before it did. Nothing is lost: your details are saved and the booking
+is still open.
+
+Pay ${rupees(r.nowPaise)} to confirm it:
+${checkoutUrl(r.token)}
+
+${r.balancePaise > 0
+    ? `The remaining ${rupees(r.balancePaise)} is collected in cash when it is delivered.`
+    : 'That is the whole price. Nothing is collected on delivery.'}
+
+If you have changed your mind, you can ignore this — we won't send another.
+
+— Pebble Robo
+${CONTACT.email}
+`
+}
+
+export function recoveryHtml(r: Recovery) {
+  const what = `${editionOf(r.edition).name}${r.qty > 1 ? ` × ${r.qty}` : ''}`
+  return `<!doctype html>
+<html><body style="margin:0;padding:24px;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f14">
+<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e7ec;border-radius:14px;padding:28px">
+  <p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5a6672">Still open</p>
+  <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25">Your booking is waiting, ${esc(firstName(r.name))}.</h1>
+
+  <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#3d4752">
+    You started booking a ${esc(what)} and the payment didn’t go through — or the
+    tab closed before it did. Nothing is lost: your details are saved and the
+    booking is still open.
+  </p>
+
+  <p style="margin:0 0 22px">
+    <a href="${checkoutUrl(r.token)}"
+       style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;
+              padding:13px 22px;border-radius:999px;font-weight:500;font-size:15px">
+      Pay ${esc(rupees(r.nowPaise))} to confirm
+    </a>
+  </p>
+
+  <p style="margin:0 0 16px;color:#5a6672;font-size:14px;line-height:1.6">
+    ${r.balancePaise > 0
+      ? `The remaining <strong>${esc(rupees(r.balancePaise))}</strong> is collected in cash when it is delivered.`
+      : 'That is the whole price. Nothing is collected on delivery.'}
+  </p>
+
+  <p style="margin:0;color:#8a8a85;font-size:13px;line-height:1.6">
+    Changed your mind? Ignore this — we won’t send another.
+  </p>
+</div>
+</body></html>`
+}
+
+export async function sendRecoveryEmail(r: Recovery): Promise<SendResult> {
+  return deliver({
+    to: r.email,
+    subject: recoverySubject(),
+    text: recoveryText(r),
+    html: recoveryHtml(r),
+  })
+}

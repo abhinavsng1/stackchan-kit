@@ -1,6 +1,5 @@
 import crypto from 'node:crypto'
-import { PRICE, EDITION, type Edition } from '@/lib/kit'
-import { isVariant, pricing } from '@/lib/variants'
+import { quote } from '@/lib/plans'
 
 /**
  * Razorpay, server side only.
@@ -38,40 +37,21 @@ function assertQty(qty: number): void {
 }
 
 /**
- * What the gateway is asked for, decided here and nowhere else.
- *
- * This is the booking deposit, not the price of the kit. The balance is
- * collected in cash on delivery and never passes through Razorpay, so an
- * order created for the full price would overcharge by ₹4,500 a kit.
- *
- * The client sends a quantity; it never sends a price. Trusting a
- * browser-supplied amount is how a kit gets bought for ₹1, and it is
- * the single most common way a checkout integration is exploited.
+ * The deposit plan's figures, kept as named helpers because that is how the
+ * rest of the codebase and its tests talk about them. The arithmetic lives in
+ * lib/plans.ts; these only name a column of it, so the two cannot disagree.
  */
 export function orderAmountPaise(qty: number): number {
-  assertQty(qty)
-  return PRICE.depositPaise * qty
+  return quote('deposit', qty).nowPaise
 }
 
-/**
- * What is still owed when the box arrives.
- *
- * Computed server-side for the same reason the deposit is: this figure ends
- * up on a packing slip and in a courier's hands, and it is the only number
- * standing between a buyer and being asked for the wrong amount at the door.
- */
 export function balanceDuePaise(qty: number, variant: string | null = null): number {
-  assertQty(qty)
-  // The assembled robot's two price arms owe different amounts on delivery.
-  // An unrecognised variant falls back to the kit's balance rather than
-  // guessing, because a wrong figure here is what a courier asks for at a door.
-  if (variant && isVariant(variant)) return pricing(variant).balancePaise * qty
-  return PRICE.balancePaise * qty
+  return quote('deposit', qty, variant).balancePaise
 }
 
-/** Deposit plus balance must always reconstruct the price of the kits. */
+/** Deposit plus balance must always reconstruct the price of the robots. */
 export function totalPaise(qty: number): number {
-  return orderAmountPaise(qty) + balanceDuePaise(qty)
+  return quote('deposit', qty).listPaise
 }
 
 /**
@@ -82,11 +62,37 @@ function receiptId(): string {
   return `pbl_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`
 }
 
-export async function createOrder(qty: number, edition: Edition = 'kit'): Promise<OrderResult> {
+export type OrderRequest = {
+  /** Already computed by lib/plans.ts. This function never prices anything. */
+  amountPaise: number
+  /**
+   * Visible in the Razorpay dashboard, and read back by the webhook. Keep it
+   * to strings: Razorpay stores notes as strings and a number round-trips as
+   * one anyway, so a boolean or a number here reads as a bug later.
+   */
+  notes?: Record<string, string>
+  /** Dashboard offer ids to attach, such as a No-Cost EMI offer. */
+  offers?: string[]
+  /** Magic Checkout needs both of these, or the order falls back to standard. */
+  lineItems?: unknown[]
+  lineItemsTotalPaise?: number
+}
+
+/**
+ * Creates a Razorpay order for an amount this server decided.
+ *
+ * The client sends a token, and at most the name of a plan; it never sends a
+ * price. Trusting a browser-supplied amount is how a robot gets bought for ₹1,
+ * and it is the single most common way a checkout integration is exploited.
+ */
+export async function createOrder(input: OrderRequest): Promise<OrderResult> {
   const creds = credentials()
   if (!creds) return { status: 'unconfigured' }
 
-  const amountPaise = orderAmountPaise(qty)
+  const amountPaise = Math.round(input.amountPaise)
+  if (!Number.isFinite(amountPaise) || amountPaise < 100) {
+    return { status: 'upstream_error', detail: 'bad_amount' }
+  }
 
   let res: Response
   try {
@@ -100,13 +106,11 @@ export async function createOrder(qty: number, edition: Edition = 'kit'): Promis
         amount: amountPaise,
         currency: 'INR',
         receipt: receiptId(),
-        /* Visible in the Razorpay dashboard, where somebody reconciling a
-           payment needs to know this was a deposit, not a full order. */
-        notes: {
-          kits: String(qty), edition, sku: EDITION[edition].sku,
-          batch: '01', payment_type: 'booking_deposit',
-          balance_due_on_delivery_paise: String(balanceDuePaise(qty)),
-        },
+        notes: input.notes ?? {},
+        ...(input.offers?.length ? { offers: input.offers } : {}),
+        ...(input.lineItems?.length
+          ? { line_items: input.lineItems, line_items_total: input.lineItemsTotalPaise ?? amountPaise }
+          : {}),
       }),
     })
   } catch {
@@ -130,6 +134,24 @@ export async function createOrder(qty: number, edition: Edition = 'kit'): Promis
   // browser — but there is no reason to publish it to people who are not
   // paying, so it travels with a response that already required a valid token.
   return { status: 'created', orderId: order.id, amountPaise, currency: 'INR', keyId: creds.id }
+}
+
+/**
+ * Reads an order back from Razorpay. Magic Checkout puts the buyer's address
+ * on the order rather than in the callback, so this is the only way to see it.
+ */
+export async function fetchOrder(orderId: string): Promise<Record<string, unknown> | null> {
+  const creds = credentials()
+  if (!creds) return null
+  try {
+    const res = await fetch(`${API}/orders/${encodeURIComponent(orderId)}`, {
+      headers: { Authorization: `Basic ${creds.basic}` },
+    })
+    if (!res.ok) return null
+    return (await res.json()) as Record<string, unknown>
+  } catch {
+    return null
+  }
 }
 
 /**

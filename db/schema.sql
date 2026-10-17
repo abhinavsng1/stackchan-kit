@@ -124,3 +124,43 @@ create table if not exists variant_views (
 -- which is why there is no default on the column — a default here would make
 -- an old row indistinguishable from a deliberate choice.
 alter table preorders add column if not exists shell text;
+
+-- ---------------------------------------------------------------------------
+-- How the buyer pays. Additive and safe to re-run.
+--
+-- 'deposit' is the original arrangement: ₹499 books it, the rest is collected
+-- in cash at the door. 'full' is the whole price online, nothing on delivery.
+--
+-- The default is 'deposit' because every order placed before this column
+-- existed was one, and because an order that somehow arrives without a plan
+-- is safer understood as the one that collects money later than as one that
+-- claims the buyer has already paid in full.
+alter table preorders add column if not exists plan text not null default 'deposit';
+alter table preorders drop constraint if exists preorders_plan_check;
+alter table preorders add constraint preorders_plan_check check (plan in ('deposit', 'full'));
+
+-- ---------------------------------------------------------------------------
+-- Unpaid-booking recovery. Additive and safe to re-run.
+--
+-- When the reminder for this booking was sent. NULL means never, and the cron
+-- only picks up rows where it is NULL, so the column is both the record and
+-- the lock: a buyer is emailed once, however many times the job runs.
+alter table preorders add column if not exists recovery_sent_at timestamptz;
+
+-- The job's working set: unpaid, never reminded. Partial, so it stays small
+-- however many paid orders accumulate.
+create index if not exists preorders_awaiting_recovery
+  on preorders (created_at)
+  where paid_at is null and recovery_sent_at is null;
+
+-- ---------------------------------------------------------------------------
+-- Coupons and the online balance, on the order. Additive and safe to re-run.
+--
+-- The columns land here, with the plan they belong to, because lib/preorders.ts
+-- reads them from the moment plans exist: a booking always has a discount, even
+-- when that discount is zero, and always has a balance, even when it is already
+-- paid. The coupons table itself and the pay-the-balance flow follow.
+alter table preorders add column if not exists coupon_code    text;
+alter table preorders add column if not exists discount_paise integer not null default 0;
+alter table preorders add column if not exists balance_paid_at    timestamptz;
+alter table preorders add column if not exists balance_payment_id text;

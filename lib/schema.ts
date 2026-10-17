@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { EDITIONS } from '@/lib/kit'
 import { ORDERABLE_SHELL_IDS, DEFAULT_SHELL } from '@/lib/shells'
+import { PLANS, DEFAULT_PLAN } from '@/lib/plans'
 import { VARIANTS } from '@/lib/variants'
 
 /**
@@ -98,6 +99,18 @@ export const preorderSchema = z.object({
   ),
 
   variant: z.enum(VARIANTS).optional(),
+
+  /**
+   * How they want to pay: the ₹499 booking deposit, or the whole price now.
+   *
+   * A plan is a choice, not an amount — every figure is still computed from
+   * it on the server (lib/plans.ts). Absent means the deposit, which is what
+   * every booking made before the choice existed was.
+   */
+  plan: z.preprocess(
+    (v) => (v === '' || v === null ? undefined : v),
+    z.enum(PLANS, 'Choose how you would like to pay').default(DEFAULT_PLAN),
+  ),
   /**
    * Honeypot. Real people never see this field. The schema only accepts it —
    * enforcement lives in the route handler, which answers a filled honeypot

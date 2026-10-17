@@ -1,20 +1,27 @@
 import { z } from 'zod'
 import { createOrder } from '@/lib/razorpay'
-import { findByPaymentToken, attachOrder } from '@/lib/preorders'
+import { findByPaymentToken, attachOrder, setPlan } from '@/lib/preorders'
+import { PLANS, quote, type Plan } from '@/lib/plans'
+import { EDITION } from '@/lib/kit'
 
-/** One token and nothing else. */
+/** A token and at most the name of a plan. */
 const MAX_BODY_BYTES = 256
 
 /**
- * The request names a reservation, never a quantity and never a price.
+ * The request names a booking and, optionally, how the buyer wants to pay.
  *
- * Both of those live on the reservation row, which the visitor cannot edit.
- * A request that could choose its own quantity could choose its own total, so
- * the only thing accepted here is a token identifying which reservation is
- * being paid for.
+ * It never names a quantity and never names a price. Both live on the booking
+ * row, which the visitor cannot edit. A request that could choose its own
+ * quantity could choose its own total.
+ *
+ * A plan is different: it is a choice, not a figure. Accepting it lets someone
+ * who booked with a deposit decide at the payment screen to pay in full
+ * instead, without creating a second booking — and whichever they pick, the
+ * amount is still computed here from the row.
  */
 const bodySchema = z.object({
   token: z.string().trim().regex(/^[a-f0-9]{32}$/, 'Invalid payment link'),
+  plan: z.enum(PLANS).optional(),
 })
 
 function json(body: unknown, status: number) {
@@ -57,7 +64,33 @@ export async function POST(request: Request) {
     return json({ error: 'This reservation has already been paid for.', code: 'already_paid' }, 409)
   }
 
-  const order = await createOrder(reservation.qty, reservation.edition)
+  // The plan the buyer just chose wins, and is written to the row before the
+  // order is created: settlement re-prices from the row, so a plan left stale
+  // here would reject the payment it just authorised as the wrong amount.
+  let plan: Plan = reservation.plan
+  if (result.data.plan && result.data.plan !== plan) {
+    const moved = await setPlan(reservation.id, result.data.plan)
+    if (moved) plan = result.data.plan
+  }
+
+  const q = quote(plan, reservation.qty, reservation.variant, reservation.discountPaise)
+
+  const order = await createOrder({
+    amountPaise: q.nowPaise,
+    /* Visible in the Razorpay dashboard, where somebody reconciling a payment
+       needs to know whether this was a deposit or the whole price. */
+    notes: {
+      kits: String(reservation.qty),
+      edition: reservation.edition,
+      sku: EDITION[reservation.edition].sku,
+      batch: '01',
+      plan,
+      payment_type: plan === 'full' ? 'full_payment' : 'booking_deposit',
+      balance_due_on_delivery_paise: String(q.balancePaise),
+      ...(reservation.couponCode ? { coupon: reservation.couponCode } : {}),
+      ...(q.discountPaise ? { discount_paise: String(q.discountPaise) } : {}),
+    },
+  })
 
   if (order.status === 'unconfigured') {
     console.error('[create-order] Razorpay keys are not set')
@@ -87,6 +120,9 @@ export async function POST(request: Request) {
     order_id: order.orderId,
     amount: order.amountPaise,
     currency: order.currency,
+    plan,
+    balance_due_paise: q.balancePaise,
+    discount_paise: q.discountPaise,
     prefill: {
       name: reservation.name,
       email: reservation.email,

@@ -115,7 +115,13 @@ describe('order creation', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const { createOrder } = await import('@/lib/razorpay')
-    const result = await createOrder(2)
+    const result = await createOrder({
+      amountPaise: PRICE.depositPaise * 2,
+      notes: {
+        payment_type: 'booking_deposit',
+        balance_due_on_delivery_paise: String(PRICE.balancePaise * 2),
+      },
+    })
 
     expect(result).toMatchObject({ status: 'created', orderId: 'order_1' })
     const init = fetchMock.mock.calls[0]?.[1]
@@ -133,13 +139,14 @@ describe('order creation', () => {
   it('reports an upstream 401 without leaking the reason outward', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 401 })))
     const { createOrder } = await import('@/lib/razorpay')
-    expect(await createOrder(1)).toEqual({ status: 'upstream_error', detail: 'unauthorized' })
+    expect(await createOrder({ amountPaise: PRICE.depositPaise }))
+      .toEqual({ status: 'upstream_error', detail: 'unauthorized' })
   })
 
   it('survives the payment provider being unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('ECONNREFUSED') }))
     const { createOrder } = await import('@/lib/razorpay')
-    expect(await createOrder(1)).toMatchObject({ status: 'upstream_error' })
+    expect(await createOrder({ amountPaise: PRICE.depositPaise })).toMatchObject({ status: 'upstream_error' })
   })
 
   it('says so when keys are absent rather than calling out', async () => {
@@ -148,7 +155,7 @@ describe('order creation', () => {
     const calls = vi.fn()
     vi.stubGlobal('fetch', calls)
     const { createOrder } = await import('@/lib/razorpay')
-    expect(await createOrder(1)).toEqual({ status: 'unconfigured' })
+    expect(await createOrder({ amountPaise: PRICE.depositPaise })).toEqual({ status: 'unconfigured' })
     expect(calls).not.toHaveBeenCalled()
   })
 })

@@ -164,9 +164,10 @@ describe('POST /api/preorder', () => {
     // list because the colour picker was added, not because the list drifted.
     expect(Object.keys(arg).sort()).toEqual(
       ['address', 'city', 'edition', 'email', 'name', 'phone', 'pincode',
-       'profession', 'qty', 'shell'].sort())
-    // The optional field still arrives filled, because the schema defaults it.
+       'plan', 'profession', 'qty', 'shell'].sort())
+    // The optional fields still arrive filled, because the schema defaults them.
     expect(arg.shell).toBe('graphite')
+    expect(arg.plan).toBe('deposit')
     expect(arg.phone).toBe('+919876543210')
     expect(arg).not.toHaveProperty('company')
   })

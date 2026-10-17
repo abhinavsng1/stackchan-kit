@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { verifyPaymentSignature, orderAmountPaise, balanceDuePaise } from '@/lib/razorpay'
+import { verifyPaymentSignature } from '@/lib/razorpay'
 import { markPaid } from '@/lib/preorders'
 import { sendPaymentReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
@@ -81,8 +81,6 @@ export async function POST(request: Request) {
   const settled = await markPaid({
     orderId: result.data.razorpay_order_id,
     paymentId: result.data.razorpay_payment_id,
-    expectedPaiseFor: orderAmountPaise,
-    balanceDuePaiseFor: balanceDuePaise,
   })
 
   if (settled.status === 'unknown_order') {

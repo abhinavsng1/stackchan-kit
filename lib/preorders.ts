@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { neon } from '@neondatabase/serverless'
 import { isEdition, type Edition } from '@/lib/kit'
+import { planOf, quote, type Plan } from '@/lib/plans'
 
 /** A stored edition, read defensively: anything unrecognised was a kit order. */
 const editionOf = (v: unknown): Edition => (isEdition(v) ? v : 'kit')
@@ -29,6 +30,12 @@ export type PreorderRecord = {
   shell?: string
   /** Which price arm this buyer saw, on the pages that run the experiment. */
   variant?: string
+  /** How they chose to pay. Omitted means the deposit booking. */
+  plan?: Plan
+  /** A validated coupon, already checked against the coupons table. */
+  couponCode?: string
+  /** What that coupon is worth on this order, computed on the server. */
+  discountPaise?: number
 }
 
 export type CreateResult =
@@ -111,13 +118,14 @@ export async function createPreorder(input: PreorderRecord): Promise<CreateResul
   const token = newPaymentToken()
 
   const rows = await sql`
-    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token, edition, twclid, ad_opt_out, variant, shell)
+    insert into preorders (name, email, phone, profession, address, city, pincode, qty, payment_token, edition, twclid, ad_opt_out, variant, shell, plan, coupon_code, discount_paise)
     values (
       ${input.name}, ${input.email.toLowerCase()}, ${input.phone?.trim() || null},
       ${input.profession?.trim() || null}, ${input.address?.trim() || null},
       ${input.city?.trim() || null}, ${input.pincode?.trim() || null}, ${input.qty},
       ${token}, ${editionOf(input.edition)}, ${input.twclid ?? null},
-      ${input.adOptOut === true}, ${input.variant ?? null}, ${input.shell ?? null}
+      ${input.adOptOut === true}, ${input.variant ?? null}, ${input.shell ?? null},
+      ${planOf(input.plan)}, ${input.couponCode ?? null}, ${input.discountPaise ?? 0}
     )
     on conflict (email) do nothing
     returning id
@@ -177,6 +185,17 @@ export type PayableReservation = {
   qty: number
   edition: Edition
   paidAt: Date | null
+  /** How this booking is being paid for, which decides what is charged now. */
+  plan: Plan
+  /** The price arm it was booked under, or null for the standard price. */
+  variant: string | null
+  /** A coupon already validated and priced when the booking was made. */
+  couponCode: string | null
+  discountPaise: number
+  /** Still owed in cash, once the deposit has settled. Zero until then. */
+  balanceDuePaise: number
+  /** When the balance was collected online instead of at the door. */
+  balancePaidAt: Date | null
 }
 
 /**
@@ -189,7 +208,8 @@ export async function findByPaymentToken(token: string): Promise<PayableReservat
   if (!sql) return null
 
   const rows = await sql`
-    select id, name, email, phone, qty, edition, paid_at
+    select id, name, email, phone, qty, edition, paid_at, plan, variant,
+           coupon_code, discount_paise, balance_due_paise, balance_paid_at
     from preorders where payment_token = ${token} limit 1`
 
   const r = rows[0]
@@ -199,7 +219,32 @@ export async function findByPaymentToken(token: string): Promise<PayableReservat
     phone: r.phone === null ? null : String(r.phone),
     qty: Number(r.qty), edition: editionOf(r.edition),
     paidAt: r.paid_at ? new Date(r.paid_at as string) : null,
+    plan: planOf(r.plan),
+    variant: r.variant === null || r.variant === undefined ? null : String(r.variant),
+    couponCode: r.coupon_code === null || r.coupon_code === undefined ? null : String(r.coupon_code),
+    discountPaise: Number(r.discount_paise ?? 0),
+    balanceDuePaise: Number(r.balance_due_paise ?? 0),
+    balancePaidAt: r.balance_paid_at ? new Date(r.balance_paid_at as string) : null,
   }
+}
+
+/**
+ * Switches an unpaid booking to the other plan.
+ *
+ * Someone who booked with a deposit and then decides to pay in full is the
+ * same booking, not a second one, so the row moves rather than a new row being
+ * created. `paid_at is null` in the predicate is what keeps this honest: a
+ * settled booking's plan is the one its money was checked against, and
+ * changing it afterwards would make the amount already captured look wrong.
+ */
+export async function setPlan(preorderId: number, plan: Plan): Promise<boolean> {
+  const sql = client()
+  if (!sql) return false
+  const done = await sql`
+    update preorders set plan = ${plan}
+     where id = ${preorderId} and paid_at is null
+    returning id`
+  return done.length > 0
 }
 
 /** Records which Razorpay order belongs to which reservation, before payment. */
@@ -227,8 +272,13 @@ export type MarkPaidResult =
       twclid: string | null
       /** The buyer asked not to be tracked (GPC); nothing goes to an ad platform. */
       adOptOut: boolean
-      /** Still owed, in cash, when the box arrives. */
+      /** Still owed, in cash, when the box arrives. Zero on the full plan. */
       balanceDuePaise: number
+      /** Which plan this settled under, so the receipt says the right thing. */
+      plan: Plan
+      /** What a coupon took off, if one was used. */
+      discountPaise: number
+      couponCode: string | null
       phone: string | null; address: string | null; city: string | null; pincode: string | null
     }
   /** Already settled — a webhook retry or a refreshed success page. */
@@ -254,41 +304,39 @@ export async function markPaid(input: {
    * What Razorpay says was captured. The webhook carries it; the browser
    * callback does not, and is not asked to invent one — an amount supplied by
    * a client would be worth nothing anyway. Omitted means "settle at the price
-   * this reservation was quoted", which is safe because the order was created
-   * with that amount fixed server-side and partial payment is not enabled.
+   * this booking was quoted".
    */
   paidPaise?: number
-  expectedPaiseFor: (qty: number) => number
-  /**
-   * What the buyer still owes on delivery. Recorded at settlement so the
-   * amount a courier collects is the amount agreed at booking, not whatever
-   * the price happens to be by the time the box ships.
-   */
-  /**
-   * What is still owed. Takes the variant as well as the quantity because the
-   * assembled robot's two price arms owe different amounts on delivery, and
-   * the figure a courier collects must be the one that buyer was shown.
-   */
-  balanceDuePaiseFor: (qty: number, variant: string | null) => number
 }): Promise<MarkPaidResult> {
   const sql = client()
   if (!sql) return { status: 'unknown_order' }
 
   const rows = await sql`
     select id, name, email, qty, edition, twclid, ad_opt_out, variant, shell,
-           phone, address, city, pincode, paid_at
+           phone, address, city, pincode, paid_at, plan, coupon_code, discount_paise
       from preorders where razorpay_order_id = ${input.orderId} limit 1`
 
   const row = rows[0]
   if (!row) return { status: 'unknown_order' }
   if (row.paid_at) return { status: 'already_paid' }
 
-  const expected = input.expectedPaiseFor(Number(row.qty))
+  // Priced from the row, never from the message. The plan, the quantity, the
+  // arm and the discount were all fixed server-side when the order was
+  // created, so this recomputes the same figure the gateway was asked for.
+  const plan = planOf(row.plan)
+  const couponCode = row.coupon_code === null || row.coupon_code === undefined ? null : String(row.coupon_code)
+  const q = quote(
+    plan,
+    Number(row.qty),
+    row.variant === null || row.variant === undefined ? null : String(row.variant),
+    Number(row.discount_paise ?? 0),
+  )
+  const expected = q.nowPaise
   if (input.paidPaise !== undefined && input.paidPaise !== expected) {
     return { status: 'amount_mismatch', expectedPaise: expected, paidPaise: input.paidPaise }
   }
   const settledPaise = input.paidPaise ?? expected
-  const balanceDue = input.balanceDuePaiseFor(Number(row.qty), row.variant === null ? null : String(row.variant))
+  const balanceDue = q.balancePaise
 
   // `paid_at is null` in the predicate makes this safe against two deliveries
   // racing: the second updates zero rows and reports what the first did.
@@ -314,9 +362,95 @@ export async function markPaid(input: {
     adOptOut: row.ad_opt_out === true,
     amountPaise: settledPaise,
     balanceDuePaise: balanceDue,
+    plan,
+    discountPaise: q.discountPaise,
+    couponCode,
     phone: text(row.phone),
     address: text(row.address),
     city: text(row.city),
     pincode: text(row.pincode),
   }
+}
+
+/* ------------------------------------------------------------------------ *
+ * Unpaid-booking recovery
+ *
+ * Someone fills in the form, the payment window opens, and then the tab
+ * closes. The booking is real — name, phone and address are in Postgres — and
+ * the only thing missing is the payment. This is the one email that says so.
+ * ------------------------------------------------------------------------ */
+
+export type RecoverableBooking = {
+  id: number
+  name: string
+  email: string
+  token: string
+  qty: number
+  edition: Edition
+  plan: Plan
+  variant: string | null
+  discountPaise: number
+}
+
+/**
+ * Claims up to `limit` unpaid bookings for a reminder, and returns them.
+ *
+ * The claim and the read are one statement on purpose. Two overlapping cron
+ * runs, or a retry after a timeout, would otherwise both select the same rows
+ * and both email them. Marking first means the failure mode is a buyer who
+ * never gets a reminder rather than one who gets several, and between those
+ * two the silent one is the one to prefer: this address belongs to someone who
+ * has not asked to hear from us twice.
+ *
+ * The window has both ends. Younger than `minAgeHours` is someone who may
+ * still be mid-payment in another tab. Older than `maxAgeHours` is a booking
+ * stale enough that an unexpected mail would read as spam.
+ */
+export async function claimBookingsForRecovery(opts: {
+  minAgeHours?: number
+  maxAgeHours?: number
+  limit?: number
+} = {}): Promise<RecoverableBooking[]> {
+  const sql = client()
+  if (!sql) return []
+  const minAge = opts.minAgeHours ?? 1
+  const maxAge = opts.maxAgeHours ?? 72
+  const limit = Math.max(1, Math.min(200, opts.limit ?? 50))
+
+  const rows = await sql`
+    update preorders set recovery_sent_at = now()
+     where id in (
+       select id from preorders
+        where paid_at is null
+          and recovery_sent_at is null
+          and payment_token is not null
+          and created_at <= now() - make_interval(hours => ${minAge})
+          and created_at >= now() - make_interval(hours => ${maxAge})
+        order by created_at
+        limit ${limit}
+     )
+    returning id, name, email, payment_token, qty, edition, plan, variant, discount_paise`
+
+  return rows.map((r) => ({
+    id: Number(r.id),
+    name: String(r.name),
+    email: String(r.email),
+    token: String(r.payment_token),
+    qty: Number(r.qty),
+    edition: editionOf(r.edition),
+    plan: planOf(r.plan),
+    variant: r.variant === null || r.variant === undefined ? null : String(r.variant),
+    discountPaise: Number(r.discount_paise ?? 0),
+  }))
+}
+
+/**
+ * Hands a claim back when the mail could not be sent at all, so the next run
+ * tries again. Only ever called for a provider-level failure: a bounce is not
+ * a reason to email the same person twice.
+ */
+export async function releaseRecoveryClaim(preorderId: number): Promise<void> {
+  const sql = client()
+  if (!sql) return
+  await sql`update preorders set recovery_sent_at = null where id = ${preorderId} and paid_at is null`
 }
