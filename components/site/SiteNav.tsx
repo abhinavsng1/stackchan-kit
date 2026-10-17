@@ -73,7 +73,11 @@ export default function SiteNav({ stories = false, links: own, home = '#top' }: 
           </nav>
 
           <div className="ml-auto lg:ml-0 flex items-center gap-2">
-            <a href="#reserve" onClick={buy('nav')} className="btn btn-brand btn-sm hidden sm:inline-flex">
+            {/* nav-cta rather than Tailwind's `hidden`: utilities live in a
+                cascade layer and this stylesheet does not, so unlayered
+                component CSS wins whatever the specificity. The button stayed
+                visible at 320px and pushed the menu button off the screen. */}
+            <a href="#reserve" onClick={buy('nav')} className="btn btn-brand btn-sm nav-cta">
               Book for {PRICE.deposit}
             </a>
             <button

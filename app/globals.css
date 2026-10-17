@@ -269,7 +269,7 @@ p { text-wrap: pretty; }
   min-height: 48px;
   border-radius: var(--radius-button);
   cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  align-items: center; justify-content: center; gap: 10px;
   text-decoration: none;
   white-space: nowrap;
   transition:
@@ -279,6 +279,34 @@ p { text-wrap: pretty; }
     transform var(--dur-1) var(--ease),
     box-shadow var(--dur-2) var(--ease);
 }
+/**
+ * The one declaration that must lose to a utility class.
+ *
+ * `.btn` and Tailwind's `hidden` have the same specificity, and this
+ * stylesheet comes later — so `className="btn hidden sm:inline-flex"` stayed
+ * visible at every width. On a 320px screen that kept a "Book for ₹499"
+ * button in the header that was meant to be hidden, and pushed the menu
+ * button clean off the right edge: the nav could not be opened at all.
+ *
+ * :where() has zero specificity, so every display utility now wins.
+ */
+:where(.btn) { display: inline-flex; }
+
+/**
+ * The header's own call to action.
+ *
+ * Hidden on the narrowest phones, where the logo, the button and the menu
+ * button together are wider than the screen — and what fell off the edge was
+ * the menu button, so the navigation could not be opened at all.
+ *
+ * Its own class rather than `hidden sm:inline-flex`, because Tailwind's
+ * utilities sit in a cascade layer and this stylesheet does not: unlayered
+ * rules win over layered ones whatever their specificity, so `.btn` beat
+ * `hidden` and the button never actually hid.
+ */
+.nav-cta { display: none; }
+@media (min-width: 420px) { .nav-cta { display: inline-flex; } }
+
 .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--sh-md); }
 .btn:active:not(:disabled) { transform: translateY(0) scale(.98); box-shadow: none; }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }

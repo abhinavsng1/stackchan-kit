@@ -77,14 +77,18 @@ export default function BuyBox() {
         <ShellPicker location="buybox" size={24} label="below" />
       </div>
 
-      <div className="flex items-stretch gap-3 mt-7">
+      {/* Wraps rather than overflows: the stepper will not shrink and the
+          button cannot go below the width of its own label, so on a 320px
+          screen the two together are wider than the column. Wrapping drops
+          the button onto its own line instead of pushing the page sideways. */}
+      <div className="flex items-stretch gap-3 mt-7 flex-wrap">
         <div className="flex items-center rounded-full border shrink-0" style={{ borderColor: 'var(--line)' }}>
           <StepButton label="Fewer" onClick={() => step(-1)} disabled={qty === 1}>−</StepButton>
           <span className="t-mono text-[15px] w-8 text-center tabular-nums" aria-live="polite"
                 aria-label={`Quantity ${qty}`}>{qty}</span>
           <StepButton label="More" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
         </div>
-        <button type="button" onClick={reserve} className="btn btn-brand btn-lg flex-1">
+        <button type="button" onClick={reserve} className="btn btn-brand btn-lg flex-1 min-w-0">
           Book for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
         </button>
       </div>
