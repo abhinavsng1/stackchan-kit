@@ -3,7 +3,12 @@ import { sendRecoveryEmail } from '@/lib/email'
 import { quote } from '@/lib/plans'
 
 /**
- * One reminder per unpaid booking, sent hourly.
+ * One reminder per unpaid booking, sent once a day.
+ *
+ * Daily rather than hourly because this account is on Vercel's Hobby plan,
+ * which allows one run a day. It costs nothing: a booking stays claimable
+ * for three days, so a daily run still reaches everybody — a few hours later
+ * than an hourly one would.
  *
  * Vercel Cron calls this; nothing else should. Cron sends
  * `Authorization: Bearer $CRON_SECRET`, and with no secret configured the

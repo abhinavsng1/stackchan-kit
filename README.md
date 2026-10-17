@@ -294,7 +294,7 @@ All optional. Each one switches on exactly one thing.
 | `NEXT_PUBLIC_EMI_FROM_MONTHLY_PAISE` | Browser | No monthly figure appears anywhere. **Never computed** — take it from what the gateway quotes |
 | `NEXT_PUBLIC_AFFORDABILITY_WIDGET` | Browser | Razorpay's affordability widget is not loaded |
 
-`vercel.json` schedules the recovery cron hourly at :17.
+`vercel.json` schedules the recovery cron once a day at 07:17 UTC. **Daily, not hourly:** Hobby accounts are limited to one run a day, and a deploy with a more frequent expression is rejected outright. A booking stays claimable for three days, so nobody is missed.
 
 ### What EMI copy may say
 
