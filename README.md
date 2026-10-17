@@ -251,3 +251,80 @@ A browser that sends Global Privacy Control gets no X at all: no pixel, and the
 order is flagged so the server never reports it either, even from the webhook.
 The privacy page and the footer state what X receives; if this integration
 changes, they change with it.
+
+## Payment plans, coupons, balances and one-tap checkout
+
+Added together, these turn one checkout into four ways to pay. Each is
+independent: with none of the environment variables below set, the site
+behaves exactly as it did before.
+
+### Deploy checklist
+
+Run `db/schema.sql` **before** deploying. It is additive and safe to re-run:
+
+```
+psql "$DATABASE_URL" -f db/schema.sql
+```
+
+| What it adds | Why |
+|---|---|
+| `preorders.plan` (`deposit` \| `full`, default `deposit`) | How the buyer chose to pay |
+| `preorders.recovery_sent_at` | One reminder per unpaid booking, ever |
+| `preorders.coupon_code`, `discount_paise` | The code used and what it was worth, fixed at booking |
+| `preorders.balance_paid_at`, `balance_payment_id`, `balance_order_id`, `balance_asked_at` | The balance settled online instead of at the door |
+| `preorders.needs_review` | A payment whose shape we did not recognise |
+| `coupons` table | Codes, their limits and their redemption count |
+| `plan_chosen` table | Day, plan, count — plan take-up, counted server-side |
+
+Two partial indexes come with it (`preorders_awaiting_recovery`,
+`preorders_needs_review`) and one unique index on `balance_order_id`.
+
+### Environment variables
+
+All optional. Each one switches on exactly one thing.
+
+| Variable | Where | Effect when unset |
+|---|---|---|
+| `CRON_SECRET` | Server | **The recovery cron refuses every request.** Vercel Cron sends it as `Authorization: Bearer …` |
+| `SITE_URL` | Server | Links in email fall back to `https://pebblerobo.com` in production, or the deployment URL |
+| `ADMIN_PASSWORD` | Server | `/admin/*` is locked for everybody, including you |
+| `BALANCE_PREPAY_DISCOUNT_PAISE` | Server | No "pay online and save" incentive; the page still offers the convenience |
+| `RAZORPAY_NOCOST_EMI_OFFER_ID` | Server | No offer is attached to full-price orders (`offer_Toy0FZZfGZReRl`, ICICI, to 31 Dec 2026) |
+| `MAGIC_CHECKOUT` | Server | Every `/api/magic/*` route answers 404 and the one-tap button is never rendered |
+| `NEXT_PUBLIC_EMI_FROM_MONTHLY_PAISE` | Browser | No monthly figure appears anywhere. **Never computed** — take it from what the gateway quotes |
+| `NEXT_PUBLIC_AFFORDABILITY_WIDGET` | Browser | Razorpay's affordability widget is not loaded |
+
+`vercel.json` schedules the recovery cron hourly at :17.
+
+### What EMI copy may say
+
+Credit-card EMI is live on this account; **debit-card and cardless EMI were
+rejected**, and the only No-Cost offer is three months on ICICI credit cards
+for orders of ₹4,999 and up. The wording lives in `lib/emi.ts` as constants and
+a test asserts that "debit", "cardless" and "no card" appear nowhere in it.
+
+### Where money is decided
+
+One function: `quote(plan, qty, variant, discount)` in `lib/plans.ts`. The
+Razorpay order, the settlement check, the receipt and the courier's label all
+read it. A browser may name a plan or a code; it may never name an amount.
+
+A discount comes off the cash balance on the `deposit` plan and off the online
+amount on `full`. Redemptions are counted at settlement, never when a code is
+typed.
+
+### Magic Checkout is not live
+
+It is written, tested and switched off pending Razorpay enabling it (support
+ticket #21434798: custom web, COD, partial COD with a ₹499 advance). Before
+turning `MAGIC_CHECKOUT=1` on in production, register these URLs in the
+Razorpay dashboard — they must be publicly reachable and unauthenticated:
+
+* Coupon settings → get promotions: `/api/magic/promotions`
+* Coupon settings → apply promotions: `/api/magic/apply-promotion`
+* Shipping setup → API → shipping info: `/api/magic/shipping-info`
+
+Then confirm with Razorpay **how a partial COD advance arrives on the order**.
+`lib/magic.ts` derives it from `amount` less `amount_paid` and flags anything
+that does not add up as `needs_review`; a documented field would be better than
+arithmetic.
