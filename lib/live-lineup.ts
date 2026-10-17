@@ -4,7 +4,7 @@ import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
 import { aimAt, frameBox, gazeFor, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
 
 /**
- * Five robots, black and white in turn, standing in a shallow arc, every
+ * Five robots, one per colourway, standing in a shallow arc, every
  * one of them turning its head to the cursor.
  *
  * Each robot aims from where it stands, so they do not turn as one: the ones

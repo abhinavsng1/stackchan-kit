@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { EDITIONS } from '@/lib/kit'
-import { SHELL_IDS, DEFAULT_SHELL } from '@/lib/shells'
+import { ORDERABLE_SHELL_IDS, DEFAULT_SHELL } from '@/lib/shells'
 import { VARIANTS } from '@/lib/variants'
 
 /**
@@ -87,10 +87,14 @@ export const preorderSchema = z.object({
    * Preprocessed because an untouched <select> posts an empty string, and an
    * empty string is not a member of the enum — without this, leaving the
    * optional field alone would fail the whole order.
+   *
+   * Validated against what is orderable, not against every colour the site
+   * shows. The page displays five; the batch is printed in two, and an order
+   * for a colour nobody prints is an order nobody can pack.
    */
   shell: z.preprocess(
     (v) => (v === '' || v === null ? undefined : v),
-    z.enum(SHELL_IDS, 'Choose one of the colours we print').default(DEFAULT_SHELL),
+    z.enum(ORDERABLE_SHELL_IDS, 'Choose one of the colours we print').default(DEFAULT_SHELL),
   ),
 
   variant: z.enum(VARIANTS).optional(),

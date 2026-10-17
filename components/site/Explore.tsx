@@ -33,7 +33,8 @@ export default function Explore() {
               <p className="t-label m-0 mb-6">Explore it</p>
               <h2 className="t-display t-h2 m-0">Turn it round.<br />Pick its colour.</h2>
               <p className="t-lead mt-6 mb-0 max-w-[38ch]">
-                Two colours: black and white. Same robot, same price.
+                Five colourways, one robot, one price. The first batch is
+                printed in black and white.
               </p>
             </Reveal>
 

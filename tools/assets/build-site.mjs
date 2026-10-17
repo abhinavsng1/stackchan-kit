@@ -107,7 +107,7 @@ const SHOTS = [
     dir, fill: 0.9, units: [{ shell: SHELL.graphite, mood, pan, tilt }],
     alt: `PebbleRobo in black, ${{ hero: 'three-quarter', front: 'front', right: 'from the right', profile: 'in profile', high: 'from above' }[name]} view`,
   })),
-  // Five in a shallow arc, black and white in turn, each facing the middle: the live lineup's
+  // Five in a shallow arc, one per colourway, each facing the middle: the live lineup's
   // stand-in (lib/live-lineup.ts ARC and VIEW), so the two match.
   {
     out: 'public/media/render/lineup', widths: [2400, 1200], ground: 'studio', w: 2400, h: 1000,
@@ -120,7 +120,7 @@ const SHOTS = [
         x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
       }
     }),
-    alt: 'Five PebbleRobos standing in an arc, black and white in turn',
+    alt: 'Five PebbleRobos standing in an arc, one in each colourway',
   },
   // The same five, closed up and staggered for a phone (lib/live-lineup.ts
   // ARC_COMPACT, VIEW_COMPACT): the live lineup's stand-in below 640 px.
@@ -134,7 +134,7 @@ const SHOTS = [
         x: 300 * Math.sin(a), z: 300 * (1 - Math.cos(a)) + (i % 2 === 0 ? 30 : -30), yaw: -a * 180 / Math.PI, pan: 0, tilt: 6,
       }
     }),
-    alt: 'Five PebbleRobos standing close together, black and white in turn',
+    alt: 'Five PebbleRobos standing close together, one in each colourway',
   },
 ]
 

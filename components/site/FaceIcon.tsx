@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { moodById, drawCompanion, SCREEN } from '@/lib/companion-face'
+import { moodById, drawCompanion } from '@/lib/companion-face'
 
 /**
  * A small robot face, drawn by the same routine as the robot's own screen —
@@ -32,6 +32,6 @@ export default function FaceIcon({ mood, size = 72 }: { mood: string; size?: num
   return (
     <canvas ref={ref} width={192} height={144} aria-hidden="true"
             className="block rounded-[10px] shrink-0"
-            style={{ width: size, height: size * 0.75, background: SCREEN }} />
+            style={{ width: size, height: size * 0.75, background: '#000' }} />
   )
 }

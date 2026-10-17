@@ -1,17 +1,16 @@
 /**
- * The face the robot wears, the way its display actually shows it: soft white
- * strokes on the panel's deep blue, the Stack-chan style face the firmware
- * draws. Round eyes that look about, arcs when it is pleased, a short dash on
- * each cheek and a small mouth.
+ * The face the robot wears: chunky pixels on a black panel, the way the
+ * display actually shows it.
  *
- * Drawn on a 24 x 18 grid of units that fills the 2.0" panel's active area.
- * At the size lib/robot-body.ts uses (384 x 288) a unit is 16 pixels; any
- * other canvas size scales with it.
+ * Drawn on a 24 x 18 grid of cells that fills the 2.0" panel's active area.
+ * At the size lib/robot-body.ts uses (384 x 288) a cell is exactly 16 pixels,
+ * so every edge lands on a pixel and the texture can be sampled nearest-
+ * neighbour without shimmering. Any other canvas size scales the grid.
  *
- * Moods change the shapes, never the palette, so the robot reads as one
- * character whatever it is feeling. The strokes carry their own soft glow,
- * drawn here rather than by a post-process, so the live robot and every
- * render glow the same.
+ * Two white eyes, a warm pixel on each cheek and a small mouth. Moods change
+ * the shapes, never the palette, so the robot reads as one character whatever
+ * it is feeling. The eyes carry their own soft glow, drawn here rather than
+ * by a post-process, so the live robot and every render glow the same.
  *
  * It blinks on slow irregular timers. A face that holds perfectly still reads
  * as a screenshot of a robot; one that blinks reads as something that is on.
@@ -39,9 +38,8 @@ export const MOODS = [
 /** The faces it ships with, in the order the live robot cycles them on a tap. */
 export const OWN_MOODS = MOODS.filter((m) => !m.custom);
 export const moodById = (id) => MOODS.find((m) => m.id === id) ?? MOODS[0];
-/** The panel's lit background, and the strokes drawn on it. */
-export const SCREEN = '#0f1f66';
-const INK = '#ffffff';
+const EYE = '#ffffff';
+const CHEEK = '#ff6a1a';
 /** A blink every few seconds, never on a metronome. */
 function blinkAmount(t) {
     // Two primes, so the pattern does not repeat on any interval a viewer can
@@ -59,144 +57,145 @@ function blinkAmount(t) {
  *
  * @param t     Milliseconds, from any monotonic clock. Only differences matter.
  * @param speak How far the mouth is open while it speaks, 0 to 1. 0 draws the mood's own mouth.
- * @param gaze  Where the eyes look, in units: x right, y down, each about -1 to 1.
+ * @param gaze  Where the eyes look, in cells: x right, y down, each about -1 to 1.
  */
 export function drawCompanion(ctx, mood, t, speak = 0, gaze = { x: 0, y: 0 }) {
     const w = ctx.canvas.width, h = ctx.canvas.height;
-    const U = w / COLS;
-    const oy = (h - ROWS * U) / 2;
+    const C = w / COLS;
+    const oy = (h - ROWS * C) / 2;
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = SCREEN;
+    ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
-    const X = (u) => u * U;
-    const Y = (u) => oy + u * U;
-    // Everything is drawn twice: once blurred for the glow, once crisp on top.
-    const ink = (width, draw) => {
+    // Cells snap to half a cell, so movement steps like pixel art.
+    const snap = (v) => Math.round(v * 2) / 2;
+    const cell = (x, y, cw, ch) => ctx.fillRect(Math.round(x * C), Math.round(oy + y * C), Math.round(cw * C), Math.round(ch * C));
+    const glow = (fill, strength, draw) => {
         ctx.save();
-        ctx.strokeStyle = INK;
-        ctx.fillStyle = INK;
-        ctx.lineWidth = width * U;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowColor = 'rgba(255,255,255,0.55)';
-        ctx.shadowBlur = U * 0.8;
-        draw();
-        ctx.shadowBlur = 0;
+        ctx.fillStyle = fill;
+        ctx.shadowColor = fill === EYE ? 'rgba(255,255,255,0.55)' : fill;
+        ctx.shadowBlur = C * 0.9 * strength;
         draw();
         ctx.restore();
+        ctx.fillStyle = fill;
+        draw();
     };
-    const dot = (x, y, rx, ry = rx) => {
-        ctx.beginPath();
-        ctx.ellipse(X(x), Y(y), rx * U, Math.max(0.01, ry * U), 0, 0, Math.PI * 2);
-        ctx.fill();
-    };
-    const line = (x0, y0, x1, y1) => {
-        ctx.beginPath();
-        ctx.moveTo(X(x0), Y(y0));
-        ctx.lineTo(X(x1), Y(y1));
-        ctx.stroke();
-    };
-    /** An arc about (x, y); `up` bows upward like ∩, otherwise downward like ∪. */
-    const arc = (x, y, r, up, span = 0.8) => {
-        const mid = up ? -Math.PI / 2 : Math.PI / 2, half = Math.PI * span / 2;
-        ctx.beginPath();
-        ctx.arc(X(x), Y(y), r * U, mid - half, mid + half);
-        ctx.stroke();
-    };
-    const ring = (x, y, r) => {
-        ctx.beginPath();
-        ctx.arc(X(x), Y(y), r * U, 0, Math.PI * 2);
-        ctx.stroke();
-    };
-    const heart = (x, y, s) => {
-        ctx.beginPath();
-        ctx.moveTo(X(x), Y(y + s * 0.9));
-        ctx.bezierCurveTo(X(x - s * 1.4), Y(y - s * 0.1), X(x - s * 0.7), Y(y - s * 1.1), X(x), Y(y - s * 0.35));
-        ctx.bezierCurveTo(X(x + s * 0.7), Y(y - s * 1.1), X(x + s * 1.4), Y(y - s * 0.1), X(x), Y(y + s * 0.9));
-        ctx.fill();
-    };
-    const gx = Math.max(-1, Math.min(1, gaze.x)) * 0.9;
-    const gy = Math.max(-0.6, Math.min(1, gaze.y)) * 0.7;
+    const ex = snap(Math.max(-1, Math.min(1, gaze.x)));
+    const ey = snap(Math.max(-0.5, Math.min(1, gaze.y)));
     const blink = blinkAmount(t);
-    const id = mood.id;
-    const happy = id === 'pleased' || id === 'happy';
-    // Eyes.
-    ink(0.8, () => {
-        for (const left of [true, false]) {
-            const x = (left ? 7.4 : 16.6) + gx;
-            const y = 7.4 + gy + (id === 'thinking' ? -0.5 : 0);
-            if (happy || (id === 'wink' && !left)) {
-                arc(x, y + 0.9, 1.6, true, 0.85);
+    glow(EYE, 1, () => {
+        for (const bx of [6, 15]) {
+            const left = bx === 6;
+            const x = bx + ex;
+            const y = 5 + ey + (mood.id === 'thinking' ? -0.5 : 0);
+            if (mood.id === 'pleased' || mood.id === 'happy') {
+                // Happy: an upturned V.
+                cell(x, y + 2, 1, 1);
+                cell(x + 1, y + 1, 1, 1);
+                cell(x + 2, y + 2, 1, 1);
+                cell(x + 0.5, y + 1.5, 2, 0.5);
                 continue;
             }
-            if (id === 'heart') {
-                heart(x, y, 1.5);
+            if (mood.id === 'heart') {
+                // A pixel heart.
+                cell(x - 0.5, y + 0.5, 1.5, 1.5);
+                cell(x + 2, y + 0.5, 1.5, 1.5);
+                cell(x - 0.5, y + 1.5, 4, 1);
+                cell(x, y + 2.5, 3, 1);
+                cell(x + 1, y + 3.5, 1, 0.5);
+                continue;
+            }
+            if (mood.id === 'wink' && !left) {
+                cell(x, y + 2, 3, 0.5);
+                cell(x + 2.5, y + 1.5, 0.5, 0.5);
                 continue;
             }
             const open = Math.max(0, mood.openness * (1 - blink));
             if (open < 0.12) {
-                arc(x, y - 0.4, 1.35, false, 0.7);
+                // Shut: a line along the bottom of where the eye would be.
+                cell(x, y + 3.5, 3, 0.5);
                 continue;
             }
-            let r = 1.55;
-            if (id === 'surprised')
-                r = 1.9;
-            if (id === 'curious')
-                r = left ? 1.75 : 1.15;
-            if (id === 'sad' || id === 'angry')
-                r = 1.25;
-            const ry = r * Math.max(0.18, Math.min(1, open * (id === 'sleepy' ? 1 : 1)));
-            dot(x, y + (r - ry) * 0.6, r, ry);
-            if (id === 'sad')
-                line(x + (left ? -1.4 : 1.4), y - 2.2, x + (left ? 1.2 : -1.2), y - 2.9);
-            if (id === 'angry')
-                line(x + (left ? -1.5 : 1.5), y - 2.9, x + (left ? 1.2 : -1.2), y - 2.0);
-            if (id === 'curious' && !left)
-                line(x - 1.2, y - 2.6, x + 1.2, y - 2.9);
+            if (mood.id === 'surprised') {
+                // Wide and round: taller, with the corners cut.
+                cell(x + 0.5, y - 1, 2, 6);
+                cell(x, y - 0.5, 3, 5);
+                continue;
+            }
+            if (mood.id === 'curious') {
+                // One eye wider than the other, the head-tilt of a face.
+                const eh = left ? 5 : 3;
+                cell(x, y + (4 - eh) / 2, 3, eh);
+                if (!left)
+                    cell(x, y - 1, 3, 0.5);
+                continue;
+            }
+            const eh = Math.max(0.5, snap(4 * open));
+            const ty = y + (4 - eh) / 2;
+            cell(x, ty, 3, eh);
+            if (mood.id === 'sad') {
+                // Brows up at the inner corners.
+                if (left) {
+                    cell(x + 2, ty - 1.5, 1, 0.5);
+                    cell(x + 1, ty - 1, 1, 0.5);
+                    cell(x, ty - 0.5, 1, 0.5);
+                }
+                else {
+                    cell(x, ty - 1.5, 1, 0.5);
+                    cell(x + 1, ty - 1, 1, 0.5);
+                    cell(x + 2, ty - 0.5, 1, 0.5);
+                }
+            }
+            else if (mood.id === 'angry') {
+                // Brows down at the inner corners, cutting into the eye.
+                if (left) {
+                    cell(x, ty - 1.5, 1, 0.5);
+                    cell(x + 1, ty - 1, 1, 0.5);
+                    cell(x + 2, ty - 0.5, 1, 0.5);
+                }
+                else {
+                    cell(x + 2, ty - 1.5, 1, 0.5);
+                    cell(x + 1, ty - 1, 1, 0.5);
+                    cell(x, ty - 0.5, 1, 0.5);
+                }
+            }
         }
     });
-    // Cheeks: a short dash under the outer corner of each eye, when it is pleased.
-    if (happy || id === 'heart' || id === 'wink' || id === 'awake') {
-        ink(0.5, () => { line(5.0 + gx, 10.3 + gy, 6.3 + gx, 10.3 + gy); line(17.7 + gx, 10.3 + gy, 19.0 + gx, 10.3 + gy); });
-    }
-    // Mouth.
-    ink(0.6, () => {
-        const mx = 12 + gx * 0.5, my = 11.7 + gy * 0.5;
+    // Cheeks: one warm pixel under the outer corner of each eye.
+    glow(CHEEK, 0.45, () => { cell(5, 9, 1, 1); cell(18, 9, 1, 1); });
+    glow(EYE, 0.8, () => {
         if (speak > 0.02) {
-            dot(mx, my + 0.3, 1.0, 0.25 + speak * 0.85);
+            // Mid-word: an opening that grows with the sound.
+            const mh = snap(0.5 + speak * 1.5);
+            cell(11, 11, 2, mh);
+            cell(10.5, 11 + Math.max(0, mh - 0.5) / 2, 0.5, 0.5);
+            cell(13, 11 + Math.max(0, mh - 0.5) / 2, 0.5, 0.5);
         }
-        else if (happy || id === 'heart' || id === 'wink') {
-            // An open smile: a half disc, flat side up.
-            ctx.beginPath();
-            ctx.moveTo(X(mx - 1.35), Y(my - 0.2));
-            ctx.arc(X(mx), Y(my - 0.2), 1.35 * U, 0, Math.PI, false);
-            ctx.closePath();
-            ctx.fill();
+        else if (mood.id === 'pleased' || mood.id === 'happy' || mood.id === 'heart') {
+            cell(9, 11, 1, 1);
+            cell(10, 12, 4, 1);
+            cell(14, 11, 1, 1);
         }
         else if (mood.mouth === 'frown') {
-            arc(mx, my + 1.3, 1.2, true, 0.55);
+            cell(10, 12, 1, 1);
+            cell(11, 11, 2, 1);
+            cell(13, 12, 1, 1);
         }
         else if (mood.mouth === 'o') {
-            ring(mx, my + 0.3, 0.75);
+            cell(11, 11, 2, 0.5);
+            cell(11, 12.5, 2, 0.5);
+            cell(10.5, 11.5, 0.5, 1);
+            cell(13, 11.5, 0.5, 1);
         }
         else if (mood.mouth === 'smile') {
-            arc(mx, my - 0.9, 1.25, false, 0.55);
+            cell(10, 11, 1, 1);
+            cell(11, 12, 2, 1);
+            cell(13, 11, 1, 1);
         }
         else if (mood.mouth === 'line') {
-            line(mx - 0.8 + (id === 'thinking' || id === 'curious' ? 0.6 : 0), my + 0.2, mx + 0.8 + (id === 'thinking' || id === 'curious' ? 0.6 : 0), my + 0.2);
+            cell(mood.id === 'thinking' || mood.id === 'curious' ? 12 : 11, 12, 2, 0.5);
+        }
+        else {
+            cell(11.5, 12, 1, 0.5);
         }
     });
-    // A thought bubble over its shoulder, when it is pleased or thinking.
-    if (id === 'pleased' || id === 'thinking') {
-        ink(0.42, () => {
-            ring(20.2, 3.4, 1.35);
-            dot(18.35, 5.55, 0.32);
-            if (id === 'thinking') {
-                for (const dx of [-0.55, 0, 0.55])
-                    dot(20.2 + dx, 3.4, 0.16);
-            }
-            else
-                dot(20.45, 3.15, 0.38);
-        });
-    }
 }

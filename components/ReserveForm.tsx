@@ -5,7 +5,7 @@ import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
 import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
 import { CONTACT, EDITION, PRICE, DEFAULT_EDITION, type Edition } from '@/lib/kit'
 import { pricing, type Variant } from '@/lib/variants'
-import { SHELLS } from '@/lib/shells'
+import { ORDERABLE_SHELLS, isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
 import { useShell, setShell } from '@/lib/shell-store'
 import Swatch from '@/components/site/Swatch'
 import EditionPicker from '@/components/EditionPicker'
@@ -53,7 +53,11 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
   // Starts on a real colourway rather than empty, so the optional field is
   // optional in the sense that matters: ignoring it still produces an order.
   // Shared with every other colour control on the page (lib/shell-store.ts).
-  const shell = useShell()
+  // The hero shows all five colourways; only two are printed for this batch,
+  // so a buyer who arrives having previewed Ember orders the default rather
+  // than an order nobody can pack. The radio below shows what will be sent.
+  const previewed = useShell()
+  const shell = isOrderableShell(previewed) ? previewed : DEFAULT_SHELL
   const qtyRef = useRef<HTMLSelectElement>(null)
   const started = useRef(false)
   /**
@@ -415,12 +419,17 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         <legend className="t-label mb-2 p-0">
           Colour
         </legend>
+        {/* The page shows five; this batch is printed in two. Saying so here
+            is the difference between a limit and a disappointment. */}
+        <p className="text-[13px] mt-0 mb-2.5" style={{ color: 'var(--muted)' }}>
+          This batch is printed in black and white.
+        </p>
         <input type="hidden" name="shell" value={shell} />
         <div className="flex flex-wrap items-center gap-3">
           <div role="radiogroup" aria-label="Shell colour"
                className="inline-flex items-center gap-2.5 p-2.5"
                style={{ borderRadius: 999, border: '1px solid var(--line)' }}>
-            {SHELLS.map((s) => (
+            {ORDERABLE_SHELLS.map((s) => (
               <button
                 key={s.id} type="button" role="radio"
                 aria-checked={s.id === shell} aria-label={s.name}
@@ -439,7 +448,7 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
             ))}
           </div>
           <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            {SHELLS.find((s) => s.id === shell)?.name ?? ''}
+            {ORDERABLE_SHELLS.find((s) => s.id === shell)?.name ?? ''}
           </span>
         </div>
       </fieldset>

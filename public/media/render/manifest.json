@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-16",
-  "source": "public/models/stackchan-body.glb + lib/robot-body.ts \u2014 the robot the live hero uses",
+  "generated": "2026-10-17",
+  "source": "public/models/stackchan-body.glb + lib/robot-body.ts — the robot the live hero uses",
   "note": "Every entry is a render and is labelled as one on the page.",
   "assets": [
     {
@@ -95,12 +95,12 @@
     },
     {
       "file": "/media/render/lineup@2400.webp",
-      "alt": "Five PebbleRobos standing in an arc, black and white in turn",
+      "alt": "Five PebbleRobos standing in an arc, one in each colourway",
       "render": true
     },
     {
       "file": "/media/render/lineup@1200.webp",
-      "alt": "Five PebbleRobos standing in an arc, black and white in turn",
+      "alt": "Five PebbleRobos standing in an arc, one in each colourway",
       "render": true
     },
     {
@@ -145,7 +145,7 @@
     },
     {
       "file": "/media/render/lineup-compact@1600.webp",
-      "alt": "Five PebbleRobos standing close together, black and white in turn",
+      "alt": "Five PebbleRobos standing close together, one in each colourway",
       "render": true
     },
     {
@@ -156,6 +156,21 @@
     {
       "file": "/media/render/loop-dance.webm",
       "alt": "public/media/render/loop-dance",
+      "render": true
+    },
+    {
+      "file": "/media/shots/float-shell-ember.webp",
+      "alt": "PebbleRobo in Ember",
+      "render": true
+    },
+    {
+      "file": "/media/shots/float-shell-signal.webp",
+      "alt": "PebbleRobo in Signal",
+      "render": true
+    },
+    {
+      "file": "/media/shots/float-shell-moss.webp",
+      "alt": "PebbleRobo in Moss",
       "render": true
     }
   ]

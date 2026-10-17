@@ -18,8 +18,8 @@ import { Reflector } from 'three/examples/jsm/objects/Reflector.js'
  *
  *   - the CoreS3 Lite on the head's front frame, in its own grey housing (it is
  *     a bought module, so it is the same grey on a black robot and a white
- *     one), with a curved cover glass over the panel, which shows the face in
- *     white on the display's deep blue
+ *     one), with a curved cover glass over a true-black panel, which shows the
+ *     face in white pixels with a warm pixel on each cheek
  *   - the pan SCS0009 standing in the neck, shaft down into the base's horn
  *   - the tilt SCS0009 across the top of the neck, driving the horn plate
  *   - the bus-servo adapter in the base, its 5.5 x 2.1 mm DC socket in the
