@@ -267,6 +267,7 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         // The whole record, not just the address: this profile exists so an
         // order that stops at checkout is still a person somebody can call.
         void identifyPerson({
+          stage: 'ordered',
           email: local.data.email,
           name: local.data.name,
           phone: local.data.phone,
@@ -392,8 +393,48 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
     track(EV.reserveFormStarted)
   }
 
+  /**
+   * A profile the moment there is an address to attach one to.
+   *
+   * Until now a person existed in Mixpanel only once their order row was
+   * written, so everybody who typed an email and then stopped — the people
+   * most worth a follow-up — were invisible there. This writes the profile
+   * when the email field is left, marked as still filling, so an abandoned
+   * form and an abandoned payment can be told apart.
+   *
+   * Once per address: identifying to an id that is already current is a
+   * no-op, but there is no reason to send the request again on every blur.
+   */
+  const identified = useRef<string | null>(null)
+  const onFieldBlur = (e: React.FocusEvent<HTMLFormElement>) => {
+    // onBlurCapture types its target as the form; the element that actually
+    // lost focus is the one to read.
+    const el = e.target as unknown as HTMLInputElement
+    if (!el || el.name !== 'email') return
+    const email = el.value.trim().toLowerCase()
+    // The same shape the schema accepts, loosely: no point identifying
+    // someone by half an address they are still typing.
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) return
+    if (identified.current === email) return
+    identified.current = email
+
+    const form = el.form
+    const value = (name: string) => (form?.elements.namedItem(name) as HTMLInputElement | null)?.value?.trim() || undefined
+    void identifyPerson({
+      email,
+      name: value('name'),
+      phone: value('phone'),
+      city: value('city'),
+      pincode: value('pincode'),
+      qty,
+      edition,
+      stage: 'filling',
+    })
+  }
+
   return (
-    <form onSubmit={onSubmit} onFocusCapture={onFirstTouch} noValidate className="max-w-[600px]">
+    <form onSubmit={onSubmit} onFocusCapture={onFirstTouch} onBlurCapture={onFieldBlur}
+          noValidate className="max-w-[600px]">
       {/* On the home page, one thing to buy: the robot, ready to use. The
           field is still sent, because the order records it and an order
           without one is stored as the kit (see README). At /kit the buyer

@@ -139,6 +139,21 @@ export async function initAnalytics(): Promise<void> {
       record_network: false,
       record_canvas: false,
       persistence: 'localStorage',
+      /**
+       * Send each call as it happens, rather than batching.
+       *
+       * mixpanel-browser batches requests for five seconds and, on pagehide
+       * or visibilitychange, flushes **only the events queue** — see
+       * request_batchers.events in its source. Profile updates sit in a
+       * separate queue that nothing flushes on unload, so a `people.set`
+       * made moments before a buyer switches to their UPI app is stranded in
+       * localStorage until they return to this site, which most never do.
+       *
+       * That is precisely the window every profile here is written in. At
+       * this site's traffic the extra requests cost nothing; a lost profile
+       * costs the one thing profiles are for, which is knowing who to call.
+       */
+      batch_requests: false,
       // We send our own, with useful properties attached.
       track_pageview: false,
       debug: false,
@@ -246,6 +261,15 @@ export type BuyerProfile = {
   profession?: string
   qty?: number
   edition?: Edition
+  /**
+   * Where in the form this person is.
+   *
+   * 'filling' is somebody who has typed an email and nothing more — there is
+   * no order yet, so the profile must not claim one. 'ordered' is a row in
+   * the database. The difference matters because the whole point of writing
+   * a profile this early is to be able to tell those two apart later.
+   */
+  stage?: 'filling' | 'ordered'
 }
 
 /**
@@ -284,10 +308,12 @@ export async function identifyPerson(buyer: string | BuyerProfile): Promise<void
     mp?.people.set_once({ 'First Seen': new Date().toISOString() })
     // Mixpanel's reserved names, so these land in the columns its people view
     // already knows how to show.
-    const profile: Record<string, string | number> = {
-      $email: b.email,
-      'Last Order At': new Date().toISOString(),
-    }
+    const now = new Date().toISOString()
+    const profile: Record<string, string | number> = { $email: b.email }
+    // Only an actual order stamps an order date. Somebody who is still
+    // typing has not ordered anything, and a profile that says they have is
+    // a profile nobody can act on.
+    if (b.stage !== 'filling') profile['Last Order At'] = now
     if (b.name) profile.$name = b.name
     if (b.phone) profile.$phone = b.phone
     if (b.city) profile.$city = b.city
@@ -299,6 +325,7 @@ export async function identifyPerson(buyer: string | BuyerProfile): Promise<void
     // Set on the order, cleared on payment: what is left is the list of people
     // who filled the form and did not pay.
     mp?.people.set_once({ 'Booking Started At': new Date().toISOString() })
+    if (b.stage === 'filling') mp?.people.set_once({ 'Form Started At': now })
   } catch { /* analytics must never break a purchase */ }
 }
 
