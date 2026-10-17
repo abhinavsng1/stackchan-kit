@@ -20,18 +20,28 @@ export function magicEnabled(): boolean {
 }
 
 /**
- * Whether to offer cash on delivery inside the one-tap window.
+ * Whether to offer Razorpay's own cash-on-delivery inside the one-tap window.
  *
- * On by default, because that is this product's arrangement. It is a switch
- * rather than a constant because COD in Magic Checkout has to be enabled by
- * Razorpay on the account, and a shipping method that offers a payment
- * option the account cannot take is one Razorpay may reject outright —
- * taking every other payment method down with it. MAGIC_COD=0 is the way to
- * find out whether that is what is happening, without a deploy to change
- * code.
+ * Off, and not as a workaround.
+ *
+ * Razorpay's COD is not this product's cash on delivery. Ours is
+ * balance_due_paise: the deposit settles through the gateway and a courier
+ * collects the rest against that figure, which Razorpay never sees. Theirs
+ * means Razorpay marks the whole order unpaid and the entire price is
+ * collected at the door.
+ *
+ * One-tap sells the robot outright at the full price, so there is nothing
+ * left to collect; the deposit plan keeps its cash balance and does not go
+ * through this window at all. Neither plan wants the method, and offering
+ * one the account cannot take is what broke the window: Razorpay rejected
+ * the shipping method, the address would not save, and every other payment
+ * option greyed out with it.
+ *
+ * MAGIC_COD=1 turns it on, for the day one_cc_partial_payments_cod is
+ * enabled on the account and a ₹499 advance can run through here too.
  */
 export function magicCodEnabled(): boolean {
-  return process.env.MAGIC_COD !== '0'
+  return process.env.MAGIC_COD === '1'
 }
 
 /**

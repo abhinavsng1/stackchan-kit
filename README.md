@@ -324,7 +324,25 @@ Razorpay dashboard — they must be publicly reachable and unauthenticated:
 * Coupon settings → apply promotions: `/api/magic/apply-promotion`
 * Shipping setup → API → shipping info: `/api/magic/shipping-info`
 
-Then confirm with Razorpay **how a partial COD advance arrives on the order**.
-`lib/magic.ts` derives it from `amount` less `amount_paid` and flags anything
-that does not add up as `needs_review`; a documented field would be better than
-arithmetic.
+### One-tap sells prepaid, and that is on purpose
+
+`GET /v1/preferences` for the live key reports `methods.cod: false` and
+`1cc.configs.one_cc_partial_payments_cod: false` on this account. Neither
+matters, because Razorpay's COD is not this product's cash on delivery:
+
+| Plan | Through Razorpay | At the door |
+|---|---|---|
+| ₹4,999 full — the one-tap path | ₹4,999 | nothing |
+| ₹499 deposit — the order form | ₹499 | ₹4,500, collected by the courier against `balance_due_paise` |
+
+Razorpay never sees the second half of a deposit booking. Its own COD method
+would mean the *whole* order is unpaid until the door, which is not an offer
+this site makes anywhere.
+
+So `shipping-info` answers `cod: false`. Offering a method the account cannot
+take is what broke the window during testing: Razorpay rejected the shipping
+method, the address would not save, and every other payment option greyed out
+with it. `MAGIC_COD=1` turns it back on for the day `one_cc_partial_payments_cod`
+is enabled and a ₹499 advance can run through here too — until then
+`lib/magic.ts` still reads a partial payment from `amount` less `amount_paid`
+and flags anything that does not add up as `needs_review`.

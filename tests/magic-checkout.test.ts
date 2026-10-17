@@ -102,15 +102,18 @@ describe('answering whether we ship there', () => {
     expect(servicedPincode(undefined)).toBe(false)
   })
 
-  it('offers free delivery and cash on delivery where we ship', () => {
+  it('offers free delivery where we ship, and never Razorpay\u2019s own COD', () => {
+    // One-tap sells the robot outright, so nothing is left for the door —
+    // and the account cannot take COD anyway. Offering it is what made
+    // Razorpay reject the whole shipping method.
     const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }).shipping_methods
-    expect(method).toMatchObject({ id: '1', serviceable: true, shipping_fee: 0, cod: true, cod_fee: 0 })
+    expect(method).toMatchObject({ id: '1', serviceable: true, shipping_fee: 0, cod: false, cod_fee: 0 })
   })
 
-  it('can be told to stop offering cash on delivery, without a deploy', () => {
-    process.env.MAGIC_COD = '0'
+  it('can offer it the day the account can take it', () => {
+    process.env.MAGIC_COD = '1'
     const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }).shipping_methods
-    expect(method).toMatchObject({ serviceable: true, cod: false, cod_fee: 0 })
+    expect(method).toMatchObject({ serviceable: true, cod: true })
   })
 
   it('offers nothing where we do not, and charges no COD fee either', () => {
