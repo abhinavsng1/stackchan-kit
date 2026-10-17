@@ -171,7 +171,7 @@ alter table preorders add column if not exists balance_payment_id text;
 -- A code is a promise about money, so every limit that promise depends on is
 -- a column here rather than a rule in application code: which plans it works
 -- on, how many times it may be used, how much it can ever be worth. The
--- application reads them; it does not decide them.
+-- application reads them, and does not decide them.
 --
 -- Redemptions are counted when a payment settles, never when a code is typed.
 -- A code that counted on entry could be exhausted by people who never paid.

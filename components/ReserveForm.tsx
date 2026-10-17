@@ -6,6 +6,8 @@ import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
 import { CONTACT, EDITION, PRICE, DEFAULT_EDITION, type Edition } from '@/lib/kit'
 import { pricing, type Variant } from '@/lib/variants'
 import { ORDERABLE_SHELLS, isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
+import { quote, rupees, type Plan } from '@/lib/plans'
+import { EMI_TERMS, emiFromLine } from '@/lib/emi'
 import { useShell, setShell } from '@/lib/shell-store'
 import Swatch from '@/components/site/Swatch'
 import CouponField from '@/components/CouponField'
@@ -46,10 +48,17 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
    * quoting ₹3,500 — the small print contradicting the price above it, which
    * is exactly where a buyer decides whether to trust the rest.
    */
-  const owed = variant ? pricing(variant).balance : PRICE.balance
-  const paysNow = variant ? pricing(variant).deposit : PRICE.deposit
-  const total = variant ? pricing(variant).total : PRICE.now
   const [state, setState] = useState<State>({ kind: 'idle' })
+  /**
+   * How they want to pay, and what a code took off.
+   *
+   * Both live here rather than in the summary below because every figure on
+   * this form depends on them — and because the plan has to travel with the
+   * order, so the server charges for the thing the buyer was looking at.
+   */
+  const [plan, setPlan] = useState<Plan>('deposit')
+  const [discountPaise, setDiscountPaise] = useState(0)
+  const [couponCode, setCouponCode] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
   // Starts on a real colourway rather than empty, so the optional field is
   // optional in the sense that matters: ignoring it still produces an order.
@@ -64,6 +73,13 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
   // against it and a ref read during render is both stale and wrong on the
   // server. The ref stays: the submit path reads the live DOM value.
   const [qty, setQty] = useState(1)
+
+  // The same function the server prices with, so the form cannot show one
+  // number and the payment window another.
+  const q = quote(plan, qty, variant ?? null, discountPaise)
+  const paysNow = rupees(q.nowPaise)
+  const owed = rupees(q.balancePaise)
+  const total = rupees(q.listPaise)
   const started = useRef(false)
   /**
    * Held so that closing the payment modal and pressing the button again
@@ -208,8 +224,10 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
       twclid: storedTwclid(),
       xid: (xid.current ||= newOrderId()),
       company: get('company'),
-      // The code as typed. What it is worth is decided by the server.
+      // The code as typed, and the plan chosen. What either is worth is
+      // decided by the server.
       coupon: get('coupon'),
+      plan: get('plan'),
       // Which price this buyer was shown. Absent on the kit page.
       ...(variant ? { variant } : {}),
     }
@@ -309,6 +327,10 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         token: token.current,
         entity: CONTACT.entity,
         description: `${EDITION[ordered.current].name}, batch 01`,
+        // Both are re-checked and re-priced server-side before anything is
+        // charged; sending them keeps the window showing what the form did.
+        plan,
+        coupon: couponCode,
       })
       if (outcome.status === 'paid') {
         recordPurchase({ qty: local_qty(), edition: ordered.current })
@@ -462,10 +484,14 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
       </fieldset>
 
       <CouponField
-        plan="deposit"
+        plan={plan}
         qty={qty}
         variant={variant ?? null}
         disabled={busy}
+        onApplied={(applied) => {
+          setDiscountPaise(applied?.discountPaise ?? 0)
+          setCouponCode(applied?.code ?? null)
+        }}
       />
 
       {/* Honeypot. Hidden from people and from screen readers alike. */}
@@ -474,6 +500,46 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         <input id="company" name="company" tabIndex={-1} autoComplete="off" />
       </div>
 
+      {/* How to pay. Two cards rather than a select, because the difference
+          between them is a sentence each, not a word. The deposit leads: it
+          is what most people choose and what the page has promised all the
+          way down. */}
+      <fieldset className="border-0 p-0 m-0 mt-8">
+        <legend className="t-label mb-2.5 p-0">How would you like to pay?</legend>
+        <input type="hidden" name="plan" value={plan} />
+        <div role="radiogroup" aria-label="How to pay" className="grid gap-2.5 sm:grid-cols-2">
+          {([
+            ['deposit', `Book for ${rupees(quote('deposit', qty, variant ?? null, discountPaise).nowPaise)}`,
+             `${rupees(quote('deposit', qty, variant ?? null, discountPaise).balancePaise)} in cash when it is delivered`],
+            ['full', `Pay ${rupees(quote('full', qty, variant ?? null, discountPaise).nowPaise)} now`,
+             `Nothing at the door. ${EMI_TERMS.availability}`],
+          ] as [Plan, string, string][]).map(([value, title, detail]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={plan === value}
+              disabled={busy}
+              onClick={() => setPlan(value)}
+              className="text-left cursor-pointer w-full p-4"
+              style={{
+                borderRadius: 14,
+                border: `1px solid ${plan === value ? 'var(--ink)' : 'var(--line)'}`,
+                background: plan === value ? 'var(--surface)' : 'transparent',
+              }}
+            >
+              <span className="block text-[15px] font-medium">{title}</span>
+              <span className="block text-[13.5px] mt-1" style={{ color: 'var(--muted)' }}>{detail}</span>
+            </button>
+          ))}
+        </div>
+        {plan === 'full' && emiFromLine() && (
+          <p className="text-[13px] mt-2.5 mb-0" style={{ color: 'var(--muted)' }}>
+            {emiFromLine()}. {EMI_TERMS.noCost}
+          </p>
+        )}
+      </fieldset>
+
       {/* Said before the button, not after: the buyer should know exactly
           what this payment is and what is still to come. */}
       <dl className="mt-8 m-0 border-t border-b text-[15px]" style={{ borderColor: 'var(--line)' }}>
@@ -481,8 +547,16 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
           <dt className="font-medium">Pay now to book</dt>
           <dd className="m-0 t-display text-[24px] leading-none">{paysNow}</dd>
         </div>
+        {discountPaise > 0 && (
+          <div className="flex items-baseline justify-between gap-4 py-3 border-t" style={{ borderColor: 'var(--line-soft)' }}>
+            <dt className="text-[var(--muted)]">{couponCode}</dt>
+            <dd className="m-0 t-mono" style={{ color: 'var(--accent-ink)' }}>−{rupees(discountPaise)}</dd>
+          </div>
+        )}
         <div className="flex items-baseline justify-between gap-4 py-3 border-t" style={{ borderColor: 'var(--line-soft)' }}>
-          <dt className="text-[var(--muted)]">Remaining, charged after booking, on delivery</dt>
+          <dt className="text-[var(--muted)]">
+            {plan === 'full' ? 'Due on delivery' : 'Remaining, charged after booking, on delivery'}
+          </dt>
           <dd className="m-0 t-mono">{owed}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-4 py-3 border-t" style={{ borderColor: 'var(--line-soft)' }}>
@@ -495,14 +569,15 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         <button type="submit" className="btn btn-brand" disabled={busy}>
           {state.kind === 'submitting' ? 'Saving…'
             : state.kind === 'paying' ? 'Opening payment…'
-            : `Book for ${paysNow}`}
+            : plan === 'full' ? `Pay ${paysNow}` : `Book for ${paysNow}`}
         </button>
         <p className="t-label m-0">Card · UPI · netbanking · EMI</p>
       </div>
 
       <p className="text-[12.5px] text-[var(--muted)] mt-4 mb-0 max-w-[52ch]">
-        Only {paysNow} is charged now. The remaining {owed} is charged after
-        booking: the courier collects it in cash when the box reaches you. Your address and phone go to the courier, because that is
+        {plan === 'full'
+          ? `${paysNow} is charged now and nothing is collected on delivery.`
+          : `Only ${paysNow} is charged now. The remaining ${owed} is charged after booking: the courier collects it in cash when the box reaches you.`} Your address and phone go to the courier, because that is
         how a parcel arrives, and to Mixpanel so we can follow up if an order does
         not complete. Payment is handled by Razorpay, and your card details never
         reach us.

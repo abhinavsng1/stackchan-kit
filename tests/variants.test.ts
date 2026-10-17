@@ -95,11 +95,23 @@ describe('what the courier is told to collect', () => {
 describe('the form small print', () => {
   it('quotes the balance for the arm the buyer is looking at', async () => {
     // "₹4,500" under a form on a ₹3,500 page is the small print contradicting
-    // the price above it.
+    // the price above it. The form now prices through quote(), so what is
+    // checked is that the arm reaches it — and that no figure is hardcoded
+    // into the copy alongside.
     const src = await import('node:fs').then((fs) =>
       fs.readFileSync(new URL('../components/ReserveForm.tsx', import.meta.url), 'utf8'))
-    expect(src).toContain('const owed = variant ? pricing(variant).balance : PRICE.balance')
+    expect(src).toContain('quote(plan, qty, variant ?? null, discountPaise)')
+    expect(src).toContain('const owed = rupees(q.balancePaise)')
     expect(src).not.toMatch(/courier collects \{PRICE\.balance\}/)
+  })
+
+  it('prices both plans off the same arm, so neither contradicts the page', async () => {
+    const { quote } = await import('@/lib/plans')
+    const { pricing } = await import('@/lib/variants')
+    for (const arm of ['lifetime', 'subscription'] as const) {
+      expect(quote('deposit', 1, arm).balancePaise).toBe(pricing(arm).balancePaise)
+      expect(quote('full', 1, arm).nowPaise).toBe(pricing(arm).totalPaise)
+    }
   })
 })
 
