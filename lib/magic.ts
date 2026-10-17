@@ -20,6 +20,21 @@ export function magicEnabled(): boolean {
 }
 
 /**
+ * Whether to offer cash on delivery inside the one-tap window.
+ *
+ * On by default, because that is this product's arrangement. It is a switch
+ * rather than a constant because COD in Magic Checkout has to be enabled by
+ * Razorpay on the account, and a shipping method that offers a payment
+ * option the account cannot take is one Razorpay may reject outright —
+ * taking every other payment method down with it. MAGIC_COD=0 is the way to
+ * find out whether that is what is happening, without a deploy to change
+ * code.
+ */
+export function magicCodEnabled(): boolean {
+  return process.env.MAGIC_COD !== '0'
+}
+
+/**
  * The cart, as Magic Checkout wants it.
  *
  * Both `line_items` and `line_items_total` are required: an order without the
@@ -90,12 +105,15 @@ export function shippingFor(address: MagicAddress): { id: string; zipcode?: stri
     zipcode: address.zipcode,
     country: address.country ?? 'IN',
     shipping_methods: [{
-      id: 'standard',
+      // Razorpay's own example numbers these. A non-numeric id is not
+      // documented as a problem, but matching the documented shape costs
+      // nothing and removes one thing to wonder about.
+      id: '1',
       name: 'Standard delivery',
       description: 'Free delivery across India',
       serviceable,
       shipping_fee: 0,
-      cod: serviceable,
+      cod: serviceable && magicCodEnabled(),
       // Zero whenever cod is false, which Razorpay requires, and zero when it
       // is true because we do not charge for paying at the door.
       cod_fee: 0,

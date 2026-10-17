@@ -14,7 +14,7 @@ import { PRICE } from '@/lib/kit'
 
 const LIST = PRICE.depositPaise + PRICE.balancePaise
 
-afterEach(() => { delete process.env.MAGIC_CHECKOUT })
+afterEach(() => { delete process.env.MAGIC_CHECKOUT; delete process.env.MAGIC_COD })
 
 describe('the flag', () => {
   it('is off unless it is explicitly on', () => {
@@ -104,7 +104,13 @@ describe('answering whether we ship there', () => {
 
   it('offers free delivery and cash on delivery where we ship', () => {
     const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }).shipping_methods
-    expect(method).toMatchObject({ serviceable: true, shipping_fee: 0, cod: true, cod_fee: 0 })
+    expect(method).toMatchObject({ id: '1', serviceable: true, shipping_fee: 0, cod: true, cod_fee: 0 })
+  })
+
+  it('can be told to stop offering cash on delivery, without a deploy', () => {
+    process.env.MAGIC_COD = '0'
+    const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }).shipping_methods
+    expect(method).toMatchObject({ serviceable: true, cod: false, cod_fee: 0 })
   })
 
   it('offers nothing where we do not, and charges no COD fee either', () => {
