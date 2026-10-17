@@ -9,7 +9,7 @@ export default function Demo() {
   return (
     // One window tall on a wide screen: header, modes, robot and words all in
     // view together, so nobody has to scroll to see what they just picked.
-    <section id="does" className="on-stage scroll-mt-0 overflow-hidden min-h-[100svh] flex flex-col justify-center demo-section">
+    <section id="does" className="on-stage overflow-hidden min-h-[100svh] flex flex-col justify-center demo-section">
       <div className="wrap demo-fill">
         <div className="grid lg:grid-cols-12 gap-x-10 gap-y-4 mb-4 sm:mb-7 items-end">
           <Reveal className="lg:col-span-7">

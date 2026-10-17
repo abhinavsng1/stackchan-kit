@@ -780,6 +780,10 @@ p { text-wrap: pretty; }
    One screen: below the fixed nav, a compact header, all the chips, a stage
    sized to what is left, and the words for the mode. */
 .demo-section { padding-block: 76px 16px; }
+/* The header floats over the page, so a jump to this section landed with its
+   label underneath the nav pill. One screen tall and centred means padding
+   alone cannot fix it — the scroll has to stop lower. */
+#does { scroll-margin-top: 96px; }
 @media (min-width: 640px) { .demo-section { padding-block: clamp(72px, 9vh, 104px) clamp(40px, 6vh, 72px); } }
 @media (max-width: 639px) {
   .demo-tab { font-size: 13.5px; padding: 9px 4px; text-align: center; justify-content: center; }
