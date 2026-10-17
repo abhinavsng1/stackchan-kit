@@ -56,6 +56,17 @@ export type AdminOrder = {
   recoverySentAt: Date | null
   /** The booking's own link, for the payment or the balance page. */
   token: string | null
+  /* --- the rest of the record, for the row that gets opened --- */
+  address: string | null
+  variant: string | null
+  discountPaise: number
+  razorpayOrderId: string | null
+  razorpayPaymentId: string | null
+  balancePaymentId: string | null
+  balanceCollectedAt: Date | null
+  needsReview: boolean
+  archivedAt: Date | null
+  adminNote: string | null
 }
 
 /** Which of the three buckets a row belongs in. */
@@ -104,6 +115,16 @@ function toOrder(r: Record<string, unknown>): AdminOrder {
     balanceAskedAt: date(r.balance_asked_at),
     recoverySentAt: date(r.recovery_sent_at),
     token: text(r.payment_token),
+    address: text(r.address),
+    variant: text(r.variant),
+    discountPaise: Number(r.discount_paise ?? 0),
+    razorpayOrderId: text(r.razorpay_order_id),
+    razorpayPaymentId: text(r.razorpay_payment_id),
+    balancePaymentId: text(r.balance_payment_id),
+    balanceCollectedAt: date(r.balance_collected_at),
+    needsReview: r.needs_review === true,
+    archivedAt: date(r.archived_at),
+    adminNote: text(r.admin_note),
   }
 }
 
@@ -112,10 +133,11 @@ export async function listOrders(limit = 500): Promise<AdminOrder[]> {
   if (!sql) return []
   try {
     const rows = await sql`
-    select id, name, email, phone, city, pincode, qty, edition, plan, shell,
+    select id, name, email, phone, address, city, pincode, qty, edition, plan, shell,
            coupon_code, discount_paise, variant, amount_paid_paise, balance_due_paise,
-           created_at, paid_at, balance_paid_at, balance_asked_at, recovery_sent_at,
-           payment_token
+           created_at, paid_at, balance_paid_at, balance_collected_at, balance_asked_at,
+           recovery_sent_at, payment_token, razorpay_order_id, razorpay_payment_id,
+           balance_payment_id, needs_review, archived_at, admin_note
       from preorders
      order by created_at desc
      limit ${Math.max(1, Math.min(2000, limit))}`
@@ -202,4 +224,106 @@ export function whatsappLink(order: AdminOrder, siteUrl: string): string | null 
       : `Hi ${first}, this is PebbleRobo. Your order is paid in full and on its way.`
 
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`
+}
+
+/* -------------------------------- actions ------------------------------- */
+
+/**
+ * What the dashboard is allowed to do to an order.
+ *
+ * A fixed vocabulary rather than a general update, because three of these
+ * settle money that never passed through the gateway and one destroys a row.
+ * Each writes a note saying a person did it, so a payment with no Razorpay id
+ * has an explanation attached instead of looking like a bug six months later.
+ */
+export const ACTIONS = [
+  'archive', 'unarchive', 'delete',
+  'mark_deposit_paid', 'mark_balance_collected', 'clear_review',
+] as const
+export type Action = (typeof ACTIONS)[number]
+
+export const isAction = (v: unknown): v is Action =>
+  typeof v === 'string' && (ACTIONS as readonly string[]).includes(v)
+
+export type ActionResult =
+  | { ok: true; note?: string }
+  | { ok: false; error: string }
+
+const stamp = (what: string) => `${what} by hand on ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`
+
+export async function applyAction(id: number, action: Action, quote: {
+  /** What this booking should have paid now, recomputed by the caller. */
+  nowPaise: number
+  balancePaise: number
+}): Promise<ActionResult> {
+  const sql = client()
+  if (!sql) return { ok: false, error: 'No database.' }
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'Unknown order.' }
+
+  try {
+    if (action === 'archive') {
+      await sql`update preorders set archived_at = now() where id = ${id}`
+      return { ok: true, note: 'Archived.' }
+    }
+
+    if (action === 'unarchive') {
+      await sql`update preorders set archived_at = null where id = ${id}`
+      return { ok: true, note: 'Back in the list.' }
+    }
+
+    if (action === 'delete') {
+      // Deliberately a hard delete, and deliberately the only one. Archiving
+      // is what "I do not want to see this" means; this is for a row that
+      // should never have existed — a test, or somebody who asked to be
+      // erased — and the caller asks twice before getting here.
+      const gone = await sql`delete from preorders where id = ${id} returning id`
+      return gone.length
+        ? { ok: true, note: 'Deleted. That one is gone for good.' }
+        : { ok: false, error: 'That order no longer exists.' }
+    }
+
+    if (action === 'mark_deposit_paid') {
+      // Money that arrived some other way — a transfer, a UPI to a phone.
+      // razorpay_payment_id stays null on purpose: there is no gateway
+      // payment to reconcile this against, and inventing an id would put a
+      // string in the record that matches nothing in Razorpay.
+      const done = await sql`
+        update preorders
+           set paid_at           = now(),
+               amount_paid_paise = ${quote.nowPaise},
+               balance_due_paise = ${quote.balancePaise},
+               admin_note        = ${stamp('Deposit marked paid')}
+         where id = ${id} and paid_at is null
+        returning id`
+      return done.length
+        ? { ok: true, note: 'Marked paid. No gateway payment is attached to it.' }
+        : { ok: false, error: 'That order is already paid for.' }
+    }
+
+    if (action === 'mark_balance_collected') {
+      // The courier handed over cash, or it arrived some other way. Zeroing
+      // what is owed is the point: that column is what a courier is told to
+      // collect, and asking twice is the worst thing this page can cause.
+      const done = await sql`
+        update preorders
+           set balance_collected_at = now(),
+               balance_due_paise    = 0,
+               admin_note           = ${stamp('Balance marked collected')}
+         where id = ${id} and paid_at is not null and balance_due_paise > 0
+        returning id`
+      return done.length
+        ? { ok: true, note: 'Balance settled. Nothing is owed at the door.' }
+        : { ok: false, error: 'That order has no balance outstanding.' }
+    }
+
+    if (action === 'clear_review') {
+      await sql`update preorders set needs_review = false where id = ${id}`
+      return { ok: true, note: 'Cleared.' }
+    }
+
+    return { ok: false, error: 'Unknown action.' }
+  } catch (e) {
+    console.error('[admin-orders] action failed', { id, action, error: String(e) })
+    return { ok: false, error: 'That did not go through.' }
+  }
 }

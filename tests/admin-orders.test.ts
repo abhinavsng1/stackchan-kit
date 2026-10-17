@@ -15,7 +15,10 @@ const order = (over: Partial<AdminOrder> = {}): AdminOrder => ({
   edition: 'assembled', plan: 'deposit', shell: 'graphite', couponCode: null,
   paidPaise: 0, duePaise: 49_900, createdAt: new Date('2026-10-01T10:00:00Z'),
   paidAt: null, balancePaidAt: null, balanceAskedAt: null, recoverySentAt: null,
-  token: 'd'.repeat(32), ...over,
+  token: 'd'.repeat(32), address: '42, Sector 18', variant: null, discountPaise: 0,
+  razorpayOrderId: null, razorpayPaymentId: null, balancePaymentId: null,
+  balanceCollectedAt: null, needsReview: false, archivedAt: null, adminNote: null,
+  ...over,
 })
 
 describe('the three groups', () => {
@@ -110,5 +113,46 @@ describe('the WhatsApp message', () => {
     const text = decodeURIComponent(whatsappLink(order(), site)!)
     expect(text).toContain('Hi Asha,')
     expect(text).not.toContain('Asha Rao')
+  })
+})
+
+describe('what the dashboard may do to an order', () => {
+  it('knows its own vocabulary, and refuses anything else', async () => {
+    const { isAction, ACTIONS } = await import('@/lib/admin-orders')
+    expect(ACTIONS).toContain('archive')
+    expect(ACTIONS).toContain('delete')
+    expect(ACTIONS).toContain('mark_deposit_paid')
+    expect(ACTIONS).toContain('mark_balance_collected')
+    expect(isAction('refund')).toBe(false)
+    expect(isAction('')).toBe(false)
+  })
+})
+
+describe('the action route', () => {
+  const call = async (body: unknown, auth = true) => {
+    process.env.ADMIN_PASSWORD = 'pw'
+    const { POST } = await import('@/app/api/admin/orders/[id]/route')
+    return POST(
+      new Request('https://pebblerobo.com/api/admin/orders/1', {
+        method: 'POST',
+        headers: auth ? { authorization: `Basic ${Buffer.from('a:pw').toString('base64')}` } : {},
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ id: '1' }) },
+    )
+  }
+
+  it('asks for the password first', async () => {
+    expect((await call({ action: 'archive' }, false)).status).toBe(401)
+  })
+
+  it('refuses an action it does not know', async () => {
+    expect((await call({ action: 'refund' })).status).toBe(400)
+  })
+
+  it('refuses to delete without a second confirmation', async () => {
+    const res = await call({ action: 'delete' })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/confirm/i)
   })
 })

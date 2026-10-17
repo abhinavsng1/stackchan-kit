@@ -239,3 +239,20 @@ create table if not exists plan_chosen (
 -- "a person should look at this order before it ships".
 alter table preorders add column if not exists needs_review boolean not null default false;
 create index if not exists preorders_needs_review on preorders (created_at) where needs_review;
+
+-- ---------------------------------------------------------------------------
+-- The back office. Additive and safe to re-run.
+--
+-- Archiving hides an order from the working list without destroying it: a
+-- test booking, a duplicate, somebody who asked to be removed. The row stays,
+-- because an order that was once real is part of the record even when it is
+-- no longer worth looking at.
+alter table preorders add column if not exists archived_at timestamptz;
+
+-- Why a person touched this order by hand. Written whenever the dashboard
+-- settles money that did not come through the gateway, so a payment with no
+-- Razorpay id has an explanation attached rather than looking like a bug.
+alter table preorders add column if not exists admin_note text;
+
+create index if not exists preorders_live_orders
+  on preorders (created_at desc) where archived_at is null;
