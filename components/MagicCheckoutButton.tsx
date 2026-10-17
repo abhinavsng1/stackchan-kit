@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CONTACT } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 
@@ -37,6 +37,25 @@ function loadMagic(): Promise<void> {
 export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: number; coupon?: string | null }) {
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
+
+  /**
+   * Shown only to someone who asks for it with ?magic=1, even once the
+   * server flag is on.
+   *
+   * Razorpay has not finished enabling Magic Checkout on this account, so
+   * the window may not open. A buy button that might not work is worse on a
+   * live storefront than no button at all — but it still has to be testable
+   * against production, with production keys, before anyone trusts it. The
+   * query parameter is the difference between those two.
+   *
+   * Decided in an effect rather than during render: the page is static, and
+   * reading the query string while rendering would make the server's HTML
+   * and the browser's first paint disagree.
+   */
+  const [asked, setAsked] = useState(false)
+  useEffect(() => {
+    setAsked(new URLSearchParams(window.location.search).get('magic') === '1')
+  }, [])
 
   async function buy() {
     if (state === 'working') return
@@ -93,6 +112,8 @@ export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: 
       setMessage('Could not open checkout. Use the form below.')
     }
   }
+
+  if (!asked) return null
 
   if (state === 'done') {
     return (
