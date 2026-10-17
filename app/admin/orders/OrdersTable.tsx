@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { GROUPS, GROUP_LABEL, whatsappLink, type AdminOrder, type Group, type Action } from '@/lib/admin-orders'
+import AdminNav from '@/app/admin/AdminNav'
 
 /**
  * Every order, in the three states that imply different work, and everything
@@ -125,6 +126,7 @@ export default function OrdersTable({ initial, siteUrl }: { initial: AdminOrder[
     <main className="wrap" style={{ paddingBlock: '48px 96px' }}>
       <p className="t-label m-0 mb-2">Back office</p>
       <h1 className="t-display text-[clamp(26px,4vw,34px)] mt-0 mb-5">Orders</h1>
+      <AdminNav here="orders" />
 
       {/* Taken and outstanding, before anything else: they are the two numbers
           that decide what today looks like. */}

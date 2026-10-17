@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Coupon } from '@/lib/coupons'
+import AdminNav from '@/app/admin/AdminNav'
 
 /**
  * Make a code, retire a code, see what each one has sold.
@@ -83,7 +84,8 @@ export default function CouponAdmin({ initial }: { initial: Coupon[] }) {
   return (
     <main className="wrap" style={{ paddingBlock: '48px 96px' }}>
       <p className="t-label m-0 mb-2">Back office</p>
-      <h1 className="t-display text-[clamp(26px,4vw,34px)] mt-0 mb-8">Discount codes</h1>
+      <h1 className="t-display text-[clamp(26px,4vw,34px)] mt-0 mb-6">Discount codes</h1>
+      <AdminNav here="coupons" />
 
       <form onSubmit={submit} className="card p-6 mb-10" style={{ maxWidth: 760 }}>
         <div className="grid gap-4 sm:grid-cols-3">
