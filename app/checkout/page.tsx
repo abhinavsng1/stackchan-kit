@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import CheckoutButton from '@/components/CheckoutButton'
+import CheckoutPanel from '@/components/CheckoutPanel'
 import { CONTACT, PRICE } from '@/lib/kit'
 
 /**
@@ -51,21 +51,7 @@ export default async function CheckoutPage(
           dispatch: {PRICE.ship.toLowerCase()}.
         </p>
 
-        <div className="card p-6 mb-6">
-          <div className="flex items-baseline justify-between gap-4 pb-4 mb-4"
-               style={{ borderBottom: '1px solid var(--line)' }}>
-            <span className="text-[15px]">PebbleRobo × 1</span>
-            <span className="t-mono text-[15px]">{PRICE.now}</span>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-[15px] font-medium">Pay now to book</span>
-            <span className="t-display text-[26px] leading-none">{PRICE.deposit}</span>
-          </div>
-          <p className="text-[14px] text-[var(--muted)] mt-2 mb-5">
-            The remaining {PRICE.balance} is charged after booking, in cash when it’s delivered.
-          </p>
-          <CheckoutButton token={t} />
-        </div>
+        <CheckoutPanel token={t} />
 
         <p className="text-[13.5px] text-[var(--muted)] m-0">
           Card, UPI, netbanking and EMI are all accepted. Payments are handled by

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { VARIANT_COOKIE, VARIANT_COOKIE_DAYS, assignVariant, isVariant } from '@/lib/variants'
+import { adminAuthorised, adminChallenge } from '@/lib/admin-auth'
 
 /**
  * Assigns the pricing variant before the page renders.
@@ -14,6 +15,17 @@ import { VARIANT_COOKIE, VARIANT_COOKIE_DAYS, assignVariant, isVariant } from '@
  * the same price, or they are in both arms and in neither.
  */
 export function proxy(request: NextRequest) {
+  // The back office, gated before anything renders. Doing it here rather than
+  // in each page means a new admin route is protected the moment it exists,
+  // instead of the moment somebody remembers to add a check to it.
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (adminAuthorised(request)) return NextResponse.next()
+    // Rebuilt as a NextResponse so every path out of this function has the
+    // one type: a plain Response here would quietly widen the return type.
+    const challenge = adminChallenge()
+    return new NextResponse(challenge.body, { status: challenge.status, headers: challenge.headers })
+  }
+
   const existing = request.cookies.get(VARIANT_COOKIE)?.value
   if (existing && isVariant(existing)) return NextResponse.next()
 
@@ -35,4 +47,4 @@ export function proxy(request: NextRequest) {
   return res
 }
 
-export const config = { matcher: ['/pebble-chan'] }
+export const config = { matcher: ['/pebble-chan', '/admin/:path*'] }

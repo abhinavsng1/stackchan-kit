@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import { neon } from '@neondatabase/serverless'
 import { isEdition, type Edition } from '@/lib/kit'
 import { planOf, quote, type Plan } from '@/lib/plans'
+import { recordRedemption } from '@/lib/coupons'
 
 /** A stored edition, read defensively: anything unrecognised was a kit order. */
 const editionOf = (v: unknown): Edition => (isEdition(v) ? v : 'kit')
@@ -351,6 +352,19 @@ export async function markPaid(input: {
 
   if (done.length === 0) return { status: 'already_paid' }
 
+  // Counted here and nowhere else. The update above settled exactly one row,
+  // so a redelivered webhook cannot count a second redemption of the same
+  // code — and a code typed by somebody who never paid never counts at all.
+  if (couponCode) {
+    try {
+      await recordRedemption(couponCode)
+    } catch (e) {
+      // A counter that failed to move is worth knowing about, and is never
+      // worth failing a settled payment over.
+      console.error('[markPaid] could not count redemption', { code: couponCode, error: String(e) })
+    }
+  }
+
   const text = (v: unknown) => (v === null || v === undefined ? null : String(v))
   return {
     status: 'paid',
@@ -453,4 +467,28 @@ export async function releaseRecoveryClaim(preorderId: number): Promise<void> {
   const sql = client()
   if (!sql) return
   await sql`update preorders set recovery_sent_at = null where id = ${preorderId} and paid_at is null`
+}
+
+/**
+ * Attaches a validated code to an unpaid booking.
+ *
+ * The discount is stored, not the code alone, because the code's worth is
+ * decided once — against this plan, this quantity, this price arm — and must
+ * not drift afterwards. If the coupon's terms change tomorrow, the buyer who
+ * booked today still gets what they were quoted.
+ *
+ * `paid_at is null` guards it: a settled booking's discount is part of the
+ * amount already checked against its payment.
+ */
+export async function setCoupon(
+  preorderId: number, code: string | null, discountPaise: number,
+): Promise<boolean> {
+  const sql = client()
+  if (!sql) return false
+  const done = await sql`
+    update preorders
+       set coupon_code = ${code}, discount_paise = ${Math.max(0, Math.floor(discountPaise))}
+     where id = ${preorderId} and paid_at is null
+    returning id`
+  return done.length > 0
 }

@@ -8,6 +8,7 @@ import { pricing, type Variant } from '@/lib/variants'
 import { ORDERABLE_SHELLS, isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
 import { useShell, setShell } from '@/lib/shell-store'
 import Swatch from '@/components/site/Swatch'
+import CouponField from '@/components/CouponField'
 import EditionPicker from '@/components/EditionPicker'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 import { useEdition } from '@/lib/edition-store'
@@ -59,6 +60,10 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
   const previewed = useShell()
   const shell = isOrderableShell(previewed) ? previewed : DEFAULT_SHELL
   const qtyRef = useRef<HTMLSelectElement>(null)
+  // Mirrored in state as well as the ref, because the code field prices
+  // against it and a ref read during render is both stale and wrong on the
+  // server. The ref stays: the submit path reads the live DOM value.
+  const [qty, setQty] = useState(1)
   const started = useRef(false)
   /**
    * Held so that closing the payment modal and pressing the button again
@@ -84,7 +89,7 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
   useEffect(() => {
     const onQty = (e: Event) => {
       const n = (e as CustomEvent<number>).detail
-      if (qtyRef.current && n >= 1 && n <= 5) qtyRef.current.value = String(n)
+      if (qtyRef.current && n >= 1 && n <= 5) { qtyRef.current.value = String(n); setQty(n) }
     }
     window.addEventListener('sc:qty', onQty)
     return () => window.removeEventListener('sc:qty', onQty)
@@ -203,6 +208,8 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
       twclid: storedTwclid(),
       xid: (xid.current ||= newOrderId()),
       company: get('company'),
+      // The code as typed. What it is worth is decided by the server.
+      coupon: get('coupon'),
       // Which price this buyer was shown. Absent on the kit page.
       ...(variant ? { variant } : {}),
     }
@@ -405,7 +412,8 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
               also named the field after the product, which is what the
               checkout tests find it by. Neutral is both clearer and stable. */}
           <label htmlFor="qty" className="t-label block mb-2">Quantity</label>
-          <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}>
+          <select ref={qtyRef} id="qty" name="qty" defaultValue="1" className="field" disabled={busy}
+                  onChange={(e) => setQty(Number(e.target.value) || 1)}>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
@@ -452,6 +460,13 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
           </span>
         </div>
       </fieldset>
+
+      <CouponField
+        plan="deposit"
+        qty={qty}
+        variant={variant ?? null}
+        disabled={busy}
+      />
 
       {/* Honeypot. Hidden from people and from screen readers alike. */}
       <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px' }}>

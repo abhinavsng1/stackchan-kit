@@ -19,7 +19,13 @@ type State =
   | { phase: 'paid'; paymentId: string }
   | { phase: 'error'; message: string }
 
-export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?: number }) {
+export default function CheckoutButton({ token, qty = 1, plan = 'deposit', coupon = null }: {
+  token: string
+  qty?: number
+  plan?: 'deposit' | 'full'
+  /** Applied on this page, re-priced by the server before anything is charged. */
+  coupon?: string | null
+}) {
   const [state, setState] = useState<State>({ phase: 'idle' })
   // Guards a second modal if the button is double-clicked before React has
   // re-rendered with the busy state.
@@ -36,6 +42,8 @@ export default function CheckoutButton({ token, qty = 1 }: { token: string; qty?
         token,
         entity: CONTACT.entity,
         description: `PebbleRobo kit \u00d7 ${qty} \u2014 batch 01`,
+        plan,
+        coupon,
       })
       if (outcome.status === 'paid') {
         track(EV.paymentSucceeded, { from: 'payment_link' })

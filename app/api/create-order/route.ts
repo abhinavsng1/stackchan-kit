@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { createOrder } from '@/lib/razorpay'
-import { findByPaymentToken, attachOrder, setPlan } from '@/lib/preorders'
+import { findByPaymentToken, attachOrder, setPlan, setCoupon } from '@/lib/preorders'
 import { PLANS, quote, type Plan } from '@/lib/plans'
 import { EDITION } from '@/lib/kit'
+import { validateCoupon } from '@/lib/coupons'
 
 /** A token and at most the name of a plan. */
 const MAX_BODY_BYTES = 256
@@ -22,6 +23,12 @@ const MAX_BODY_BYTES = 256
 const bodySchema = z.object({
   token: z.string().trim().regex(/^[a-f0-9]{32}$/, 'Invalid payment link'),
   plan: z.enum(PLANS).optional(),
+  /**
+   * A code, as typed — never a discount. Someone who learns about a code
+   * after booking can still use it here, and switching plan can change what
+   * a code is worth, so it is re-priced on every order creation.
+   */
+  coupon: z.string().trim().max(32).optional(),
 })
 
 function json(body: unknown, status: number) {
@@ -52,7 +59,8 @@ export async function POST(request: Request) {
     return json({ error: 'This payment link is not valid.', code: 'bad_token' }, 400)
   }
 
-  const reservation = await findByPaymentToken(result.data.token)
+  const body = result.data
+  const reservation = await findByPaymentToken(body.token)
 
   // A bad token and a missing reservation are answered identically, so the
   // endpoint cannot be used to find out which tokens exist.
@@ -68,12 +76,55 @@ export async function POST(request: Request) {
   // order is created: settlement re-prices from the row, so a plan left stale
   // here would reject the payment it just authorised as the wrong amount.
   let plan: Plan = reservation.plan
-  if (result.data.plan && result.data.plan !== plan) {
-    const moved = await setPlan(reservation.id, result.data.plan)
-    if (moved) plan = result.data.plan
+  if (body.plan && body.plan !== plan) {
+    const moved = await setPlan(reservation.id, body.plan)
+    if (moved) plan = body.plan
   }
 
-  const q = quote(plan, reservation.qty, reservation.variant, reservation.discountPaise)
+  /**
+   * The code the row already carries, unless this request brought a new one.
+   * Either way it is priced here, against the plan being paid for: a code
+   * valid on the full price is not valid on a deposit, and the buyer may have
+   * just switched between them.
+   */
+  let couponCode = reservation.couponCode
+  let discountPaise = reservation.discountPaise
+  const asked = body.coupon ? body.coupon.trim().toUpperCase() : null
+  if (asked && asked !== couponCode) {
+    const verdict = await validateCoupon({
+      code: asked, plan, qty: reservation.qty,
+      email: reservation.email, variant: reservation.variant,
+    })
+    if (verdict.valid) {
+      couponCode = verdict.code
+      discountPaise = verdict.discountPaise
+      await setCoupon(reservation.id, verdict.code, verdict.discountPaise)
+    }
+  } else if (couponCode) {
+    // Re-checked rather than trusted: the plan may have moved under it since
+    // it was stored, and a code that no longer applies must not quietly keep
+    // discounting.
+    const verdict = await validateCoupon({
+      code: couponCode, plan, qty: reservation.qty,
+      email: reservation.email, variant: reservation.variant,
+    })
+    if (verdict.valid) {
+      discountPaise = verdict.discountPaise
+      if (discountPaise !== reservation.discountPaise) {
+        await setCoupon(reservation.id, couponCode, discountPaise)
+      }
+    } else if (verdict.reason !== 'unconfigured') {
+      // A real verdict about the code — expired, wrong plan, used up — so it
+      // comes off. 'unconfigured' is the database being unreachable, which
+      // says nothing about the code and must never cost a buyer their
+      // discount; the stored figure stands.
+      couponCode = null
+      discountPaise = 0
+      await setCoupon(reservation.id, null, 0)
+    }
+  }
+
+  const q = quote(plan, reservation.qty, reservation.variant, discountPaise)
 
   const order = await createOrder({
     amountPaise: q.nowPaise,
@@ -87,7 +138,7 @@ export async function POST(request: Request) {
       plan,
       payment_type: plan === 'full' ? 'full_payment' : 'booking_deposit',
       balance_due_on_delivery_paise: String(q.balancePaise),
-      ...(reservation.couponCode ? { coupon: reservation.couponCode } : {}),
+      ...(couponCode ? { coupon: couponCode } : {}),
       ...(q.discountPaise ? { discount_paise: String(q.discountPaise) } : {}),
     },
   })
@@ -123,6 +174,7 @@ export async function POST(request: Request) {
     plan,
     balance_due_paise: q.balancePaise,
     discount_paise: q.discountPaise,
+    coupon: couponCode,
     prefill: {
       name: reservation.name,
       email: reservation.email,

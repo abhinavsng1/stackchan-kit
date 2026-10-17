@@ -101,6 +101,10 @@ export async function openCheckout(opts: {
   token: string
   description: string
   entity: string
+  /** Which plan the buyer chose. The amount still comes from the server. */
+  plan?: 'deposit' | 'full'
+  /** A code as typed. What it is worth is decided server-side, every time. */
+  coupon?: string | null
 }): Promise<CheckoutOutcome> {
   try {
     await loadCheckout()
@@ -114,7 +118,11 @@ export async function openCheckout(opts: {
     orderRes = await fetch('/api/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: opts.token }),
+      body: JSON.stringify({
+        token: opts.token,
+        ...(opts.plan ? { plan: opts.plan } : {}),
+        ...(opts.coupon ? { coupon: opts.coupon } : {}),
+      }),
     })
   } catch {
     throw new CheckoutError('No connection. Check your network and try again.',

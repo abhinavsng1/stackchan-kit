@@ -107,6 +107,17 @@ export const preorderSchema = z.object({
    * it on the server (lib/plans.ts). Absent means the deposit, which is what
    * every booking made before the choice existed was.
    */
+  /**
+   * A discount code, as typed. Never a discount: what it is worth is looked
+   * up on the server, so a request can ask for a code and cannot ask for an
+   * amount. Dropped rather than rejected when it is the wrong shape — nobody
+   * should lose an order over a stray character in an optional field.
+   */
+  coupon: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() !== '' ? v.trim().toUpperCase() : undefined),
+    z.string().max(32).optional(),
+  ),
+
   plan: z.preprocess(
     (v) => (v === '' || v === null ? undefined : v),
     z.enum(PLANS, 'Choose how you would like to pay').default(DEFAULT_PLAN),

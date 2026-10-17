@@ -2,6 +2,7 @@ import { preorderSchema, fieldErrors } from '@/lib/schema'
 import { createPreorder, duplicateField, resumeForEmail } from '@/lib/preorders'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion, requestIdentity } from '@/lib/x-conversions'
+import { validateCoupon } from '@/lib/coupons'
 
 /** Generous for four short fields, small enough to refuse junk outright. */
 const MAX_BODY_BYTES = 4096
@@ -50,7 +51,33 @@ export async function POST(request: Request) {
     return json({ error: 'Check the highlighted fields.', fields: fieldErrors(result.error) }, 400)
   }
 
-  const { company, xid, ...record } = result.data
+  const { company, xid, coupon, ...record } = result.data
+
+  /**
+   * The code is re-checked here and priced here, whatever the browser was
+   * told by /api/coupon. That endpoint is a courtesy; this is the one that
+   * writes a number to a row that money is later checked against.
+   *
+   * A code that turns out to be invalid is dropped rather than refused: the
+   * buyer has filled in a long form, and losing it over a typo in an optional
+   * field would cost far more than the discount is worth. They still see the
+   * verdict on the field itself before they submit.
+   */
+  let couponCode: string | undefined
+  let discountPaise = 0
+  if (coupon) {
+    const verdict = await validateCoupon({
+      code: coupon,
+      plan: record.plan,
+      qty: record.qty,
+      email: record.email,
+      variant: record.variant ?? null,
+    })
+    if (verdict.valid) {
+      couponCode = verdict.code
+      discountPaise = verdict.discountPaise
+    }
+  }
 
   // Honeypot: hidden from real users, so any content means a bot. Answer 201
   // so the bot cannot distinguish rejection from success, and write nothing.
@@ -61,7 +88,8 @@ export async function POST(request: Request) {
     // the order so the payment webhook — which the browser never sees — honours
     // it too.
     const adOptOut = request.headers.get('sec-gpc') === '1'
-    const outcome = await createPreorder(adOptOut ? { ...record, adOptOut } : record)
+    const priced = couponCode ? { ...record, couponCode, discountPaise } : record
+    const outcome = await createPreorder(adOptOut ? { ...priced, adOptOut } : priced)
 
     if (outcome.status === 'unconfigured') {
       console.error('[preorder] DATABASE_URL is not set; reservation was not stored')

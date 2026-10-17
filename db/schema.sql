@@ -164,3 +164,37 @@ alter table preorders add column if not exists coupon_code    text;
 alter table preorders add column if not exists discount_paise integer not null default 0;
 alter table preorders add column if not exists balance_paid_at    timestamptz;
 alter table preorders add column if not exists balance_payment_id text;
+
+-- ---------------------------------------------------------------------------
+-- Coupons. Additive and safe to re-run.
+--
+-- A code is a promise about money, so every limit that promise depends on is
+-- a column here rather than a rule in application code: which plans it works
+-- on, how many times it may be used, how much it can ever be worth. The
+-- application reads them; it does not decide them.
+--
+-- Redemptions are counted when a payment settles, never when a code is typed.
+-- A code that counted on entry could be exhausted by people who never paid.
+create table if not exists coupons (
+  code               text        primary key,
+  kind               text        not null check (kind in ('fixed', 'percent')),
+  -- Paise for 'fixed'; whole percent for 'percent'.
+  value              integer     not null check (value > 0),
+  -- The most a percentage code may ever be worth. NULL means uncapped.
+  max_discount_paise integer,
+  min_qty            smallint    not null default 1,
+  -- Which plans accept it, as a list. Empty means every plan.
+  plans              text[]      not null default '{}',
+  starts_at          timestamptz,
+  ends_at            timestamptz,
+  max_uses           integer,
+  per_email_limit    integer,
+  redeemed           integer     not null default 0,
+  active             boolean     not null default true,
+  label              text,
+  created_at         timestamptz not null default now()
+);
+
+-- Which orders used which code, for counting per-email use and for reading
+-- back what a given code actually sold.
+create index if not exists preorders_coupon on preorders (coupon_code) where coupon_code is not null;
