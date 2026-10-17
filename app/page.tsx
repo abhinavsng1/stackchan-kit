@@ -12,6 +12,7 @@ import Buy from '@/components/site/Buy'
 import Faq from '@/components/site/Faq'
 import Footer from '@/components/site/Footer'
 import { visibleProof } from '@/lib/proof'
+import { magicEnabled } from '@/lib/magic'
 
 /**
  * Stories (customer reviews) is hidden for now, everywhere: the section and
@@ -36,7 +37,7 @@ export default function Page() {
         <Demo />
         <Explore />
         {SHOW_STORIES && <Stories proof={proof} />}
-        <Buy />
+        <Buy magic={magicEnabled()} />
         <Faq />
       </main>
 

@@ -1,9 +1,10 @@
-import { verifyWebhookSignature } from '@/lib/razorpay'
-import { markPaid, markBalancePaid } from '@/lib/preorders'
+import { verifyWebhookSignature, fetchOrder } from '@/lib/razorpay'
+import { markPaid, markBalancePaid, createSettledBooking } from '@/lib/preorders'
 import { sendPaymentReceiptEmail, sendBalanceReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion } from '@/lib/x-conversions'
 import { sendPaymentConfirmed } from '@/lib/mixpanel-server'
+import { readMagicCustomer, readMagicPayment, type MagicOrder } from '@/lib/magic'
 
 /**
  * The authoritative record of a payment.
@@ -33,6 +34,8 @@ function afterResponse(work: Promise<unknown>) {
 
 type Entity = {
   id?: string; order_id?: string; amount?: number; status?: string
+  /** 'cod' on a cash-on-delivery payment through Magic Checkout. */
+  method?: string
   notes?: Record<string, string>
 }
 
@@ -107,6 +110,69 @@ export async function POST(request: Request) {
     }
 
     return Response.json({ status: balance.status }, { status: 200 })
+  }
+
+  /**
+   * One-tap checkout, where there is no booking row to settle because Magic
+   * Checkout collected the buyer itself. The row is written here, from what
+   * Razorpay hands back — which means this is the only webhook branch that
+   * can create an order rather than complete one, and the only one where a
+   * duplicate would owe somebody a second robot. createSettledBooking is
+   * idempotent on the order id for exactly that reason.
+   */
+  if (payment.notes?.payment_type === 'magic') {
+    const order = (await fetchOrder(payment.order_id)) as MagicOrder | null
+    if (!order) {
+      console.error('[razorpay] magic order could not be read back', { order_id: payment.order_id })
+      // Not acknowledged: Razorpay retries, and a retry is far better than a
+      // paid buyer with no booking.
+      return Response.json({ status: 'retry' }, { status: 500 })
+    }
+
+    const customer = readMagicCustomer(order)
+    const outcome = readMagicPayment(order, payment)
+
+    if (!customer) {
+      console.error('[razorpay] magic order carried no buyer', { order_id: payment.order_id })
+      return Response.json({ status: 'retry' }, { status: 500 })
+    }
+
+    if (outcome.unrecognised) {
+      // Recorded, flagged, and never guessed at: inventing a balance here is
+      // inventing what a courier asks a real person for at a door.
+      console.error('[razorpay] magic payment shape not recognised', {
+        order_id: payment.order_id, amount: order.amount,
+        amount_paid: order.amount_paid, amount_due: order.amount_due,
+        method: payment.method,
+      })
+    }
+
+    const written = await createSettledBooking({
+      ...customer,
+      qty: Number(payment.notes.kits ?? order.notes?.kits ?? 1) || 1,
+      edition: 'assembled',
+      plan: outcome.plan,
+      orderId: payment.order_id,
+      paymentId: payment.id,
+      paidPaise: outcome.paidPaise,
+      balanceDuePaise: outcome.balanceDuePaise,
+      couponCode: payment.notes.coupon ?? null,
+      discountPaise: Number(payment.notes.discount_paise ?? 0) || 0,
+      needsReview: outcome.unrecognised,
+    })
+
+    if (written.status === 'paid') {
+      afterResponse(sendPaymentReceiptEmail({
+        name: customer.name, email: customer.email, qty: 1,
+        edition: 'assembled', amountPaise: outcome.paidPaise,
+        balanceDuePaise: outcome.balanceDuePaise,
+        phone: customer.phone, address: customer.address,
+        city: customer.city, pincode: customer.pincode,
+        paymentId: payment.id,
+      }))
+    }
+
+    return Response.json({ status: written.status }, { status: 200 })
   }
 
   const result = await markPaid({

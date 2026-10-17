@@ -1,0 +1,94 @@
+import { z } from 'zod'
+import { createOrder } from '@/lib/razorpay'
+import { magicEnabled, lineItemsFor, magicOrderAmount } from '@/lib/magic'
+import { validateCoupon } from '@/lib/coupons'
+import { noCostEmiOfferId } from '@/lib/emi'
+
+/**
+ * The order behind the one-tap path.
+ *
+ * No booking row exists yet: Magic Checkout collects the name, phone and
+ * address itself, and the row is written when the payment settles. So this
+ * route has nothing to look up and nothing to trust — the only input is a
+ * quantity and, optionally, a code, and both are priced here.
+ */
+
+export const dynamic = 'force-dynamic'
+
+const MAX_BODY_BYTES = 512
+
+const bodySchema = z.object({
+  qty: z.coerce.number().int().min(1).max(5).default(1),
+  coupon: z.string().trim().max(32).optional(),
+})
+
+export async function POST(request: Request) {
+  if (!magicEnabled()) return Response.json({ error: 'not enabled' }, { status: 404 })
+
+  let raw: string
+  try {
+    raw = await request.text()
+  } catch {
+    return Response.json({ error: 'Could not read the request.' }, { status: 400 })
+  }
+  if (raw.length > MAX_BODY_BYTES) return Response.json({ error: 'too large' }, { status: 413 })
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw || '{}')
+  } catch {
+    return Response.json({ error: 'Expected JSON.' }, { status: 400 })
+  }
+
+  const result = bodySchema.safeParse(parsed)
+  if (!result.success) return Response.json({ error: 'Check the request.' }, { status: 400 })
+
+  const { qty } = result.data
+
+  // No email yet — Magic Checkout has not asked for one — so a per-buyer
+  // limit cannot be enforced here. apply-promotion sees the address and does
+  // enforce it, which is the point at which the buyer is actually known.
+  let discountPaise = 0
+  let couponCode: string | null = null
+  if (result.data.coupon) {
+    const verdict = await validateCoupon({ code: result.data.coupon, plan: 'full', qty })
+    if (verdict.valid) {
+      discountPaise = verdict.discountPaise
+      couponCode = verdict.code
+    }
+  }
+
+  const amountPaise = magicOrderAmount(qty, discountPaise)
+  const { lineItems, lineItemsTotalPaise } = lineItemsFor(qty, 'assembled', discountPaise)
+  const offer = noCostEmiOfferId()
+
+  const order = await createOrder({
+    amountPaise,
+    lineItems,
+    lineItemsTotalPaise,
+    ...(offer ? { offers: [offer] } : {}),
+    notes: {
+      kits: String(qty),
+      edition: 'assembled',
+      batch: '01',
+      // Read by the webhook: a Magic order has no booking row to find, so it
+      // has to be told to create one rather than look one up.
+      payment_type: 'magic',
+      ...(couponCode ? { coupon: couponCode } : {}),
+      ...(discountPaise ? { discount_paise: String(discountPaise) } : {}),
+    },
+  })
+
+  if (order.status !== 'created') {
+    console.error('[magic/order] could not create', { status: order.status })
+    return Response.json({ error: 'Could not start the payment.' }, { status: 502 })
+  }
+
+  return Response.json({
+    key_id: order.keyId,
+    order_id: order.orderId,
+    amount: order.amountPaise,
+    currency: order.currency,
+    coupon: couponCode,
+  }, { status: 201 })
+}

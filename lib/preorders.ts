@@ -643,3 +643,88 @@ export async function markBalanceAsked(preorderId: number): Promise<void> {
   if (!sql) return
   await sql`update preorders set balance_asked_at = now() where id = ${preorderId}`
 }
+
+/* ------------------------------------------------------------------------ *
+ * One-tap checkout
+ *
+ * Magic Checkout collects the buyer itself, so there is no booking row until
+ * the payment settles. This writes one from what Razorpay hands back.
+ * ------------------------------------------------------------------------ */
+
+export type SettledBooking = {
+  name: string
+  email: string
+  phone: string | null
+  address: string | null
+  city: string | null
+  pincode: string | null
+  qty: number
+  edition: Edition
+  plan: Plan
+  orderId: string
+  paymentId: string
+  paidPaise: number
+  balanceDuePaise: number
+  couponCode?: string | null
+  discountPaise?: number
+  /** The payment did not match a shape we understand; a person should look. */
+  needsReview?: boolean
+}
+
+/**
+ * Writes a booking that is already paid for.
+ *
+ * Idempotent on the Razorpay order id: a redelivered webhook finds the row it
+ * wrote last time and reports 'already_paid'. That matters more here than
+ * anywhere else in this file, because this is the one path that can *create*
+ * an order rather than settle one, and a duplicate would be a second robot
+ * owed to somebody who bought one.
+ *
+ * A buyer who already has a booking under this email keeps that row: the
+ * conflict updates it in place rather than failing on the unique index, so a
+ * returning buyer does not end up locked out of their own one-tap purchase.
+ */
+export async function createSettledBooking(input: SettledBooking): Promise<
+  { status: 'paid'; id: number; token: string } | { status: 'already_paid' } | { status: 'unconfigured' }
+> {
+  const sql = client()
+  if (!sql) return { status: 'unconfigured' }
+
+  const seen = await sql`
+    select id from preorders where razorpay_order_id = ${input.orderId} limit 1`
+  if (seen[0]) return { status: 'already_paid' }
+
+  const token = newPaymentToken()
+  const rows = await sql`
+    insert into preorders (
+      name, email, phone, address, city, pincode, qty, payment_token, edition,
+      plan, coupon_code, discount_paise, razorpay_order_id, razorpay_payment_id,
+      amount_paid_paise, balance_due_paise, paid_at, needs_review
+    ) values (
+      ${input.name}, ${input.email.toLowerCase()}, ${input.phone}, ${input.address},
+      ${input.city}, ${input.pincode}, ${input.qty}, ${token}, ${input.edition},
+      ${input.plan}, ${input.couponCode ?? null}, ${input.discountPaise ?? 0},
+      ${input.orderId}, ${input.paymentId}, ${input.paidPaise}, ${input.balanceDuePaise},
+      now(), ${input.needsReview === true}
+    )
+    on conflict (email) do update set
+      phone               = coalesce(excluded.phone, preorders.phone),
+      address             = coalesce(excluded.address, preorders.address),
+      city                = coalesce(excluded.city, preorders.city),
+      pincode             = coalesce(excluded.pincode, preorders.pincode),
+      qty                 = excluded.qty,
+      plan                = excluded.plan,
+      coupon_code         = excluded.coupon_code,
+      discount_paise      = excluded.discount_paise,
+      razorpay_order_id   = excluded.razorpay_order_id,
+      razorpay_payment_id = excluded.razorpay_payment_id,
+      amount_paid_paise   = excluded.amount_paid_paise,
+      balance_due_paise   = excluded.balance_due_paise,
+      paid_at             = coalesce(preorders.paid_at, excluded.paid_at),
+      needs_review        = excluded.needs_review
+    returning id, payment_token`
+
+  const row = rows[0]
+  if (!row) return { status: 'already_paid' }
+  return { status: 'paid', id: Number(row.id), token: String(row.payment_token) }
+}

@@ -1,6 +1,7 @@
 import Gallery from '@/components/Gallery'
 import BuyBox from '@/components/BuyBox'
 import ReserveForm from '@/components/ReserveForm'
+import MagicCheckoutButton from '@/components/MagicCheckoutButton'
 import PartArt from '@/components/PartArt'
 import { OrderSteps } from '@/components/OrderSteps'
 import { TrackedDetails } from '@/components/Tracked'
@@ -38,7 +39,7 @@ export function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
   )
 }
 
-export default function Buy() {
+export default function Buy({ magic = false }: { magic?: boolean }) {
   return (
     <>
       <section id="buy" className="section scroll-mt-20">
@@ -117,6 +118,14 @@ export default function Buy() {
             <p className="t-lead mt-0 mb-12 max-w-[42ch]">
               Your details and your colour. It takes about a minute.
             </p>
+            {/* One tap, when Razorpay has the feature switched on for this
+                account. The form stays below it and stays the path that works
+                for everybody. */}
+            {magic && (
+              <div className="mb-8 pb-8" style={{ borderBottom: '1px solid var(--line)' }}>
+                <MagicCheckoutButton />
+              </div>
+            )}
             <ReserveForm />
           </div>
 

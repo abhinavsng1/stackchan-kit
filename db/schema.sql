@@ -229,3 +229,13 @@ create table if not exists plan_chosen (
   count integer not null default 0,
   primary key (day, plan)
 );
+
+-- ---------------------------------------------------------------------------
+-- One-tap checkout. Additive and safe to re-run.
+--
+-- A flag rather than a fulfilment state, deliberately. Fulfilment has its own
+-- constraint and its own meaning — where the parcel is — and a payment whose
+-- shape we did not recognise is not a place a parcel can be. This says only
+-- "a person should look at this order before it ships".
+alter table preorders add column if not exists needs_review boolean not null default false;
+create index if not exists preorders_needs_review on preorders (created_at) where needs_review;
