@@ -402,18 +402,18 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         ? <div className="mb-6"><EditionPicker name="edition" location="form" disabled={busy} /></div>
         : <input type="hidden" name="edition" value={DEFAULT_EDITION} />}
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      {/* Four rows of fields rather than six. The form collects exactly what
+          a courier needs and nothing else, so the way to make it feel shorter
+          is to stop giving each field a line of its own. */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field name="name" label="Name" autoComplete="name" error={errors.name} disabled={busy} />
         <Field name="email" label="Email" type="email" autoComplete="email" error={errors.email} disabled={busy} />
-        <Field name="phone" label="Phone" type="tel" autoComplete="tel"
-               placeholder="98765 43210" hint="Indian mobile" error={errors.phone} disabled={busy} />
-
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4">
         <label htmlFor="address" className="t-label block mb-2">Shipping address</label>
         <textarea
-          id="address" name="address" rows={3} className="field resize-y"
+          id="address" name="address" rows={2} className="field resize-y"
           autoComplete="street-address" disabled={busy}
           placeholder="Flat / house, street, area, landmark"
           aria-invalid={errors.address ? 'true' : undefined}
@@ -422,10 +422,12 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         {errors.address && <Err id="address-err">{errors.address}</Err>}
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-3 mt-5">
+      <div className="grid gap-4 sm:grid-cols-4 mt-4">
         <Field name="city" label="City" autoComplete="address-level2" error={errors.city} disabled={busy} />
         <Field name="pincode" label="PIN code" inputMode="numeric" autoComplete="postal-code"
                placeholder="560078" error={errors.pincode} disabled={busy} />
+        <Field name="phone" label="Phone" type="tel" autoComplete="tel"
+               placeholder="98765 43210" error={errors.phone} disabled={busy} />
         <div>
           {/* "Quantity", not the product's name.
               This label was briefly edition-aware — "Robots" or "Kits" — which
@@ -449,11 +451,6 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         <legend className="t-label mb-2 p-0">
           Colour
         </legend>
-        {/* The page shows five; this batch is printed in two. Saying so here
-            is the difference between a limit and a disappointment. */}
-        <p className="text-[13px] mt-0 mb-2.5" style={{ color: 'var(--muted)' }}>
-          This batch is printed in black and white.
-        </p>
         <input type="hidden" name="shell" value={shell} />
         <div className="flex flex-wrap items-center gap-3">
           <div role="radiogroup" aria-label="Shell colour"
@@ -477,8 +474,11 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
               </button>
             ))}
           </div>
+          {/* The page shows five colourways; this batch is printed in two.
+              Said beside the swatches rather than above them — it is a
+              footnote, not a warning. */}
           <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            {ORDERABLE_SHELLS.find((s) => s.id === shell)?.name ?? ''}
+            {ORDERABLE_SHELLS.find((s) => s.id === shell)?.name ?? ''} · this batch is printed in black and white
           </span>
         </div>
       </fieldset>
@@ -542,9 +542,9 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
 
       {/* Said before the button, not after: the buyer should know exactly
           what this payment is and what is still to come. */}
-      <dl className="mt-8 m-0 border-t border-b text-[15px]" style={{ borderColor: 'var(--line)' }}>
+      <dl className="mt-6 m-0 border-t border-b text-[15px]" style={{ borderColor: 'var(--line)' }}>
         <div className="flex items-baseline justify-between gap-4 py-3">
-          <dt className="font-medium">Pay now to book</dt>
+          <dt className="font-medium">{plan === 'full' ? 'Pay now' : 'Pay now to book'}</dt>
           <dd className="m-0 t-display text-[24px] leading-none">{paysNow}</dd>
         </div>
         {discountPaise > 0 && (
@@ -559,13 +559,12 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
           </dt>
           <dd className="m-0 t-mono">{owed}</dd>
         </div>
-        <div className="flex items-baseline justify-between gap-4 py-3 border-t" style={{ borderColor: 'var(--line-soft)' }}>
-          <dt className="text-[var(--muted)]">Total</dt>
-          <dd className="m-0 t-mono">{total}</dd>
-        </div>
       </dl>
+      <p className="text-[13px] mt-2 mb-0" style={{ color: 'var(--muted)' }}>
+        Total {total}{discountPaise > 0 ? ` before ${rupees(discountPaise)} off` : ''}.
+      </p>
 
-      <div className="mt-7 flex flex-wrap items-center gap-5">
+      <div className="mt-5 flex flex-wrap items-center gap-5">
         <button type="submit" className="btn btn-brand" disabled={busy}>
           {state.kind === 'submitting' ? 'Saving…'
             : state.kind === 'paying' ? 'Opening payment…'
