@@ -861,7 +861,16 @@ p { text-wrap: pretty; }
 .film-navigation { display:flex;align-items:center;gap:25px }
 .capability-tabs { display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px }
 .capability-layout { display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:40px;align-items:center }
-.capability-stage { height:560px;background:var(--stage-2) }
+/**
+ * The stage gives way to the controls on a short window.
+ *
+ * This section promises that the tabs, the robot and the words beside it are
+ * all in view together — and at a fixed 560px that stopped being true below
+ * about 870px of viewport height: the camera button and the trackpad fell
+ * below the fold on any laptop with a short window, which reads as the
+ * controls simply not being there.
+ */
+.capability-stage { height:clamp(300px, calc(100svh - 300px), 560px);background:var(--stage-2) }
 .capability-controls { display:grid;gap:16px;padding:12px 0 }
 .capability-controls h3,.capability-controls p { margin:0 }
 .capability-controls>p { color:var(--muted);line-height:1.6 }
@@ -889,6 +898,21 @@ p { text-wrap: pretty; }
 .film-picker h3 { font-size:28px }.film-numbers { margin:24px 0 }.capability-stage { height:340px }
 .capability-tabs .demo-tab { font-size:12px;padding:10px 12px }.demo-section { padding-top:60px;padding-bottom:60px }
 }
+/**
+ * A short window gets the same section, tightened rather than cropped.
+ *
+ * Shrinking the stage alone was not enough on a 720px-tall laptop: the
+ * padding and the trackpad still pushed the last control past the fold. Both
+ * give way here, so the whole demo — tabs, robot, words, button, trackpad —
+ * fits on one screen, which is the only reason this section is built the way
+ * it is.
+ */
+@media (min-width: 901px) and (max-height: 820px) {
+  .demo-section { padding-block: 52px 24px; }
+  .head-trackpad { height: 116px; }
+  .capability-controls { gap: 12px; }
+}
+
 .on-stage .capability-controls .btn-brand { --btn-fg:#111111; }
 .on-stage .capability-controls .btn-brand:hover:not(:disabled) { --btn-fg:#ffffff; }
 
