@@ -27,7 +27,7 @@ async function answer(request: Request) {
   }
   if (raw.length > MAX_BODY_BYTES) return Response.json({ error: 'too large' }, { status: 413 })
 
-  let body: { addresses?: MagicAddress[] } = {}
+  let body: { addresses?: MagicAddress[]; [k: string]: unknown } = {}
   try {
     body = raw ? JSON.parse(raw) : {}
   } catch {
@@ -35,7 +35,28 @@ async function answer(request: Request) {
   }
 
   const addresses = Array.isArray(body.addresses) ? body.addresses : []
-  return Response.json({ addresses: addresses.map(shippingFor) }, { status: 200 })
+  const answer = { addresses: addresses.map(shippingFor) }
+
+  /**
+   * What Razorpay asked and what we said, while this is still being proved
+   * out. Payment methods greying out in the window is the symptom of an
+   * address Razorpay considers unserviceable, and without this there is no
+   * way to tell a wrong answer from a question we never understood.
+   *
+   * The buyer's contact and email are deliberately not logged: the PIN code
+   * is what decides serviceability, and it is the only part of this request
+   * worth keeping.
+   */
+  console.log('[magic/shipping-info]', JSON.stringify({
+    method: request.method,
+    contentType: request.headers.get('content-type'),
+    bodyBytes: raw.length,
+    keys: Object.keys(body ?? {}),
+    asked: addresses.map((a) => ({ id: a.id, zipcode: a.zipcode, state: a.state_code, country: a.country })),
+    answered: answer.addresses.map((a) => ({ id: a.id, methods: a.shipping_methods })),
+  }))
+
+  return Response.json(answer, { status: 200 })
 }
 
 export const POST = answer
