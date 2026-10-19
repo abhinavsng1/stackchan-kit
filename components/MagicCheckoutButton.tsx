@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CONTACT, PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 
@@ -15,7 +15,8 @@ import { EV, track } from '@/lib/analytics'
  * come through this window: Magic Checkout would have to treat the ₹4,500
  * balance as cash on delivery, which this Razorpay account cannot take, and
  * offering it is what greyed out every payment method the first time. The
- * form below is the deposit's path.
+ * form below is the deposit's path, and with this button hidden it is the
+ * only path a visitor is offered.
  *
  * The ordinary form stays exactly where it is. This is a second door, not a
  * replacement: the form is the one that works for everybody, including anyone
@@ -43,6 +44,24 @@ function loadMagic(): Promise<void> {
 export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: number; coupon?: string | null }) {
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
+
+  /**
+   * Back behind ?magic=1, by request, after a spell open to everyone.
+   *
+   * The feature itself works — Razorpay has it switched on, Shipping Setup is
+   * configured and a real payment has been through the window. This is not a
+   * broken button being hidden; it is a working one held back until we want
+   * it selling, which is a decision about the storefront rather than about
+   * the code.
+   *
+   * Decided in an effect rather than during render: the page is static, and
+   * reading the query string while rendering would make the server's HTML
+   * and the browser's first paint disagree.
+   */
+  const [asked, setAsked] = useState(false)
+  useEffect(() => {
+    setAsked(new URLSearchParams(window.location.search).get('magic') === '1')
+  }, [])
 
   async function buy() {
     if (state === 'working') return
@@ -99,6 +118,8 @@ export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: 
       setMessage('Could not open checkout. Use the form below.')
     }
   }
+
+  if (!asked) return null
 
   if (state === 'done') {
     return (
