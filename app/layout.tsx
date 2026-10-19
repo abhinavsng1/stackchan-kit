@@ -4,6 +4,7 @@ import { Inter_Tight, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import Analytics from '@/components/Analytics'
 import XPixel from '@/components/XPixel'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 /**
  * Inter Tight carries the whole page, display through caption. It is a
@@ -99,6 +100,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Analytics />
         <XPixel />
+        {/* Vercel's own field measurement of how fast this page actually
+            loads for real visitors. It reports timings, never who they are. */}
+        <SpeedInsights />
       </body>
     </html>
   )
