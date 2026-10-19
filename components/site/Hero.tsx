@@ -77,9 +77,14 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        <motion.div className="lg:col-span-6 lg:row-start-2 lg:self-start relative z-10" style={{ y: textY, opacity: fade }}>
+        {/* The column drifts with the scroll, but only the sentence fades.
+            The buttons are the one thing on this screen somebody might be
+            reaching for, and they were dimming to nothing within the first
+            flick of a scroll — long before they left the screen. */}
+        <motion.div className="lg:col-span-6 lg:row-start-2 lg:self-start relative z-10" style={{ y: textY }}>
           <motion.p className="t-lead mt-0 lg:mt-7 mb-0 max-w-[36ch]"
-                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                    style={{ opacity: fade }}
+                    initial={{ y: 16 }} animate={{ y: 0 }}
                     transition={{ duration: 0.8, delay: 0.75, ease: EASE }}>
             PebbleRobo is an{' '}
             <strong className="font-medium" style={{ color: 'var(--accent-ink)' }}>AI companion</strong>{' '}
