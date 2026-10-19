@@ -7,7 +7,7 @@ import { motion, useScroll, useTransform } from 'motion/react'
 import HeroRobot from '@/components/site/HeroRobot'
 import FaceIcon from '@/components/site/FaceIcon'
 import AmazonButton from '@/components/AmazonButton'
-import { SplitHeadline, EASE } from '@/components/site/motion'
+import { SplitHeadline } from '@/components/site/motion'
 import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
 import { PRICE } from '@/lib/kit'
@@ -54,12 +54,10 @@ export default function Hero() {
           words stack on the left and the robot spans both rows on the right. */}
       <div className="wrap grid gap-y-6 lg:gap-y-0 lg:gap-x-10 lg:grid-cols-12 lg:grid-rows-[auto_auto] lg:content-center lg:flex-1">
         <motion.div className="lg:col-span-6 lg:row-start-1 lg:self-end relative z-10" style={{ y: textY, opacity: fade }}>
-          <motion.p className="t-label m-0 mb-5 sm:mb-6 flex items-center gap-3"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}>
+          <p className="t-label m-0 mb-5 sm:mb-6 flex items-center gap-3 hero-fade [--d:.1s] [--t:.6s]">
             <span className="inline-block w-6 h-px" style={{ background: 'var(--accent)' }} aria-hidden="true" />
             <span>The <span className="accent">AI companion</span> for your desk</span>
-          </motion.p>
+          </p>
 
           <SplitHeadline as="h1" immediate delay={0.15}
                          className="t-display t-hero m-0"
@@ -68,11 +66,8 @@ export default function Hero() {
         </motion.div>
 
         <motion.div className="lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 lg:self-center relative"
-                    style={{ y: robotY }}
-                    initial={{ opacity: 0, scale: 0.94, y: 24 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 1.1, delay: 0.05, ease: EASE }}>
-          <div className="mx-auto max-w-[min(290px,34svh)] sm:max-w-[480px] lg:max-w-[min(620px,64svh)] lg:mr-0">
+                    style={{ y: robotY }}>
+          <div className="mx-auto max-w-[min(290px,34svh)] sm:max-w-[480px] lg:max-w-[min(620px,64svh)] lg:mr-0 hero-robot-in [--d:.05s]">
             <HeroRobot area={ref} />
           </div>
         </motion.div>
@@ -82,10 +77,8 @@ export default function Hero() {
             reaching for, and they were dimming to nothing within the first
             flick of a scroll — long before they left the screen. */}
         <motion.div className="lg:col-span-6 lg:row-start-2 lg:self-start relative z-10" style={{ y: textY }}>
-          <motion.p className="t-lead mt-0 lg:mt-7 mb-0 max-w-[36ch]"
-                    style={{ opacity: fade }}
-                    initial={{ y: 16 }} animate={{ y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.75, ease: EASE }}>
+          <motion.p className="t-lead mt-0 lg:mt-7 mb-0 max-w-[36ch] hero-rise [--d:.75s]"
+                    style={{ opacity: fade }}>
             PebbleRobo is an{' '}
             <strong className="font-medium" style={{ color: 'var(--accent-ink)' }}>AI companion</strong>{' '}
             that lives on your desk. It keeps you company, talks with you, and
@@ -93,9 +86,7 @@ export default function Hero() {
           </motion.p>
 
           {/* Equal halves side by side on a phone; natural widths from sm up. */}
-          <motion.div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center sm:gap-3 mt-7 lg:mt-9"
-                      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8, delay: 0.9, ease: EASE }}>
+          <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center sm:gap-3 mt-7 lg:mt-9 hero-in [--d:.9s]">
             <a href="#reserve" className="btn btn-brand hero-cta"
                onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>
               Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
@@ -105,23 +96,19 @@ export default function Hero() {
                 worth more in the hero than a link to the demo, which the
                 price line below can carry. */}
             <AmazonButton location="hero" />
-          </motion.div>
-          <motion.p className="t-mono text-[12.5px] text-[var(--muted)] mt-4 mb-0"
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    transition={{ duration: 0.8, delay: 1.0 }}>
+          </div>
+          <p className="t-mono text-[12.5px] text-[var(--muted)] mt-4 mb-0 hero-fade [--d:1s]">
             {PRICE.deposit} to book · {PRICE.now} to buy · the rest on delivery ·{' '}
             <a href="#does" onClick={(e) => { e.preventDefault(); smoothScrollTo('does') }}
                style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
               see what it does <span aria-hidden="true">↓</span>
             </a>
-          </motion.p>
+          </p>
         </motion.div>
       </div>
 
       {/* Small robots along the bottom of the first screen: what it does, at a glance. */}
-      <motion.div className="wrap mt-8 lg:mt-auto pb-6"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8, delay: 1.15 }}>
+      <div className="wrap mt-8 lg:mt-auto pb-6 hero-fade [--d:1.15s]">
         {/* All five visible at once: a face over a word on a phone, a face
             beside a label on a wide screen. Nothing to swipe to find. */}
         <ul className="hero-row list-none p-0 m-0 border-t" style={{ borderColor: 'var(--line)' }}>
@@ -142,7 +129,7 @@ export default function Hero() {
             </li>
           ))}
         </ul>
-      </motion.div>
+      </div>
     </section>
   )
 }

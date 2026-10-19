@@ -95,18 +95,43 @@ export function SplitHeadline({
   as?: 'h1' | 'h2' | 'h3' | 'p'
   accent?: string[]
   delay?: number
-  /** Animate on mount rather than on scroll — for the hero. */
+  /** Animate from the first paint, in CSS, rather than on scroll — for the hero. */
   immediate?: boolean
 }) {
   const reduce = useReducedMotion()
   const M = motion[as]
   const lines = text.split('\n')
-  const trigger = immediate
-    ? { animate: 'shown' as const }
-    : { whileInView: 'shown' as const, viewport: VIEW }
+
+  if (immediate) {
+    // The hero's headline rises in CSS from the first paint (.word-rise in
+    // globals.css), so it is never waiting on the scripts to be readable.
+    const Tag = as
+    let k = 0
+    return (
+      <Tag className={className} aria-label={text.replace(/\n/g, ' ')}>
+        {lines.map((line, li) => (
+          <span key={li} className="block" aria-hidden="true">
+            {line.split(' ').map((word, wi, words) => {
+              const isAccent = accent.includes(word.replace(/[.,!?]/g, ''))
+              const at = { '--d': `${delay + 0.055 * k++}s` } as React.CSSProperties
+              return (
+                <span key={`${li}-${wi}`} className="inline-block overflow-hidden align-bottom"
+                      style={{ paddingBottom: '0.08em', marginBottom: '-0.08em' }}>
+                  <span className={`inline-block word-rise ${isAccent ? 'accent' : ''}`} style={at}>{word}</span>
+                  {/* A non-breaking space: an ordinary one at the end of the word's
+                      box is dropped, and the words would run together. */}
+                  {wi < words.length - 1 ? '\u00A0' : ''}
+                </span>
+              )
+            })}
+          </span>
+        ))}
+      </Tag>
+    )
+  }
 
   return (
-    <M className={className} initial="hidden" {...trigger}
+    <M className={className} initial="hidden" whileInView="shown" viewport={VIEW}
        variants={{ hidden: {}, shown: { transition: { staggerChildren: 0.055, delayChildren: delay } } }}
        aria-label={text.replace(/\n/g, ' ')}>
       {lines.map((line, li) => (
