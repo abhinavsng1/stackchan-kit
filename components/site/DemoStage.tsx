@@ -6,6 +6,7 @@ import { useLiveScene } from '@/components/site/useLiveScene'
 import { useShell } from '@/lib/shell-store'
 import { shellById } from '@/lib/shells'
 import type { Demo } from '@/lib/live-demo'
+import { EV, measure, track } from '@/lib/analytics'
 
 type Mode = 'camera' | 'dance' | 'assistant'
 const TABS: [Mode, string][] = [['camera', 'Camera & movement'], ['dance', 'Dance'], ['assistant', 'AI assistant']]
@@ -33,6 +34,8 @@ export default function DemoStage() {
   const audio = useRef<AudioContext | null>(null)
   const beat = useRef<ReturnType<typeof setInterval> | null>(null)
   const mounted = useRef(true)
+  // Once a visit: did anyone touch the robot here, and was the live one there to answer.
+  const tapped = useRef(false)
   const shell = useShell()
   const live = useLiveScene(host, async (el) => {
     const { startDemo } = await import('@/lib/live-demo')
@@ -85,7 +88,11 @@ export default function DemoStage() {
       video.current = v; await v.play()
       if (!mounted.current || modeRef.current !== 'camera' || request !== cameraRequest.current) { s.getTracks().forEach(t => t.stop()); v.pause(); v.srcObject = null; return }
       api.current?.camera(v); setCameraOn(true)
-    } catch { stopCamera(); setMessage('Camera unavailable. Allow camera access in your browser, or keep exploring with the trackpad.') }
+      measure(EV.demoAction, { action: 'camera', ok: true })
+    } catch {
+      stopCamera(); setMessage('Camera unavailable. Allow camera access in your browser, or keep exploring with the trackpad.')
+      measure(EV.demoAction, { action: 'camera', ok: false })
+    }
     finally { if (mounted.current) setBusy(false) }
   }
   const move = (x: number, y: number) => {
@@ -110,6 +117,7 @@ export default function DemoStage() {
     }
     api.current?.notes(true); api.current?.mood('happy'); tick()
     beat.current = setInterval(tick, 300); setPlaying(true)
+    measure(EV.demoAction, { action: 'music' })
   }
   const speak = (text: string) => {
     setAnswer(text); api.current?.mood('happy'); api.current?.nod(1)
@@ -122,12 +130,16 @@ export default function DemoStage() {
   }
   return <div className="demo-fill">
     <div role="tablist" aria-label="Capability demonstrations" className="capability-tabs">
-      {TABS.map(([id, label]) => <button key={id} id={`demo-tab-${id}`} role="tab" aria-selected={mode === id} aria-controls="demo-panel" className="demo-tab" data-on={mode === id} onClick={() => setMode(id)}>{label}</button>)}
+      {TABS.map(([id, label]) => <button key={id} id={`demo-tab-${id}`} role="tab" aria-selected={mode === id} aria-controls="demo-panel" className="demo-tab" data-on={mode === id} onClick={() => { setMode(id); track(EV.demoModeChosen, { mode: id, location: 'demo' }) }}>{label}</button>)}
     </div>
     <div id="demo-panel" role="tabpanel" aria-labelledby={`demo-tab-${mode}`} className="capability-layout">
       <div className="media capability-stage">
         <Image src={`/media/shots/float-shell-${shell}.webp`} fill sizes="(max-width: 900px) 92vw, 800px" alt="Interactive PebbleRobo demonstration" className="object-contain p-10" style={{ opacity: live ? 0 : 1 }} />
-        <div ref={host} className="absolute inset-0" data-testid="demo-robot" />
+        <div ref={host} className="absolute inset-0" data-testid="demo-robot" onPointerDown={() => {
+          if (tapped.current) return
+          tapped.current = true
+          measure(EV.robotTapped, { location: 'demo', mode, live })
+        }} />
         <span className="tag absolute left-4 top-4">Interactive demo</span>
         {cameraOn && <span className="tag absolute left-4 bottom-4">Your camera · local preview</span>}
         {!live && <span className="tag absolute right-4 bottom-4">Static preview</span>}
@@ -157,7 +169,7 @@ export default function DemoStage() {
         {mode === 'assistant' && <>
           <p className="t-label">Conversation, with character</p><h3 className="t-display t-h3">More than a voice.</h3>
           <p>Meet the expressive side of an AI assistant. Choose a sample conversation and watch its face come alive as it speaks.</p>
-          <div className="grid gap-2">{ANSWERS.map(([q,a])=><button className="demo-chip text-left" key={q} onClick={()=>speak(a)}>{q} ↗</button>)}</div>
+          <div className="grid gap-2">{ANSWERS.map(([q,a],i)=><button className="demo-chip text-left" key={q} onClick={()=>{ speak(a); measure(EV.demoAction, { action: 'answer', answer: i + 1 }) }}>{q} ↗</button>)}</div>
           <p className="assistant-answer" role="status">{answer}</p>
           <button className="link text-left" onClick={()=>{window.speechSynthesis?.cancel();api.current?.hush()}}>Stop voice</button>
           <p className="t-mono text-[11px]">Sample responses with your browser’s voice. The physical robot’s AI conversations use Wi-Fi and the companion app.</p>

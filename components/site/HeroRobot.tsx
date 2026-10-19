@@ -9,6 +9,7 @@ import { useShell } from '@/lib/shell-store'
 import { rendered } from '@/lib/renders'
 import { OWN_MOODS } from '@/lib/companion-face'
 import { EASE } from '@/components/site/motion'
+import { EV, measure } from '@/lib/analytics'
 
 /**
  * The hero's robot: the real rig, built from the printed parts, watching the
@@ -31,6 +32,15 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
   const shell = Math.max(0, SHELLS.findIndex((s) => s.id === shellId))
   const [mood, setMood] = useState(0)
   const [quiet, setQuiet] = useState<boolean | null>(null)
+  // The robot reacts inside its canvas, which Mixpanel's own click capture
+  // cannot see, so every tap was being reported as a dead click. This says
+  // which taps were: `live` false is a tap on the still picture.
+  const tapped = useRef(false)
+  const onTap = () => {
+    if (tapped.current) return
+    tapped.current = true
+    measure(EV.robotTapped, { location: 'hero', live })
+  }
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -87,7 +97,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
         {/* No painted floor: the robot casts its own shadow, live and in the
             render that stands in for it until the live one loads. */}
         <div ref={host} className="relative w-full cursor-pointer" style={{ aspectRatio: '1 / 1' }}
-             data-testid="hero-robot">
+             data-testid="hero-robot" onPointerDown={onTap}>
           {SHELLS.map((s, i) => (
             <Image
               key={s.id}

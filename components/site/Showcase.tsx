@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { EV, measure } from '@/lib/analytics'
 
 const CLIPS = [1, 2, 3, 4]
 const ROTATION_MS = 5500
@@ -73,8 +74,10 @@ export default function Showcase() {
     return () => clearInterval(timer)
   }, [rotating, selected])
 
-  const choose = (n: number, listen = false) => {
+  const choose = (n: number, how: 'arrow' | 'dot' | 'swipe' | 'listen') => {
     n = (n + 4) % 4
+    const listen = how === 'listen'
+    measure(EV.filmChosen, { film: n + 1, how })
     silence(); setSelected(n)
     if (listen) {
       const v = videos.current[n]
@@ -100,12 +103,12 @@ export default function Showcase() {
       <div className="film-deck-stage" onPointerDown={e => { swiped.current = false; dragStart.current = e.clientX }} onPointerUp={e => {
         if (dragStart.current === null) return
         const delta = e.clientX - dragStart.current; dragStart.current = null
-        if (Math.abs(delta) > 45) { swiped.current = true; choose(selected + (delta < 0 ? 1 : -1)) }
+        if (Math.abs(delta) > 45) { swiped.current = true; choose(selected + (delta < 0 ? 1 : -1), 'swipe') }
       }} onPointerCancel={() => { dragStart.current = null }}>
         {CLIPS.map((n, i) => <article key={n} className="film-deck-card" data-position={position(i, selected)} role="group" aria-label={`Video ${n} of 4`}>
           <video ref={el => { videos.current[i] = el }} src={near ? `/media/films/pebble-${n}.mp4` : undefined} poster={near ? `/media/films/pebble-${n}.jpg` : undefined} autoPlay muted={sound !== i} loop playsInline preload={near ? 'auto' : 'none'} aria-label={`PebbleRobo product film ${n}`}
             onError={() => setUnavailable(old => old.includes(i) ? old : [...old, i])} />
-          <button className="film-deck-hit" aria-label={sound === i ? `Mute video ${n}` : `Watch video ${n} with sound`} onClick={() => { if (swiped.current) { swiped.current = false; return }; sound === i ? silence() : choose(i, true) }}>
+          <button className="film-deck-hit" aria-label={sound === i ? `Mute video ${n}` : `Watch video ${n} with sound`} onClick={() => { if (swiped.current) { swiped.current = false; return }; sound === i ? silence() : choose(i, 'listen') }}>
             <span className="film-card-index">FILM 0{n}</span>
             <span className="film-card-listen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z" />{sound === i ? <><path d="M15 8c3 2 3 6 0 8M18 5c5 4 5 10 0 14" /></> : <path d="m16 9 6 6m0-6-6 6" />}</svg>{sound === i ? 'Sound on' : 'Tap for sound'}</span>
           </button>
@@ -113,7 +116,7 @@ export default function Showcase() {
         </article>)}
       </div>
       <div className="film-deck-bottom">
-        <div className="film-deck-navigation"><button onClick={() => choose(selected - 1)} aria-label="Previous video">←</button><div className="film-deck-dots" role="group" aria-label="Choose a film">{CLIPS.map((n,i) => <button key={n} onClick={() => choose(i)} aria-label={`Show video ${n}`} aria-pressed={selected === i}><span /></button>)}</div><button onClick={() => choose(selected + 1)} aria-label="Next video">→</button></div>
+        <div className="film-deck-navigation"><button onClick={() => choose(selected - 1, 'arrow')} aria-label="Previous video">←</button><div className="film-deck-dots" role="group" aria-label="Choose a film">{CLIPS.map((n,i) => <button key={n} onClick={() => choose(i, 'dot')} aria-label={`Show video ${n}`} aria-pressed={selected === i}><span /></button>)}</div><button onClick={() => choose(selected + 1, 'arrow')} aria-label="Next video">→</button></div>
         <span className="t-mono film-deck-count">0{selected + 1} <span>/ 04</span></span>
         <button className="film-deck-pause" onClick={toggleRotation} aria-label={sound !== null || paused ? 'Resume automatic rotation' : 'Pause automatic rotation'}>{sound !== null || paused ? '▷ Auto rotate' : 'Ⅱ Pause rotation'}</button>
       </div>

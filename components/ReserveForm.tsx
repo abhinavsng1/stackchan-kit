@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { preorderSchema, fieldErrors, PROFESSIONS } from '@/lib/schema'
-import { EV, track, identifyPerson, recordPurchase } from '@/lib/analytics'
+import { EV, track, measure, identifyPerson, recordPurchase } from '@/lib/analytics'
 import { CONTACT, EDITION, PRICE, DEFAULT_EDITION, type Edition } from '@/lib/kit'
 import { pricing, type Variant } from '@/lib/variants'
 import { ORDERABLE_SHELLS, isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
@@ -33,6 +33,9 @@ type State =
   | { kind: 'error'; message: string }
 
 const EMPTY: Record<string, string> = {}
+
+/** The fields someone types into, in the order the form asks for them. */
+const COMPLETABLE = ['name', 'email', 'address', 'city', 'pincode', 'phone']
 
 export default function ReserveForm({ variant, chooseEdition = false }: {
   variant?: Variant
@@ -407,10 +410,21 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
    * no-op, but there is no reason to send the request again on every blur.
    */
   const identified = useRef<string | null>(null)
+  /**
+   * Nine in ten people who press Book never start typing, and of those who
+   * do, the reports could only say whether they finished. Each field left
+   * with something in it is recorded once, by name — never its value — so
+   * the field where people give up is visible.
+   */
+  const completed = useRef(new Set<string>())
   const onFieldBlur = (e: React.FocusEvent<HTMLFormElement>) => {
     // onBlurCapture types its target as the form; the element that actually
     // lost focus is the one to read.
     const el = e.target as unknown as HTMLInputElement
+    if (el && COMPLETABLE.includes(el.name) && el.value.trim() && !completed.current.has(el.name)) {
+      completed.current.add(el.name)
+      measure(EV.reserveFieldCompleted, { field: el.name, filled: completed.current.size })
+    }
     if (!el || el.name !== 'email') return
     const email = el.value.trim().toLowerCase()
     // The same shape the schema accepts, loosely: no point identifying

@@ -60,18 +60,42 @@ describe('no personal data rides along', () => {
     'components/ReserveForm.tsx', 'components/CheckoutPanel.tsx',
     'components/CouponField.tsx', 'components/BalancePanel.tsx',
     'components/AmazonLink.tsx', 'components/AmazonButton.tsx',
+    'components/site/HeroRobot.tsx', 'components/site/DemoStage.tsx', 'components/site/Showcase.tsx',
   ]
 
   it('never puts a name, email, phone or address in an event', () => {
     for (const file of files) {
       const src = read(file)
-      // Every track() call in these files, as written.
-      const calls = src.match(/track\(EV\.[a-zA-Z]+,\s*\{[^}]*\}/g) ?? []
+      // Every track() and measure() call in these files, as written.
+      const calls = src.match(/(?:track|measure)\(EV\.[a-zA-Z]+,\s*\{[^}]*\}/g) ?? []
       for (const call of calls) {
         for (const forbidden of ['email', 'name:', 'phone', 'address', 'pincode']) {
           expect(call, `${file}: ${call}`).not.toContain(forbidden)
         }
       }
     }
+  })
+})
+
+describe('measurement stays out of the ad accounts', () => {
+  // Detail gathered to study the page. Meta and X optimise on what they are
+  // sent, so these go through measure(), which reaches Mixpanel alone.
+  const MEASURED = ['robotTapped', 'filmChosen', 'pageEngaged', 'pagePerformance', 'reserveFieldCompleted', 'demoAction']
+  const sources = [
+    'components/Analytics.tsx', 'components/site/HeroRobot.tsx', 'components/site/DemoStage.tsx',
+    'components/site/Showcase.tsx', 'components/ReserveForm.tsx',
+  ].map(read).join('\n')
+
+  it('sends each of them with measure(), never track()', () => {
+    for (const ev of MEASURED) {
+      expect(sources, ev).toContain(`measure(EV.${ev}`)
+      expect(sources, ev).not.toContain(`track(EV.${ev}`)
+    }
+  })
+
+  it('keeps the sections the pixels were always sent, and adds the rest quietly', () => {
+    const src = read('components/Analytics.tsx')
+    expect(src).toMatch(/WATCH\.includes\(e\.target\.id\) \? track : measure/)
+    expect(src).toMatch(/WATCH_QUIETLY = \['why', 'films', 'explore'\]/)
   })
 })

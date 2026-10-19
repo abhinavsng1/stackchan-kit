@@ -17,6 +17,21 @@ export const EV = {
   colourChosen: 'Colour Chosen',
   demoModeChosen: 'Demo Mode Chosen',
 
+  /* ---- measurement only: sent with measure(), so Mixpanel sees them and
+     the ad platforms never do (lib/analytics.ts) ---- */
+  /** A tap on a robot. `live` says whether the 3D one was there to react. */
+  robotTapped: 'Robot Tapped',
+  /** Something tried in the demo: the camera (and whether it opened), the music, or an answer. */
+  demoAction: 'Demo Action',
+  /** A film in the deck brought to the front, and how: arrow, dot, swipe or listen. */
+  filmChosen: 'Film Chosen',
+  /** Visible time on the page passed 10, 30, 60 or 120 seconds. */
+  pageEngaged: 'Page Engaged',
+  /** How long the page took, as this visitor's device experienced it. */
+  pagePerformance: 'Page Performance',
+  /** A form field left with something in it. The field's name, never its value. */
+  reserveFieldCompleted: 'Reserve Field Completed',
+
   // ---- the funnel that matters ----
   reserveCtaClicked: 'Reserve CTA Clicked',
   reserveFormStarted: 'Reserve Form Started',

@@ -211,8 +211,26 @@ export function track(event: string, props?: Props) {
     xEvent('content', { contents: [{ content_id: skuOf(props), content_name: String(props?.section ?? '') }] })
   }
   if (mode === 'test') return
+  toMixpanel(event, props)
+}
 
-  // Mixpanel.
+/**
+ * Mixpanel only. For the detail that answers questions about the page — how
+ * far someone got, what they tapped, how long it took to load — rather than
+ * the moments a campaign is judged on.
+ *
+ * Meta and X optimise delivery on whatever they are sent. A section view is
+ * a ViewContent to Meta and the first one in a visit is a content event to X,
+ * so an event added to study the page would quietly change what both ad
+ * accounts are trained on and what their reports count. Nothing sent through
+ * here reaches either pixel.
+ */
+export function measure(event: string, props?: Props) {
+  if (analyticsMode() !== 'live') return
+  toMixpanel(event, props)
+}
+
+function toMixpanel(event: string, props?: Props) {
   if (mp) { mp.track(event, props); return }
   if (analyticsConfigured()) {
     queue.push([event, props])
