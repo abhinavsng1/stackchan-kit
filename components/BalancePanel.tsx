@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CONTACT } from '@/lib/kit'
 import { loadCheckout } from '@/lib/checkout'
 import { EV, track } from '@/lib/analytics'
@@ -28,6 +28,12 @@ export default function BalancePanel({
   const [state, setState] = useState<State>({ phase: 'idle' })
   const busy = useRef(false)
   const now = Math.max(0, duePaise - incentivePaise)
+
+  // How many of the emailed links are opened at all. Without it there is no
+  // way to tell "nobody wants to pay early" from "nobody saw the email".
+  useEffect(() => {
+    track(EV.balancePageOpened, { due_inr: duePaise / 100, incentive_inr: incentivePaise / 100 })
+  }, [duePaise, incentivePaise])
 
   async function pay() {
     if (busy.current) return
@@ -67,6 +73,9 @@ export default function BalancePanel({
           // The webhook is what records this. The page only has to stop
           // asking for money that has just been paid.
           track(EV.paymentSucceeded, { from: 'balance_link' })
+          // Counted separately from a booking deposit: this is money that
+          // would otherwise have been collected in cash at a door.
+          track(EV.balancePaid, { paid_inr: now / 100, saved_inr: incentivePaise / 100 })
           setState({ phase: 'paid' })
         },
         modal: {

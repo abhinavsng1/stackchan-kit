@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Plan } from '@/lib/plans'
+import { EV, track } from '@/lib/analytics'
 
 /**
  * "Have a code?"
@@ -64,10 +65,19 @@ export default function CouponField({
         }
         setState({ kind: 'ok', applied })
         onApplied?.(applied)
+        // The code and what it was worth. A code is a marketing asset, not
+        // personal data — which is why it may be reported and the email
+        // beside it may not.
+        track(EV.couponApplied, {
+          code: applied.code, plan, qty, discount_inr: applied.discountPaise / 100,
+        })
         return
       }
       setState({ kind: 'bad', error: String(body?.error ?? 'That code is not valid.') })
       onApplied?.(null)
+      // Worth knowing which codes people are typing that we do not honour:
+      // an expired campaign still circulating, or a code printed wrong.
+      track(EV.couponRefused, { code: wanted, plan, qty })
     } catch {
       setState({ kind: 'bad', error: 'Could not check that code. Try again.' })
       onApplied?.(null)

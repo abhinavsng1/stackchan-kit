@@ -4,6 +4,7 @@ import { useState } from 'react'
 import CheckoutButton from '@/components/CheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import { PRICE } from '@/lib/kit'
+import { EV, track } from '@/lib/analytics'
 import type { Plan } from '@/lib/plans'
 import { EMI_TERMS, emiFromLine } from '@/lib/emi'
 
@@ -39,7 +40,7 @@ export default function CheckoutPanel({ token, qty = 1 }: { token: string; qty?:
         type="button"
         role="radio"
         aria-checked={chosen}
-        onClick={() => setPlan(value)}
+        onClick={() => { setPlan(value); track(EV.planChosen, { plan: value, location: 'checkout', qty }) }}
         className="text-left cursor-pointer w-full p-4"
         style={{
           borderRadius: 14,

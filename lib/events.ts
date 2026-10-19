@@ -28,6 +28,17 @@ export const EV = {
 
   /* Payment. The order exists by this point, so a drop-off here is a very
      different problem from a drop-off in the form, and is measured apart. */
+  /* How they chose to pay, and what a code did about it. Both are choices
+     made before any money moves, so a drop-off after one of them says
+     something different from a drop-off before it. */
+  planChosen: 'Plan Chosen',
+  couponApplied: 'Coupon Applied',
+  couponRefused: 'Coupon Refused',
+
+  /* The balance, settled online instead of at the door. */
+  balancePageOpened: 'Balance Page Opened',
+  balancePaid: 'Balance Paid Online',
+
   paymentOpened: 'Payment Opened',
   paymentSucceeded: 'Payment Succeeded',
   paymentDismissed: 'Payment Dismissed',

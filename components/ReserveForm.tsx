@@ -562,7 +562,13 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
               role="radio"
               aria-checked={plan === value}
               disabled={busy}
-              onClick={() => setPlan(value)}
+              onClick={() => {
+                setPlan(value)
+                // Which way of paying people pick, and from where. Counted in
+                // Postgres too (lib/plan-views.ts) — this one says where on
+                // the page the choice was made.
+                track(EV.planChosen, { plan: value, location: 'form', qty })
+              }}
               className="text-left cursor-pointer w-full p-4"
               style={{
                 borderRadius: 14,

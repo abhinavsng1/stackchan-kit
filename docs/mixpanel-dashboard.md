@@ -170,3 +170,45 @@ people hesitate, and Postgres to ask *which plan wins*.
 3. **Balance recovered early** — `Payment Succeeded` where `from = balance_link`,
    against the count of bookings still owing cash. This is the one that says
    whether the prepay incentive pays for itself.
+
+
+## People, not just events
+
+A profile is written the moment someone finishes the **email field** — not
+when their order is saved. Everybody who types an address and then stops is
+the most valuable list on this site, and until October they were invisible
+here.
+
+| Property | Means |
+|---|---|
+| `Form Started At` | Typed an email. Nothing more is known yet |
+| `Booking Started At` | An order row exists; the payment may not |
+| `Last Order At` | An order was actually placed |
+| `Last Paid At`, `Orders Paid` | Money moved |
+| `Balance Due` | Still owed to a courier, in rupees |
+| `Bought With: one-tap` | Came through Magic Checkout, where the browser never saw them |
+
+The distinct id is **SHA-256 of the lowercased email**, in the browser and on
+the server alike, so a person who browsed anonymously and then bought in one
+tap is one profile rather than two.
+
+Two things that are deliberate and easy to undo by accident:
+
+* **`batch_requests: false`** in `lib/analytics.ts`. mixpanel-browser flushes
+  only its *events* queue on pagehide; profile writes sit in a second queue
+  that nothing flushes, and every profile here is written seconds before the
+  buyer leaves for a payment app. Turning batching back on loses them.
+* **No personal data in any event.** Name, email, phone and address go to the
+  profile, which is access-controlled; events carry plan, quantity, amount and
+  coupon code only. `tests/tracking.test.ts` fails if that slips.
+
+## Choices, before any money moves
+
+| Event | Fires when | Use it for |
+|---|---|---|
+| `Plan Chosen` | Deposit or full is picked, in the form or at /checkout | **Take-up, and where the choice is made** |
+| `Coupon Applied` | A code is accepted | Which codes do anything |
+| `Coupon Refused` | A code is typed and refused | Expired campaigns still circulating, codes printed wrong |
+| `Balance Page Opened` | The emailed balance link is opened | Separates "nobody wants to pay early" from "nobody saw the email" |
+| `Balance Paid Online` | The balance settles online | Cash the courier no longer has to carry |
+| `Amazon Listing Opened` | Either Amazon link is clicked | What the marketplace is worth as a second door |
