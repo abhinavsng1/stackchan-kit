@@ -6,7 +6,7 @@ import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import HeroRobot from '@/components/site/HeroRobot'
 import FaceIcon from '@/components/site/FaceIcon'
-import { AmazonInline } from '@/components/AmazonLink'
+import AmazonButton from '@/components/AmazonButton'
 import { SplitHeadline, EASE } from '@/components/site/motion'
 import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
@@ -95,16 +95,20 @@ export default function Hero() {
                onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>
               Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
             </a>
-            <a href="#does" className="btn btn-ghost hero-cta">See what it does</a>
+            {/* Amazon takes the second button: people have bought there
+                before and have not bought from us, and that recognition is
+                worth more in the hero than a link to the demo, which the
+                price line below can carry. */}
+            <AmazonButton location="hero" />
           </motion.div>
           <motion.p className="t-mono text-[12.5px] text-[var(--muted)] mt-4 mb-0"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     transition={{ duration: 0.8, delay: 1.0 }}>
-            {/* The Amazon line rides along with the price rather than taking a
-                button of its own: it is reassurance, not a second thing to
-                decide between. */}
             {PRICE.deposit} to book · {PRICE.now} to buy · the rest on delivery ·{' '}
-            <AmazonInline location="hero" />
+            <a href="#does" onClick={(e) => { e.preventDefault(); smoothScrollTo('does') }}
+               style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              see what it does <span aria-hidden="true">↓</span>
+            </a>
           </motion.p>
         </motion.div>
       </div>

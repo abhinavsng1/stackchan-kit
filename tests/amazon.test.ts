@@ -49,35 +49,47 @@ describe('what the page says about it', () => {
   })
 })
 
-describe('the hero mention', () => {
-  const src = readFileSync(new URL('../components/AmazonLink.tsx', import.meta.url), 'utf8')
+describe('the hero button', () => {
+  const src = readFileSync(new URL('../components/AmazonButton.tsx', import.meta.url), 'utf8')
   const hero = readFileSync(new URL('../components/site/Hero.tsx', import.meta.url), 'utf8')
 
-  it('rides on the price line rather than taking a button', () => {
-    // Amazon is reassurance, not a third thing to decide between. A ghost
-    // button beside the two real calls to action read as clutter.
-    expect(hero).toContain('<AmazonInline location="hero" />')
-    expect(hero).not.toContain('btn-ghost hero-cta">Also')
+  it('takes the second button, and the demo link moves to the price line', () => {
+    // Most people have bought from Amazon and have not bought from us; that
+    // recognition is worth more in the hero than a link to the demo.
+    expect(hero).toContain('<AmazonButton location="hero" />')
+    expect(hero).toContain('see what it does')
   })
 
-  it('inherits the colour of the line it sits in, and underlines itself', () => {
-    // Same colour as the price line it ends, so it reads as a fact rather
-    // than a second call to action — but underlined, or at that size it
-    // would not read as a link at all.
-    expect(src).toContain("color: 'inherit'")
-    expect(src).toContain('textDecoration')
+  it('stays the quieter of the two, because booking here is ₹499', () => {
+    expect(src).toContain('btn btn-ghost')
+    expect(src).not.toContain('btn-brand')
   })
 
-  it('opens in a new tab, safely, and says so to a screen reader', () => {
-    expect(src).toContain('target="_blank"')
-    expect(src).toContain('rel="noopener noreferrer"')
+  it('shows Amazon’s own artwork rather than a redrawing of it', () => {
+    // The mark is theirs. The file is Amazon's published SVG; nothing here
+    // draws paths of its own.
+    expect(src).toContain('AMAZON.logo')
+    expect(AMAZON.logo).toBe('/brand/amazon.svg')
+    expect(src).not.toMatch(/<svg|<path/)
+  })
+
+  it('names itself for a screen reader, which cannot see a logo', () => {
+    expect(src).toContain('alt="Amazon"')
     expect(src).toMatch(/aria-label=.*Amazon/)
   })
 
-  it('never draws the mark itself', () => {
-    // A redrawn Amazon logo would be both a worse logo and a trademark we had
-    // no right to redraw. If a badge ever appears it is Amazon's own file.
-    expect(src).not.toMatch(/<svg|<path/)
-    expect(AMAZON.badge).toBe(null)
+  it('opens in a new tab, safely', () => {
+    expect(src).toContain('target="_blank"')
+    expect(src).toContain('rel="noopener noreferrer"')
+  })
+})
+
+describe('the artwork', () => {
+  it('is on disk and can scale, which the published file could not', () => {
+    const svg = readFileSync(new URL('../public/brand/amazon.svg', import.meta.url), 'utf8')
+    // Amazon publishes it without a viewBox, so it renders at one size and
+    // one size only until this is added.
+    expect(svg).toContain('viewBox="0 0 603 182"')
+    expect(svg).toContain('#ff9900')
   })
 })

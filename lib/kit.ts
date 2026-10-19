@@ -435,16 +435,13 @@ export const AMAZON = {
   asin: 'B0HNJS6SP6',
   url: 'https://www.amazon.in/dp/B0HNJS6SP6',
   /**
-   * Amazon's own "Available at Amazon" badge, once somebody downloads it.
+   * Amazon's wordmark, for the button that goes there.
    *
-   * Null until then, and the button says so in words instead. The badge is a
-   * registered trademark with its own usage rules — size, clear space, which
-   * colourways are allowed — and Amazon publishes the artwork for sellers to
-   * use. Drawing an approximation of it here would be both a worse logo and
-   * a trademark we had no right to redraw.
-   *
-   * Put the file at public/brand/available-at-amazon.svg and set this to
-   * '/brand/available-at-amazon.svg'.
+   * Their artwork, not a redrawing of it: public/brand/amazon.svg is the
+   * published SVG, used to say truthfully where this robot is also sold.
+   * If you would rather use the official "Available at Amazon" badge from
+   * Seller Central, drop it in beside this one and point this at it — the
+   * button renders whatever is here at the same height.
    */
-  badge: null as string | null,
+  logo: '/brand/amazon.svg',
 } as const
