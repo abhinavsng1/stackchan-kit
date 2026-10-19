@@ -30,11 +30,16 @@ export default function Page() {
       <StructuredData />
       <SiteNav stories={SHOW_STORIES && proof.hasStories} />
 
+      {/* The order follows what visitors do. Three in four never leave the
+          first screen; those who go further mostly jump straight to "what it
+          does" (the most-pressed link on the page), and of those who scroll,
+          half stopped inside the two-screen story that used to come next. So
+          the demo comes first, then the films as proof, then the story. */}
       <main id="top">
         <Hero />
-        <Meet />
-        <Showcase />
         <Demo />
+        <Showcase />
+        <Meet />
         <Explore />
         {SHOW_STORIES && <Stories proof={proof} />}
         <Buy magic={magicEnabled()} />

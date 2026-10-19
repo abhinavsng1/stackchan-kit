@@ -29,8 +29,8 @@ export default function SiteNav({ stories = false, links: own, home = '#top' }: 
 
   const links: [string, string][] = own ?? [
     ['What it does', '#does'],
-    ['Colours', '#explore'],
     ['Watch it', '#films'],
+    ['Colours', '#explore'],
     ...(stories ? [['Stories', '#stories'] as [string, string]] : []),
     ['FAQ', '#faq'],
   ]
