@@ -434,4 +434,17 @@ export const CONTACT = {
 export const AMAZON = {
   asin: 'B0HNJS6SP6',
   url: 'https://www.amazon.in/dp/B0HNJS6SP6',
+  /**
+   * Amazon's own "Available at Amazon" badge, once somebody downloads it.
+   *
+   * Null until then, and the button says so in words instead. The badge is a
+   * registered trademark with its own usage rules — size, clear space, which
+   * colourways are allowed — and Amazon publishes the artwork for sellers to
+   * use. Drawing an approximation of it here would be both a worse logo and
+   * a trademark we had no right to redraw.
+   *
+   * Put the file at public/brand/available-at-amazon.svg and set this to
+   * '/brand/available-at-amazon.svg'.
+   */
+  badge: null as string | null,
 } as const

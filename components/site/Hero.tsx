@@ -6,6 +6,7 @@ import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import HeroRobot from '@/components/site/HeroRobot'
 import FaceIcon from '@/components/site/FaceIcon'
+import AmazonButton from '@/components/AmazonButton'
 import { SplitHeadline, EASE } from '@/components/site/motion'
 import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
@@ -95,6 +96,8 @@ export default function Hero() {
               Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
             </a>
             <a href="#does" className="btn btn-ghost hero-cta">See what it does</a>
+            {/* Spans the row on a phone, where the two above it are halves. */}
+            <AmazonButton location="hero" className="col-span-2 sm:col-span-1" />
           </motion.div>
           <motion.p className="t-mono text-[12.5px] text-[var(--muted)] mt-4 mb-0"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}

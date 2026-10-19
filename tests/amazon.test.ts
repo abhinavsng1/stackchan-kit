@@ -48,3 +48,34 @@ describe('what the page says about it', () => {
     expect(PRICE.depositPaise).toBeLessThan(PRICE.nowPaise)
   })
 })
+
+describe('the hero button', () => {
+  const src = readFileSync(new URL('../components/AmazonButton.tsx', import.meta.url), 'utf8')
+
+  it('is the quieter of the two calls to action', () => {
+    // btn-brand is the primary; this one is a ghost, because booking here is
+    // the offer and Amazon is the alternative.
+    expect(src).toContain('btn btn-ghost')
+    expect(src).not.toContain('btn-brand')
+  })
+
+  it('opens in a new tab, safely', () => {
+    expect(src).toContain('target="_blank"')
+    expect(src).toContain('rel="noopener noreferrer"')
+  })
+
+  it('says where it goes, for a screen reader too', () => {
+    expect(src).toMatch(/aria-label=.*Amazon/)
+  })
+
+  it('shows Amazon’s own badge when there is one, and words when there is not', () => {
+    expect(src).toContain('AMAZON.badge')
+    expect(AMAZON.badge).toBe(null)
+  })
+
+  it('never draws the mark itself', async () => {
+    // A redrawn Amazon logo would be both a worse logo and a trademark we had
+    // no right to redraw. If a badge appears it is Amazon's own file.
+    expect(src).not.toMatch(/<svg|<path/)
+  })
+})
