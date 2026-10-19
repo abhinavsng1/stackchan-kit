@@ -53,3 +53,19 @@ test.describe('the film', () => {
   })
 })
 
+test.describe('the deck of four films', () => {
+  test('downloads nothing until it is near', async ({ page }) => {
+    // Most visitors leave from the first screen. They should not be paying
+    // for tens of megabytes of film they never scroll down to.
+    const media: string[] = []
+    page.on('request', (r) => { if (/\/media\/films\//.test(r.url())) media.push(r.url()) })
+
+    await page.goto('/')
+    await page.waitForTimeout(1500)
+    expect(media, 'the deck must not load from the first screen').toEqual([])
+
+    await page.locator('#films').scrollIntoViewIfNeeded()
+    await expect.poll(() => media.filter((u) => u.endsWith('.mp4')).length, { timeout: 15000 }).toBeGreaterThan(0)
+  })
+})
+

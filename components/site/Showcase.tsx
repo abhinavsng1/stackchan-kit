@@ -13,6 +13,7 @@ export default function Showcase() {
   const [visible, setVisible] = useState(false)
   const [reduced, setReduced] = useState(false)
   const [unavailable, setUnavailable] = useState<number[]>([])
+  const [near, setNear] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const videos = useRef<(HTMLVideoElement | null)[]>([])
   const inView = useRef(false)
@@ -55,6 +56,16 @@ export default function Showcase() {
     }
   }, [silence])
 
+  // The films are most of the page's weight, so nothing is fetched until the
+  // deck is a short scroll away: a visitor who never gets here never pays for it.
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setNear(true); observer.disconnect() }
+    }, { rootMargin: '600px 0px' })
+    if (root.current) observer.observe(root.current)
+    return () => observer.disconnect()
+  }, [])
+
   const rotating = visible && !paused && !reduced && sound === null
   useEffect(() => {
     if (!rotating) return
@@ -92,7 +103,7 @@ export default function Showcase() {
         if (Math.abs(delta) > 45) { swiped.current = true; choose(selected + (delta < 0 ? 1 : -1)) }
       }} onPointerCancel={() => { dragStart.current = null }}>
         {CLIPS.map((n, i) => <article key={n} className="film-deck-card" data-position={position(i, selected)} role="group" aria-label={`Video ${n} of 4`}>
-          <video ref={el => { videos.current[i] = el }} src={`/media/films/pebble-${n}.mp4`} autoPlay muted={sound !== i} loop playsInline preload="auto" aria-label={`PebbleRobo product film ${n}`}
+          <video ref={el => { videos.current[i] = el }} src={near ? `/media/films/pebble-${n}.mp4` : undefined} poster={near ? `/media/films/pebble-${n}.jpg` : undefined} autoPlay muted={sound !== i} loop playsInline preload={near ? 'auto' : 'none'} aria-label={`PebbleRobo product film ${n}`}
             onError={() => setUnavailable(old => old.includes(i) ? old : [...old, i])} />
           <button className="film-deck-hit" aria-label={sound === i ? `Mute video ${n}` : `Watch video ${n} with sound`} onClick={() => { if (swiped.current) { swiped.current = false; return }; sound === i ? silence() : choose(i, true) }}>
             <span className="film-card-index">FILM 0{n}</span>
