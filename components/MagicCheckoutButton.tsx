@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { CONTACT } from '@/lib/kit'
+import { useState } from 'react'
+import { CONTACT, PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 
 /**
@@ -10,6 +10,12 @@ import { EV, track } from '@/lib/analytics'
  * Rendered only where the server has said the feature is on, so the flag is a
  * prop rather than a public environment variable — with MAGIC_CHECKOUT unset
  * this component is never mounted and its script is never fetched.
+ *
+ * It sells the robot outright at the full price. The ₹499 deposit does not
+ * come through this window: Magic Checkout would have to treat the ₹4,500
+ * balance as cash on delivery, which this Razorpay account cannot take, and
+ * offering it is what greyed out every payment method the first time. The
+ * form below is the deposit's path.
  *
  * The ordinary form stays exactly where it is. This is a second door, not a
  * replacement: the form is the one that works for everybody, including anyone
@@ -37,25 +43,6 @@ function loadMagic(): Promise<void> {
 export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: number; coupon?: string | null }) {
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
-
-  /**
-   * Shown only to someone who asks for it with ?magic=1, even once the
-   * server flag is on.
-   *
-   * Razorpay has not finished enabling Magic Checkout on this account, so
-   * the window may not open. A buy button that might not work is worse on a
-   * live storefront than no button at all — but it still has to be testable
-   * against production, with production keys, before anyone trusts it. The
-   * query parameter is the difference between those two.
-   *
-   * Decided in an effect rather than during render: the page is static, and
-   * reading the query string while rendering would make the server's HTML
-   * and the browser's first paint disagree.
-   */
-  const [asked, setAsked] = useState(false)
-  useEffect(() => {
-    setAsked(new URLSearchParams(window.location.search).get('magic') === '1')
-  }, [])
 
   async function buy() {
     if (state === 'working') return
@@ -113,8 +100,6 @@ export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: 
     }
   }
 
-  if (!asked) return null
-
   if (state === 'done') {
     return (
       <p className="text-[15px] m-0">
@@ -129,7 +114,7 @@ export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: 
         {state === 'working' ? 'Opening…' : 'Buy with 1-tap checkout'}
       </button>
       <p className="text-[13px] mt-2 mb-0" style={{ color: 'var(--muted)' }}>
-        {message ?? 'Address and payment in one window. Or fill the form below.'}
+        {message ?? `Pay ${PRICE.now} in full — address and payment in one window. Or book for ${PRICE.deposit} with the form below.`}
       </p>
     </div>
   )
