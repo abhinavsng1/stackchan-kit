@@ -49,33 +49,35 @@ describe('what the page says about it', () => {
   })
 })
 
-describe('the hero button', () => {
-  const src = readFileSync(new URL('../components/AmazonButton.tsx', import.meta.url), 'utf8')
+describe('the hero mention', () => {
+  const src = readFileSync(new URL('../components/AmazonLink.tsx', import.meta.url), 'utf8')
+  const hero = readFileSync(new URL('../components/site/Hero.tsx', import.meta.url), 'utf8')
 
-  it('is the quieter of the two calls to action', () => {
-    // btn-brand is the primary; this one is a ghost, because booking here is
-    // the offer and Amazon is the alternative.
-    expect(src).toContain('btn btn-ghost')
-    expect(src).not.toContain('btn-brand')
+  it('rides on the price line rather than taking a button', () => {
+    // Amazon is reassurance, not a third thing to decide between. A ghost
+    // button beside the two real calls to action read as clutter.
+    expect(hero).toContain('<AmazonInline location="hero" />')
+    expect(hero).not.toContain('btn-ghost hero-cta">Also')
   })
 
-  it('opens in a new tab, safely', () => {
+  it('inherits the colour of the line it sits in, and underlines itself', () => {
+    // Same colour as the price line it ends, so it reads as a fact rather
+    // than a second call to action — but underlined, or at that size it
+    // would not read as a link at all.
+    expect(src).toContain("color: 'inherit'")
+    expect(src).toContain('textDecoration')
+  })
+
+  it('opens in a new tab, safely, and says so to a screen reader', () => {
     expect(src).toContain('target="_blank"')
     expect(src).toContain('rel="noopener noreferrer"')
-  })
-
-  it('says where it goes, for a screen reader too', () => {
     expect(src).toMatch(/aria-label=.*Amazon/)
   })
 
-  it('shows Amazon’s own badge when there is one, and words when there is not', () => {
-    expect(src).toContain('AMAZON.badge')
-    expect(AMAZON.badge).toBe(null)
-  })
-
-  it('never draws the mark itself', async () => {
+  it('never draws the mark itself', () => {
     // A redrawn Amazon logo would be both a worse logo and a trademark we had
-    // no right to redraw. If a badge appears it is Amazon's own file.
+    // no right to redraw. If a badge ever appears it is Amazon's own file.
     expect(src).not.toMatch(/<svg|<path/)
+    expect(AMAZON.badge).toBe(null)
   })
 })
