@@ -12,6 +12,7 @@ export const EV = {
   faqOpened: 'FAQ Opened',
   specsExpanded: 'Specs Expanded',
   outboundClicked: 'Outbound Link Clicked',
+  amazonClicked: 'Amazon Listing Opened',
   editionChosen: 'Edition Chosen',
   colourChosen: 'Colour Chosen',
   demoModeChosen: 'Demo Mode Chosen',

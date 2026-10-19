@@ -417,3 +417,21 @@ export const CONTACT = {
   email: 'support@pebblerobo.com',
   entity: 'Pebble Robo',
 } as const
+
+/**
+ * The same robot, on Amazon.
+ *
+ * A second place to buy, not a second price: Amazon sells it outright at the
+ * full price, so there is no ₹499 booking and no cash at the door. Saying
+ * that plainly matters more than the link does — somebody who clicks
+ * expecting to pay ₹499 and finds ₹4,999 has been misled by us, not by
+ * Amazon.
+ *
+ * An order placed there never reaches this site's database, so it will not
+ * appear in the back office and the courier is Amazon's. The click is
+ * tracked so the two channels can at least be compared.
+ */
+export const AMAZON = {
+  asin: 'B0HNJS6SP6',
+  url: 'https://www.amazon.in/dp/B0HNJS6SP6',
+} as const

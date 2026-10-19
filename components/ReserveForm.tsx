@@ -11,6 +11,7 @@ import { EMI_TERMS, emiFromLine } from '@/lib/emi'
 import { useShell, setShell } from '@/lib/shell-store'
 import Swatch from '@/components/site/Swatch'
 import CouponField from '@/components/CouponField'
+import AmazonLink from '@/components/AmazonLink'
 import EditionPicker from '@/components/EditionPicker'
 import { openCheckout, CheckoutError } from '@/lib/checkout'
 import { useEdition } from '@/lib/edition-store'
@@ -613,6 +614,8 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
         </button>
         <p className="t-label m-0">Card · UPI · netbanking · EMI</p>
       </div>
+
+      <AmazonLink location="form" className="mt-4" />
 
       <p className="text-[12.5px] text-[var(--muted)] mt-4 mb-0 max-w-[52ch]">
         {plan === 'full'

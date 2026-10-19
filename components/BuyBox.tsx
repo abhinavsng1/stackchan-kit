@@ -2,6 +2,7 @@
 
 import { smoothScrollTo } from '@/lib/smooth-scroll'
 import EmiNote from '@/components/EmiNote'
+import AmazonLink from '@/components/AmazonLink'
 
 import { useState } from 'react'
 import { EDITION, PRICE } from '@/lib/kit'
@@ -71,6 +72,7 @@ export default function BuyBox() {
       <p className="text-[14px] text-[var(--muted)] mt-2 mb-0 flex items-center gap-2">
         <span className="dot" aria-hidden="true" />Free delivery in India · {PRICE.ship}
       </p>
+      <AmazonLink location="buybox" className="mt-3" />
 
       <div className="mt-7">
         <p className="t-label m-0 mb-2">Colour</p>
