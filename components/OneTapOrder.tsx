@@ -7,7 +7,6 @@ import Swatch from '@/components/site/Swatch'
 import { ORDERABLE_SHELLS, DEFAULT_SHELL } from '@/lib/shells'
 import { setShell } from '@/lib/shell-store'
 import { quote, rupees } from '@/lib/plans'
-import { EV, track } from '@/lib/analytics'
 
 /**
  * Ordering without a form.
@@ -111,20 +110,17 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
         Address and payment in one window. We never see your card.
       </p>
 
-      {!fallback && (
-        <button
-          type="button"
-          onClick={() => { setFallback(true); track(EV.planChosen, { plan: 'deposit', location: 'form-revealed', qty: count }) }}
-          className="bg-transparent border-0 p-0 mt-5 cursor-pointer text-[13.5px] underline"
-          style={{ color: 'var(--muted)' }}
-        >
-          Rather fill in a form?
-        </button>
-      )}
-
+      {/* Only ever shown because something broke. There is no link offering
+          it: a second way to buy, sitting there unasked, is a choice the
+          buyer has to make before they can get on with paying. It appears
+          when a window refuses to open and not one moment before. */}
       {fallback && (
         <div className="mt-10 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
-          <p className="t-label m-0 mb-4">Order by form instead</p>
+          <p className="t-label m-0 mb-2">The payment window would not open</p>
+          <p className="text-[14px] mt-0 mb-6" style={{ color: 'var(--muted)' }}>
+            Nothing has been charged. Your details below and we will send a payment link —
+            it takes about a minute.
+          </p>
           {children}
         </div>
       )}

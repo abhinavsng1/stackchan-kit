@@ -33,6 +33,27 @@ function afterResponse(work: Promise<unknown>) {
   }
 }
 
+/**
+ * The same, for work that reports failure by returning rather than throwing.
+ *
+ * `deliver()` in lib/email.ts answers { ok: false, reason } when a send does
+ * not go out, and every call here used to drop that on the floor. A
+ * confirmation that never left looked exactly like one that did, so "the
+ * order is in the dashboard but no email arrived" had nothing behind it to
+ * read. Now it says which email, for which order, and why.
+ */
+function sendAndReport(what: string, orderId: string, work: Promise<{ ok: boolean; reason?: string }>) {
+  afterResponse(
+    work.then(
+      (r) => {
+        if (r.ok) console.log('[email] sent', { what, order_id: orderId })
+        else console.error('[email] not sent', { what, order_id: orderId, reason: r.reason })
+      },
+      (error) => console.error('[email] threw', { what, order_id: orderId, error: String(error) }),
+    ),
+  )
+}
+
 type Entity = {
   id?: string; order_id?: string; amount?: number; status?: string
   /** 'cod' on a cash-on-delivery payment through Magic Checkout. */
@@ -141,7 +162,7 @@ export async function POST(request: Request) {
     })
 
     if (balance.status === 'paid') {
-      afterResponse(sendBalanceReceiptEmail({
+      sendAndReport('balance receipt', payment.order_id, sendBalanceReceiptEmail({
         name: balance.name, email: balance.email, qty: balance.qty,
         edition: balance.edition, amountPaise: balance.amountPaise,
         phone: balance.phone, address: balance.address,
@@ -232,7 +253,7 @@ export async function POST(request: Request) {
 
     if (written.status === 'paid') {
       const qty = Number(payment.notes.kits ?? 1) || 1
-      afterResponse(sendPaymentReceiptEmail({
+      sendAndReport('magic receipt', payment.order_id, sendPaymentReceiptEmail({
         name: customer.name, email: customer.email, qty,
         edition: 'assembled', amountPaise: outcome.paidPaise,
         balanceDuePaise: outcome.balanceDuePaise,
@@ -289,7 +310,7 @@ export async function POST(request: Request) {
   // 'paid' is returned by exactly one call per reservation, so a redelivered
   // webhook cannot send a second receipt.
   if (result.status === 'paid') {
-    afterResponse(sendPaymentReceiptEmail({
+    sendAndReport('receipt', payment.order_id, sendPaymentReceiptEmail({
       name: result.name,
       email: result.email,
       qty: result.qty,
