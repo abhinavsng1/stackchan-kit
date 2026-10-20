@@ -14,6 +14,11 @@ const WHITE = '#ffffff'
 const EMBER = '#ff6a1a'
 const RAIN = '#9fd8ff'
 const DIM = '#3a3a3a'
+/** The timer's liquid: deep orange below its bright surface, and the bubbles in it. */
+const DEEP = '#a8380a'
+const FIZZ = '#ffb27a'
+const FULL = 16.5
+const POUR_MS = 900
 
 function panel(ctx: CanvasRenderingContext2D) {
   const w = ctx.canvas.width, h = ctx.canvas.height
@@ -65,30 +70,51 @@ export const thinking = (): ScreenDraw => (ctx, t) => {
 }
 
 /**
- * A timer, counting down for real from the moment it is shown: the minutes
- * and seconds in the face's pixels, and an ember bar that empties as it goes.
+ * A timer, counting down for real from the moment it is shown. The screen
+ * fills with warm orange that drains away as the time goes, its surface
+ * rippling and bubbles rising through it, with the minutes and seconds
+ * floating on top. It pours in over the first moments, so even a glimpse of
+ * it shows the liquid move.
  */
 export const timer = (minutes: number, startedAt = performance.now()): ScreenDraw => (ctx, t) => {
   const { cell, lit } = panel(ctx)
   const total = minutes * 60_000
-  const left = Math.max(0, total - (t - startedAt))
+  const since = t - startedAt
+  const left = Math.max(0, total - since)
   const secs = Math.ceil(left / 1000)
   const text = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`
 
-  // Scaled by one and a half: 4:59 is 13 cells at scale one, which leaves the
-  // screen looking empty; 19.5 fills it the way a face does.
-  const s = 1.5
-  const width = [...text].reduce((w, ch, i) => w + (ch === ':' ? 1 : 3) + (i ? 1 : 0), 0) * s
-  let x = (COLS - width) / 2
-  const y = 3
+  // Full sits a row and a half below the top, so the ripple is always in view.
+  const pour = 1 - (1 - Math.min(1, since / POUR_MS)) ** 3
+  const level = FULL * (left / total) * pour
+  for (let x = 0; x < COLS; x += 0.5) {
+    const surface = ROWS - level + Math.sin(x * 0.7 + t / 380) * 0.3 * Math.min(1, level)
+    const top = Math.round(surface * 2) / 2
+    if (top >= ROWS) continue
+    ctx.fillStyle = DEEP
+    cell(x, top + 0.5, 0.5, ROWS - top)
+    lit(EMBER, 0.5, () => cell(x, top, 0.5, 0.5))
+  }
+  if (level > 1) {
+    lit(FIZZ, 0.3, () => {
+      for (let i = 0; i < 6; i++) {
+        const y = ROWS - ((t / 1000) * (1.4 + (i % 3) * 0.5) + i * 2.3) % Math.max(1, level - 0.8)
+        cell(2.5 + i * 3.6, y, 0.5, 0.5)
+      }
+    })
+  }
+
+  const s = 1.25
+  const x = (COLS - [...text].reduce((w, ch, i) => w + (ch === ':' ? 1 : 3) + (i ? 1 : 0), 0) * s) / 2
+  const y = (ROWS - 5 * s) / 2
+  // The colon dims with the seconds rather than vanishing: gone, 4:57 reads as 4 57.
+  const colonOn = secs % 2 === 0 || left === 0
   let cx = x
   lit(WHITE, 1, () => {
     cx = x
     for (const ch of text) {
       if (ch === ':') {
-        // The colon dims and brightens with the seconds, the way a clock's does;
-        // gone altogether, 4:57 reads as 4 57.
-        if (secs % 2 === 0) { cell(cx, y + 1 * s, s, s); cell(cx, y + 3 * s, s, s) }
+        if (colonOn) { cell(cx, y + 1 * s, s, s); cell(cx, y + 3 * s, s, s) }
         cx += 2 * s
         continue
       }
@@ -98,16 +124,11 @@ export const timer = (minutes: number, startedAt = performance.now()): ScreenDra
       cx += 4 * s
     }
   })
-  if (secs % 2) {
-    const colon = x + (text.indexOf(':') * 4) * s
-    ctx.fillStyle = DIM
+  if (!colonOn) {
+    const colon = x + text.indexOf(':') * 4 * s
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
     cell(colon, y + 1 * s, s, s); cell(colon, y + 3 * s, s, s)
   }
-  x = 3
-  const bar = 18
-  ctx.fillStyle = DIM
-  cell(x, 13.5, bar, 0.75)
-  lit(EMBER, 0.6, () => cell(x, 13.5, Math.max(0.5, bar * (left / total)), 0.75))
 }
 
 /**
