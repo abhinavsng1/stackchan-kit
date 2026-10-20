@@ -9,7 +9,11 @@ import type { Demo } from '@/lib/live-demo'
 import { EV, measure, track } from '@/lib/analytics'
 
 type Mode = 'camera' | 'dance' | 'assistant'
-const TABS: [Mode, string][] = [['camera', 'Camera & movement'], ['dance', 'Dance'], ['assistant', 'AI assistant']]
+// The assistant opens first. Most visitors arrive inside the Instagram,
+// Facebook or X app, whose browsers usually refuse the camera: in the first
+// day of measuring, two camera attempts in three failed, while the assistant
+// and the dance were the two tabs people chose.
+const TABS: [Mode, string][] = [['assistant', 'AI assistant'], ['dance', 'Dance'], ['camera', 'Camera & movement']]
 const ANSWERS = [
   ['Help me plan my day', 'Let’s start with one thing that matters most. Give it your freshest hour, leave room for a break, then take the small tasks one at a time.'],
   ['Tell me something interesting', 'An octopus has three hearts. Two pump blood to its gills, and one keeps it flowing to the rest of its body. A little reminder that nature is wonderfully inventive.'],
@@ -17,13 +21,16 @@ const ANSWERS = [
 ]
 
 export default function DemoStage() {
-  const [mode, setMode] = useState<Mode>('camera')
+  const [mode, setMode] = useState<Mode>('assistant')
   const modeRef = useRef<Mode>(mode)
   modeRef.current = mode
   const cameraRequest = useRef(0)
   const [cameraOn, setCameraOn] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  // No camera API at all (some in-app browsers): offer the trackpad, not a button that cannot work.
+  const [canCamera, setCanCamera] = useState(true)
+  useEffect(() => { setCanCamera(Boolean(navigator.mediaDevices?.getUserMedia)) }, [])
   const [playing, setPlaying] = useState(false)
   const [answer, setAnswer] = useState('Pick a conversation to hear PebbleRobo’s voice and see its expressions.')
   const [point, setPoint] = useState({ x: 50, y: 65 })
@@ -90,7 +97,7 @@ export default function DemoStage() {
       api.current?.camera(v); setCameraOn(true)
       measure(EV.demoAction, { action: 'camera', ok: true })
     } catch {
-      stopCamera(); setMessage('Camera unavailable. Allow camera access in your browser, or keep exploring with the trackpad.')
+      stopCamera(); setMessage('The camera is blocked here. Apps like Instagram and X often block it: open pebblerobo.com in Chrome or Safari to try it, or keep exploring with the trackpad.')
       measure(EV.demoAction, { action: 'camera', ok: false })
     }
     finally { if (mounted.current) setBusy(false) }
@@ -149,7 +156,7 @@ export default function DemoStage() {
           <p className="t-label">A face on its screen. A room to explore.</p>
           <h3 className="t-display t-h3">You’re in the picture.</h3>
           <p>Turn its head with the trackpad. Switch on your camera to see your own video on the robot’s display.</p>
-          <button className="btn btn-brand" disabled={busy || !live} onClick={() => cameraOn ? stopCamera() : void startCamera()}>{busy ? 'Opening camera…' : cameraOn ? 'Turn camera off' : 'Try my camera'}</button>
+          {canCamera && <button className="btn btn-brand" disabled={busy || !live} onClick={() => cameraOn ? stopCamera() : void startCamera()}>{busy ? 'Opening camera…' : cameraOn ? 'Turn camera off' : 'Try my camera'}</button>}
           <div className="head-trackpad" role="group" tabIndex={0} aria-label="Head movement trackpad. Use arrow keys or drag to turn the robot."
             onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); const r = e.currentTarget.getBoundingClientRect(); move((e.clientX-r.left)/r.width*100, (e.clientY-r.top)/r.height*100) }}
             onPointerMove={e => { if (!e.currentTarget.hasPointerCapture(e.pointerId)) return; const r=e.currentTarget.getBoundingClientRect(); move((e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100) }}

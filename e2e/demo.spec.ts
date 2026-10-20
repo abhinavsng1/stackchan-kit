@@ -23,6 +23,13 @@ test('every mode can be chosen, and says what it does without the 3D robot', asy
   }
 })
 
+test('opens on the assistant, which works inside the apps ads are seen in', async ({ page }) => {
+  // The camera tab used to open first, and most in-app browsers refuse the camera.
+  await page.goto('/')
+  await expect(page.getByRole('tab', { name: 'AI assistant', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.locator('#demo-panel').getByRole('heading', { name: 'More than a voice.' })).toBeVisible()
+})
+
 test('assistant samples are interactive and explicitly labelled', async ({ page }) => {
   await page.goto('/#does')
   await page.getByRole('tab', { name: 'AI assistant', exact: true }).click()
