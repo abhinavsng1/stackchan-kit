@@ -204,7 +204,7 @@ export async function POST(request: Request) {
     // balance decided at the time, none of which then depend on Razorpay
     // handing them back.
     const ours = await findMagicOrder(payment.order_id)
-    const customer = resolveMagicCustomer(order, payment, ours)
+    const customer = resolveMagicCustomer(order, payment, ours, payment.order_id)
     const outcome = readMagicPayment(order, payment)
 
     if (!customer) {
@@ -244,14 +244,24 @@ export async function POST(request: Request) {
       balanceDuePaise: outcome.balanceDuePaise,
       couponCode: payment.notes.coupon ?? null,
       discountPaise: Number(payment.notes.discount_paise ?? 0) || 0,
-      needsReview: outcome.unrecognised,
+      needsReview: outcome.unrecognised || !customer.emailKnown,
     })
 
     // Stamped whatever happens next: the order was paid, and that is true
     // even if the booking below turns out to need a person.
     await markMagicOrderPaid(payment.order_id, payment.id)
 
-    if (written.status === 'paid') {
+    if (written.status === 'paid' && !customer.emailKnown) {
+      // Nothing to send a receipt to. Email is optional in Razorpay's window
+      // and this buyer gave none, so the booking carries a phone number and a
+      // flag instead, and somebody rings them. Said out loud, because a
+      // receipt that was never attempted must not look like one that failed.
+      console.error('[email] no address for this buyer', {
+        order_id: payment.order_id, has_phone: Boolean(customer.phone),
+      })
+    }
+
+    if (written.status === 'paid' && customer.emailKnown) {
       const qty = Number(payment.notes.kits ?? 1) || 1
       sendAndReport('magic receipt', payment.order_id, sendPaymentReceiptEmail({
         name: customer.name, email: customer.email, qty,

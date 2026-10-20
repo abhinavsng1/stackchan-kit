@@ -292,12 +292,26 @@ export type MagicCustomer = {
   pincode: string | null
 }
 
+/**
+ * Razorpay writes void@razorpay.com when the buyer gave no email — it is a
+ * sentinel, not an address, and a receipt sent there goes nowhere. Email is
+ * optional in the Magic window unless the account is set to require it.
+ */
+const text = (v: string | undefined | null) => (v && v.trim() ? v.trim() : null)
+
+export function realEmail(v: string | undefined | null): string | null {
+  const e = (v ?? '').trim().toLowerCase()
+  if (!e || !e.includes('@')) return null
+  if (e.endsWith('@razorpay.com')) return null
+  if (e.endsWith('.invalid')) return null
+  return e
+}
+
 export function readMagicCustomer(order: MagicOrder): MagicCustomer | null {
   const c = order.customer_details
   if (!c?.email) return null
   const a = c.shipping_address ?? c.billing_address ?? {}
   const line = [a.line1, a.line2].map((v) => v?.trim()).filter(Boolean).join(', ')
-  const text = (v: string | undefined) => (v && v.trim() ? v.trim() : null)
   return {
     name: (c.name ?? a.name ?? 'PebbleRobo buyer').trim(),
     email: c.email.trim().toLowerCase(),
@@ -329,25 +343,38 @@ export function readMagicCustomer(order: MagicOrder): MagicCustomer | null {
 export function resolveMagicCustomer(
   order: MagicOrder,
   payment: MagicPayment,
-  remembered: { email: string | null; contact: string | null; pincode: string | null } | null = null,
-): MagicCustomer | null {
-  const full = readMagicCustomer(order)
-  if (full) return full
+  ours: { email: string | null; contact: string | null; pincode: string | null } | null = null,
+  orderId = '',
+): (MagicCustomer & { emailKnown: boolean }) | null {
+  const c = order.customer_details
+  const a = c?.shipping_address ?? c?.billing_address ?? {}
+  const line = [a.line1, a.line2].map((v) => v?.trim()).filter(Boolean).join(', ')
 
-  const email = (remembered?.email ?? payment.email ?? '').trim().toLowerCase()
-  if (!email) return null
+  // Taken field by field, not source by source. Razorpay's order is the only
+  // one carrying an address, and it can still be the one missing the email —
+  // preferring it wholesale is how a real phone number was dropped in favour
+  // of a blank one.
+  const email = realEmail(c?.email) ?? realEmail(ours?.email) ?? realEmail(payment.email)
+  const phone = text(c?.contact) ?? text(a.contact) ?? text(ours?.contact) ?? text(payment.contact)
+  const name = text(c?.name) ?? text(a.name)
+  const pincode = text(a.zipcode) ?? text(ours?.pincode)
 
-  const phone = (remembered?.contact ?? payment.contact ?? '').trim()
-  const pincode = (remembered?.pincode ?? '').trim()
+  // Nothing to reach them by at all. Still refused, so the webhook retries
+  // rather than writing a booking belonging to nobody.
+  if (!email && !phone) return null
 
   return {
-    // Razorpay's window asks for a name, but not on any of these two routes.
-    name: 'PebbleRobo buyer',
-    email,
-    phone: phone || null,
-    address: null,
-    city: null,
-    pincode: pincode || null,
+    name: name ?? 'PebbleRobo buyer',
+    // Keyed on email, so a buyer who gave none still needs one that is theirs
+    // alone: two emailless orders sharing a placeholder would collapse into a
+    // single row and one of the two sales would disappear. `.invalid` is
+    // reserved by the RFCs and can never be delivered to or registered.
+    email: email ?? `no-email+${orderId || 'unknown'}@pebblerobo.invalid`,
+    emailKnown: Boolean(email),
+    phone,
+    address: line || null,
+    city: text(a.city),
+    pincode,
   }
 }
 

@@ -41,7 +41,9 @@ describe('finding the buyer', () => {
   it('prefers the order, which is the only source carrying an address', () => {
     const c = resolveMagicCustomer(FULL, { email: 'other@example.com' },
       { email: 'third@example.com', contact: null, pincode: null })
-    expect(c).toMatchObject({ email: 'asha@example.com', address: '42, Sector 18', city: 'Bengaluru' })
+    expect(c).toMatchObject({
+      email: 'asha@example.com', address: '42, Sector 18', city: 'Bengaluru', emailKnown: true,
+    })
   })
 
   it('falls back to our own row for the order', () => {
@@ -67,12 +69,53 @@ describe('finding the buyer', () => {
     expect(c).toMatchObject({ address: null, city: null })
   })
 
-  it('still gives up when nothing anywhere knows who paid', () => {
+  it('gives up only when there is no way to reach them at all', () => {
     expect(resolveMagicCustomer({}, {}, null)).toBe(null)
-    expect(resolveMagicCustomer({}, { contact: '+919000090000' }, null)).toBe(null)
+    expect(resolveMagicCustomer({}, { email: '   ' }, null)).toBe(null)
   })
 
-  it('does not accept a blank email as an identity', () => {
-    expect(resolveMagicCustomer({}, { email: '   ' }, { email: null, contact: '+91900', pincode: null })).toBe(null)
+  it('keeps a sale that has a phone number and no email', () => {
+    // Email is optional in Razorpay's window. A paid order with a number we
+    // can ring is worth far more than a tidy refusal.
+    const c = resolveMagicCustomer({}, { contact: '+919000090000' }, null, 'order_X')
+    expect(c).toMatchObject({ phone: '+919000090000', emailKnown: false })
+    expect(c?.email).toBe('no-email+order_X@pebblerobo.invalid')
+  })
+})
+
+describe('the email Razorpay sends when there is no email', () => {
+  it('treats void@razorpay.com as nobody, not as an address', () => {
+    // A receipt posted there goes nowhere, and the sale looks confirmed.
+    const order = { customer_details: { email: 'void@razorpay.com', shipping_address: { zipcode: '226028' } } }
+    const c = resolveMagicCustomer(order, {}, { email: null, contact: '+918004358495', pincode: null }, 'order_Y')
+    expect(c).toMatchObject({ emailKnown: false, phone: '+918004358495', pincode: '226028' })
+  })
+
+  it('still takes the address from the order while taking the email from us', () => {
+    const order = {
+      customer_details: {
+        email: 'void@razorpay.com',
+        shipping_address: { line1: '42, Sector 18', city: 'Lucknow', zipcode: '226028' },
+      },
+    }
+    const c = resolveMagicCustomer(order, {}, { email: 'asha@example.com', contact: null, pincode: null })
+    expect(c).toMatchObject({
+      email: 'asha@example.com', emailKnown: true, address: '42, Sector 18', city: 'Lucknow',
+    })
+  })
+
+  it('gives two emailless buyers two different rows', () => {
+    // Keyed on email: one shared placeholder and the second sale overwrites
+    // the first.
+    const a = resolveMagicCustomer({}, { contact: '+919000000001' }, null, 'order_A')
+    const b = resolveMagicCustomer({}, { contact: '+919000000002' }, null, 'order_B')
+    expect(a!.email).not.toBe(b!.email)
+  })
+
+  it('never reads its own placeholder back as a real address', () => {
+    const c = resolveMagicCustomer(
+      { customer_details: { email: 'no-email+order_A@pebblerobo.invalid' } },
+      { contact: '+919000000001' }, null, 'order_A')
+    expect(c?.emailKnown).toBe(false)
   })
 })
