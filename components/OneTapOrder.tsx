@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import MagicCheckoutButton from '@/components/MagicCheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import Swatch from '@/components/site/Swatch'
@@ -18,10 +18,11 @@ import { EV, track } from '@/lib/analytics'
  * both are now on screen at once and a buyer must not have to guess which one
  * takes ₹499 and which takes ₹4,999.
  *
- * The old form is still here, passed in as children and hidden. It appears
- * only if a window fails to open — a blocked script, a refused order, a
- * browser that will not have Razorpay — because the alternative is a visitor
- * who wants to buy and has no way left to do it.
+ * Behind ?magic=1 while a one-tap sale is still unaccounted for: a payment
+ * went through this path and left neither a booking row nor an email, which
+ * is the worst way for a checkout to fail — the money moves and nothing on
+ * our side knows. Until that is understood and fixed, the form is the way in
+ * for everybody, exactly as it was.
  */
 export default function OneTapOrder({ children }: { children: React.ReactNode }) {
   const previewed = useShell()
@@ -30,9 +31,22 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
   const [applied, setApplied] = useState<Applied | null>(null)
   const [fallback, setFallback] = useState(false)
 
+  /*
+   * Decided in an effect rather than during render: the page is static, and
+   * reading the query string while rendering would make the server's HTML and
+   * the browser's first paint disagree.
+   */
+  const [asked, setAsked] = useState(false)
+  useEffect(() => {
+    setAsked(new URLSearchParams(window.location.search).get('magic') === '1')
+  }, [])
+
   const discountPaise = applied?.discountPaise ?? 0
   const deposit = quote('deposit', qty, null, discountPaise)
   const full = quote('full', qty, null, discountPaise)
+
+  // The ordinary page: the form, and nothing about one tap.
+  if (!asked) return <>{children}</>
 
   return (
     <div>

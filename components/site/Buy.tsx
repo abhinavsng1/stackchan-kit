@@ -116,13 +116,10 @@ export default function Buy({ magic = false }: { magic?: boolean }) {
             <p className="t-label m-0 mb-6">Order</p>
             <h2 className="t-display t-h2 m-0 mb-5">Book yours.</h2>
             <p className="t-lead mt-0 mb-12 max-w-[42ch]">
-              {magic
-                ? 'Your colour, then one tap. Razorpay takes the address and the payment in a single window.'
-                : 'Your details and your colour. It takes about a minute.'}
+              Your details and your colour. It takes about a minute.
             </p>
-            {/* One tap, when Razorpay has the feature switched on for this
-                account. The form is still built and still works — it is handed
-                to OneTapOrder and shown only if a window will not open. */}
+            {/* The form is the way in. OneTapOrder passes it straight through
+                unless ?magic=1 asks for the one-tap window instead. */}
             {magic
               ? <OneTapOrder><ReserveForm /></OneTapOrder>
               : <ReserveForm />}
