@@ -46,7 +46,21 @@ type Entity = {
 
 export async function POST(request: Request) {
   const signature = request.headers.get('x-razorpay-signature')
-  if (!signature) return new Response('missing signature', { status: 400 })
+  if (!signature) {
+    /*
+     * Razorpay sends no signature when its webhook has no secret set — and a
+     * webhook with no secret is one anybody on the internet could forge. This
+     * endpoint creates paid bookings, so an unsigned delivery is refused even
+     * though refusing it means a test payment goes unrecorded until somebody
+     * sets a secret in the dashboard. Logged, because a silent 400 here is
+     * indistinguishable from a webhook that was never sent.
+     */
+    console.error('[razorpay] webhook arrived unsigned', {
+      live_secret_set: Boolean(process.env.RAZORPAY_WEBHOOK_SECRET),
+      magic_secret_set: Boolean(process.env.MAGIC_RAZORPAY_WEBHOOK_SECRET),
+    })
+    return new Response('missing signature', { status: 400 })
+  }
 
   // Raw text, deliberately: the signature covers these exact bytes, so parsing
   // and re-serialising first would invalidate every one of them.
