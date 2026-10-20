@@ -326,6 +326,13 @@ p { text-wrap: pretty; }
 .btn-ghost { --btn-bg: transparent; --btn-fg: var(--ink); --btn-bd: var(--line); }
 .btn-ghost:hover:not(:disabled) { --btn-bg: var(--surface); --btn-bd: var(--ink); box-shadow: none; }
 
+/* Amazon, in Amazon's orange but as a tint: recognisable at a glance as the
+   place people already shop, and still quieter than Book, which is what this
+   page is for. A solid orange would win the eye and swallow the orange smile
+   in the logo. */
+.btn-amazon { --btn-bg: #fff4e0; --btn-fg: #0f1111; --btn-bd: #ff9900; }
+.btn-amazon:hover:not(:disabled) { --btn-bg: #ffe3b3; --btn-bd: #e88b00; box-shadow: none; }
+
 .btn-lg { padding: 18px 28px; min-height: 56px; font-size: 16.5px; }
 .btn-sm { padding: 10px 16px; min-height: 38px; font-size: 14px; }
 

@@ -61,8 +61,21 @@ describe('the hero button', () => {
   })
 
   it('stays the quieter of the two, because booking here is ₹499', () => {
-    expect(src).toContain('btn btn-ghost')
+    expect(src).toContain('btn btn-amazon')
     expect(src).not.toContain('btn-brand')
+  })
+
+  it('offers Amazon as an alternative, not the way in', () => {
+    // As "Buy on", it took four hero clicks for every one Book got, and
+    // none became an order.
+    expect(src).toContain('<span>Also on</span>')
+    expect(src).not.toContain('<span>Buy on</span>')
+  })
+
+  it('wears Amazon’s orange as a tint, so Book still leads', () => {
+    const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8')
+    expect(css).toMatch(/\.btn-amazon \{[^}]*--btn-bd: #ff9900/)
+    expect(css).toMatch(/\.btn-amazon \{[^}]*--btn-bg: #fff4e0/)
   })
 
   it('shows Amazon’s own artwork rather than a redrawing of it', () => {

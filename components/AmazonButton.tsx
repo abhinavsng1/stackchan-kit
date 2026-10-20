@@ -5,15 +5,17 @@ import { AMAZON } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 
 /**
- * Buy it on Amazon.
+ * Also on Amazon.
  *
- * The second button in the hero, and the reason it earns a button at all:
- * most people have bought from Amazon before and have not bought from us.
- * The logo is the whole point — "Amazon" set in our own type carries none of
- * that recognition.
+ * The second button in the hero. Most people have bought from Amazon before
+ * and have not bought from us, and the logo is what carries that: "Amazon"
+ * set in our own type would carry none of it.
  *
- * It stays the ghost button. Booking here is ₹499 against ₹4,999 there, so
- * the primary action is still the primary action.
+ * It says "Also on" rather than "Buy on" because, as a peer of Book, it was
+ * taking four hero clicks for every one Book got, and in the first day none
+ * of those clicks became an Amazon order. It is reassurance that the robot
+ * is sold somewhere familiar, not the way in. Amazon's orange, as a tint
+ * (.btn-amazon), so it reads as Amazon at a glance and Book stays the action.
  */
 export default function AmazonButton({ location, className = '' }: { location: string; className?: string }) {
   return (
@@ -22,10 +24,10 @@ export default function AmazonButton({ location, className = '' }: { location: s
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => track(EV.amazonClicked, { location })}
-      className={`btn btn-ghost hero-cta ${className}`}
-      aria-label="Buy on Amazon, opens in a new tab"
+      className={`btn btn-amazon hero-cta ${className}`}
+      aria-label="Also on Amazon, opens in a new tab"
     >
-      <span>Buy on</span>
+      <span>Also on</span>
       {/* Optically matched to the label beside it rather than set to the cap
           height: the wordmark's descender in the smile makes a logo set to
           the same height read smaller than the word next to it. */}
