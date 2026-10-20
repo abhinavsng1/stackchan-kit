@@ -1,14 +1,16 @@
 import Link from 'next/link'
 
 /**
- * The same three links on every back-office page.
+ * The same links on every back-office page.
  *
  * Small thing, but the alternative is typing a URL to get from the orders to
  * the codes, and a tool you have to navigate by address bar is one you stop
  * opening.
  */
-export default function AdminNav({ here }: { here: 'home' | 'orders' | 'coupons' }) {
-  const link = (to: string, key: 'home' | 'orders' | 'coupons', label: string) => (
+type Page = 'home' | 'orders' | 'one-tap' | 'coupons'
+
+export default function AdminNav({ here }: { here: Page }) {
+  const link = (to: string, key: Page, label: string) => (
     <Link
       href={to}
       className="text-[14px] no-underline px-3 py-1.5"
@@ -27,6 +29,7 @@ export default function AdminNav({ here }: { here: 'home' | 'orders' | 'coupons'
     <div className="flex flex-wrap items-center gap-2.5 mb-8">
       {link('/admin', 'home', 'Back office')}
       {link('/admin/orders', 'orders', 'Orders')}
+      {link('/admin/one-tap', 'one-tap', 'One-tap')}
       {link('/admin/coupons', 'coupons', 'Coupons')}
     </div>
   )

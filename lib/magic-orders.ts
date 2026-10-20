@@ -166,3 +166,48 @@ export async function markMagicOrderPaid(orderId: string, paymentId: string): Pr
     console.error('[magic-orders] could not mark paid', { orderId: id, error: String(error) })
   }
 }
+
+/**
+ * Every one-tap attempt, newest first.
+ *
+ * Including the ones nobody paid for. A row stuck at 'created' is the whole
+ * diagnostic: it means the window opened, we priced it and Razorpay accepted
+ * the order, and then either the buyer walked away or the payment never
+ * reached us. Those two look identical from the orders table, which only ever
+ * shows bookings that were paid for.
+ */
+export async function listMagicOrders(limit = 200): Promise<(MagicOrderRow & {
+  paymentId: string | null
+  createdAt: Date
+  paidAt: Date | null
+})[]> {
+  const sql = client()
+  if (!sql) return []
+  try {
+    const rows = await sql`
+      select razorpay_order_id, plan, qty, shell, coupon_code, discount_paise,
+             amount_paise, balance_due_paise, email, contact, pincode, status,
+             razorpay_payment_id, created_at, paid_at
+      from magic_orders order by created_at desc limit ${limit}`
+    return rows.map((r) => ({
+      orderId: String(r.razorpay_order_id),
+      plan: String(r.plan),
+      qty: Number(r.qty) || 1,
+      shell: (r.shell as string | null) ?? null,
+      couponCode: (r.coupon_code as string | null) ?? null,
+      discountPaise: Number(r.discount_paise) || 0,
+      amountPaise: Number(r.amount_paise) || 0,
+      balanceDuePaise: Number(r.balance_due_paise) || 0,
+      email: (r.email as string | null) ?? null,
+      contact: (r.contact as string | null) ?? null,
+      pincode: (r.pincode as string | null) ?? null,
+      status: String(r.status),
+      paymentId: (r.razorpay_payment_id as string | null) ?? null,
+      createdAt: new Date(r.created_at as string),
+      paidAt: r.paid_at ? new Date(r.paid_at as string) : null,
+    }))
+  } catch (error) {
+    console.error('[magic-orders] could not list', { error: String(error) })
+    return []
+  }
+}
