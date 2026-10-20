@@ -104,6 +104,12 @@ export default function Hero() {
               see what it does <span aria-hidden="true">↓</span>
             </a>
           </p>
+          {/* The three questions opened most in the FAQ, answered where the
+              decision is made rather than at the bottom of the page. Each is
+              the FAQ's own answer (lib/kit.ts), so the two cannot disagree. */}
+          <p className="t-mono text-[12.5px] text-[var(--muted)] mt-1.5 mb-0 hero-fade [--d:1s]">
+            No tech skills needed · No subscription · Talks over your Wi-Fi
+          </p>
         </motion.div>
       </div>
 

@@ -37,6 +37,14 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
   // which taps were: `live` false is a tap on the still picture.
   const tapped = useRef(false)
   const onTap = () => {
+    // A quarter of taps landed on the still picture, before the live robot
+    // was there to answer. The picture answers too now, with a small nod.
+    if (!live && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      host.current?.animate(
+        [{ rotate: '0deg' }, { rotate: '-5deg' }, { rotate: '4deg' }, { rotate: '0deg' }],
+        { duration: 520, easing: 'cubic-bezier(.22, 1, .36, 1)' },
+      )
+    }
     if (tapped.current) return
     tapped.current = true
     measure(EV.robotTapped, { location: 'hero', live })
@@ -96,7 +104,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
       <div className="relative">
         {/* No painted floor: the robot casts its own shadow, live and in the
             render that stands in for it until the live one loads. */}
-        <div ref={host} className="relative w-full cursor-pointer" style={{ aspectRatio: '1 / 1' }}
+        <div ref={host} className="relative w-full cursor-pointer" style={{ aspectRatio: '1 / 1', transformOrigin: '50% 85%' }}
              data-testid="hero-robot" onPointerDown={onTap}>
           {SHELLS.map((s, i) => (
             <Image
