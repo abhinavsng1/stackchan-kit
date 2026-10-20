@@ -3,10 +3,10 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { LINES } from '@/lib/voice'
 
 /**
- * Pebble's voice is recorded: one clip per line, the same voice on every
- * device. Browser speech gave each phone its own voice, a grown-up's on most
- * and an accent nobody chose on some. What is tested here is that every line
- * it says has its clip, and that the clips are the ones played.
+ * The conversation's voices are recorded: one clip per line, the same voices
+ * on every device. Browser speech gave each phone its own voice, a grown-up's
+ * on most and an accent nobody chose on some. What is tested here is that
+ * every line said has its clip, and that the clips are the ones played.
  */
 const read = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
 const clipFile = (id: string) => new URL(`../public/media/voice/${id}.mp3`, import.meta.url)
@@ -23,18 +23,21 @@ describe('Pebble’s lines', () => {
     // tools/voice/render.py holds the text it speaks; a line changed in one
     // place and not the other would say something the bubble does not.
     const script = read('tools/voice/render.py')
+    expect(script).toContain("voice='am_michael'")
     for (const [text, id] of Object.entries(LINES)) expect(script, id).toContain(`'${id}': '${text}'`)
   })
 
   it('cover everything the hero and the demo say', () => {
     const hero = read('components/site/HeroConversation.tsx')
     const said = [...hero.matchAll(/who: 'pebble', text: '([^']+)'/g)].map((m) => m[1].replace(/\\n/g, ' '))
+    const asked = [...hero.matchAll(/text: (ASK_\w+)/g)].map((m) => hero.match(new RegExp(`const ${m[1]} = '([^']+)'`))![1])
     const demo = read('components/site/DemoStage.tsx')
     const block = demo.slice(demo.indexOf('const ANSWERS'), demo.indexOf('\n]', demo.indexOf('const ANSWERS')))
     const answers = [...block.matchAll(/\['[^']+', '([^']+)'\]/g)].map((m) => m[1])
     expect(said.length).toBe(3)
+    expect(new Set(asked)).toEqual(new Set(['Hey Pebble, set a timer for 5 minutes.', 'Will it rain today?']))
     expect(answers.length).toBe(3)
-    for (const line of [...said, ...answers]) expect(Object.keys(LINES), line).toContain(line)
+    for (const line of [...said, ...asked, ...answers]) expect(Object.keys(LINES), line).toContain(line)
   })
 
   it('no longer lean on the browser’s own speech', () => {
@@ -61,24 +64,24 @@ describe('saying one', () => {
   afterEach(() => { vi.unstubAllGlobals() })
 
   it('plays that line’s clip, and says when it starts', async () => {
-    const { sayAsPebble } = await load()
+    const { speakLine } = await load()
     const start = vi.fn()
-    expect(sayAsPebble('Ooh, it’ll rain this evening!\nDon’t forget your umbrella!', { start })).toBe(true)
+    expect(speakLine('Ooh, it’ll rain this evening!\nDon’t forget your umbrella!', { start })).toBe(true)
     expect(played).toEqual(['/media/voice/rain.mp3'])
     expect(start).toHaveBeenCalled()
   })
 
   it('says no to a line it has no clip for, so nobody waits on it', async () => {
-    const { sayAsPebble } = await load()
-    expect(sayAsPebble('Something new')).toBe(false)
+    const { speakLine } = await load()
+    expect(speakLine('Something new')).toBe(false)
     expect(played).toEqual([])
   })
 
   it('stops one line when the next begins, and reports the first as ended', async () => {
-    const { sayAsPebble } = await load()
+    const { speakLine } = await load()
     const end = vi.fn()
-    sayAsPebble('Hi! I’m Pebble!', { end })
-    sayAsPebble('On it! Five minutes, starting now!')
+    speakLine('Hi! I’m Pebble!', { end })
+    speakLine('On it! Five minutes, starting now!')
     expect(end).toHaveBeenCalledTimes(1)
   })
 })

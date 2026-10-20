@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { ScreenDraw } from '@/lib/live-robot'
 import { happy, listening, rain, thinking, timer } from '@/lib/assistant-screens'
-import { canSpeak, hushPebble, sayAsPebble, warmPebble } from '@/lib/voice'
+import { canSpeak, speakLine, stopSpeaking, warmLines } from '@/lib/voice'
 import { EASE } from '@/components/site/motion'
 import { EV, measure } from '@/lib/analytics'
 
@@ -112,10 +112,12 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
     }
     const play = async (s: Step, speak: boolean) => {
       show(s)
-      const said = speak && s.who === 'pebble' && voiceOn.current && s.text
+      // Both sides are heard: the question as it is asked (not again while
+      // Pebble thinks it over), then Pebble's answer.
+      const said = speak && s.text && !s.think && voiceOn.current
         ? new Promise<void>((done) => {
           const end = () => { speaking = false; setTalking(false); done() }
-          speaking = sayAsPebble(s.text!.replace(/\n/g, ' '), { start: () => setTalking(true), end })
+          speaking = speakLine(s.text!.replace(/\n/g, ' '), { start: () => setTalking(true), end })
           if (!speaking) done()
           // A browser that never reports the end must not stop the show.
           else void wait(1500 + s.text!.length * 110).then(end)
@@ -138,7 +140,7 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
     return () => {
       alive = false
       timers.forEach(clearTimeout)
-      if (speaking) hushPebble()
+      if (speaking) stopSpeaking()
       setTalking(false)
       current.current = null
       robot.current?.setScreen(null)
@@ -152,10 +154,10 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
     voiceOn.current = on
     setVoice(on)
     measure(EV.heroVoice, { on })
-    if (!on) { hushPebble(); setTalking(false); return }
+    if (!on) { stopSpeaking(); setTalking(false); return }
     // Speak from inside the tap, then start the conversation over so it is heard from the top.
-    sayAsPebble(HELLO.text!)
-    warmPebble(SCRIPT.flatMap((s) => (s.who === 'pebble' && s.text ? [s.text] : [])))
+    speakLine(HELLO.text!)
+    warmLines(SCRIPT.flatMap((s) => (s.text && !s.think ? [s.text] : [])))
     greet.current = true
     setResting(false)
     setRestarts((n) => n + 1)
@@ -188,7 +190,7 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
       </p>
       {speakable && (
         <button type="button" className="hero-mic" aria-pressed={voice} data-talking={talking}
-                aria-label="Pebble’s voice" onClick={toggle}>
+                aria-label="Voices in the conversation" onClick={toggle}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                strokeLinejoin="round" aria-hidden="true">
             {voice ? (
@@ -208,7 +210,7 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
               </>
             )}
           </svg>
-          <span>{voice ? 'Voice on' : 'Hear Pebble'}</span>
+          <span>{voice ? 'Sound on' : 'Hear Pebble'}</span>
         </button>
       )}
     </>
