@@ -333,6 +333,27 @@ p { text-wrap: pretty; }
 .btn-amazon { --btn-bg: #fff4e0; --btn-fg: #0f1111; --btn-bd: #ff9900; }
 .btn-amazon:hover:not(:disabled) { --btn-bg: #ffe3b3; --btn-bd: #e88b00; box-shadow: none; }
 
+/**
+ * Two ways to pay for the same robot, weighted the same.
+ *
+ * These were a solid black button beside a hairline ghost one, and that is
+ * not a pair of options — it is a recommendation and a thing you are being
+ * talked out of. Paying in full is the better outcome for us (the whole
+ * price up front, no cash for a courier to collect) and it was the one
+ * dressed as an afterthought.
+ *
+ * So both carry the same ink border and the same type, and each fills on
+ * hover. Nothing here says which to pick, because the difference that
+ * matters is written underneath in rupees.
+ */
+.btn-choice {
+  --btn-bg: transparent;
+  --btn-fg: var(--ink);
+  --btn-bd: var(--ink);
+  border-width: 1.5px;
+}
+.btn-choice:hover:not(:disabled) { --btn-bg: var(--ink); --btn-fg: var(--paper); --btn-bd: var(--ink); }
+
 .btn-lg { padding: 18px 28px; min-height: 56px; font-size: 16.5px; }
 .btn-sm { padding: 10px 16px; min-height: 38px; font-size: 14px; }
 

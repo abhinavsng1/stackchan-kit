@@ -48,9 +48,11 @@ export default async function OneTapPage() {
       <AdminNav here="one-tap" />
 
       <p className="text-[14px] mt-0 mb-6" style={{ color: 'var(--muted)' }}>
-        {rows.length} attempt{rows.length === 1 ? '' : 's'}, {paid} paid. An attempt
-        still showing <strong>created</strong> means Razorpay took the order and the
-        payment never reached us — either the buyer closed the window, or the webhook did not arrive.
+        {rows.length} attempt{rows.length === 1 ? '' : 's'}, {paid} paid.{' '}
+        <strong>abandoned</strong> means the buyer opened the window and closed it without
+        paying — those are the ones worth following up. Still <strong>created</strong> long
+        after the fact is different and worse: the payment may well have happened and never
+        reached us.
       </p>
 
       <div style={{ overflowX: 'auto' }}>
@@ -94,7 +96,8 @@ export default async function OneTapPage() {
 
       <p className="text-[13px] mt-8 mb-0" style={{ color: 'var(--muted)' }}>
         A paid attempt also appears in Orders as a real booking. If one shows paid here
-        and is missing there, the booking failed to write and the logs will say why.
+        and is missing there, the booking failed to write and the logs will say why. An
+        abandoned row with an email beside it is a checkout to go and finish.
       </p>
     </main>
   )

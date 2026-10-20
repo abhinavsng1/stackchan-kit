@@ -33,7 +33,7 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
   const [chosenShell, setChosenShell] = useState<string>(DEFAULT_SHELL)
   const [qty, setQty] = useState<number>(1)
   const [applied, setApplied] = useState<Applied | null>(null)
-  const [fallback, setFallback] = useState(false)
+  const [fallback, setFallback] = useState<'failed' | 'dismissed' | null>(null)
 
   const count = qty
   const discountPaise = applied?.discountPaise ?? 0
@@ -87,22 +87,25 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
 
       <CouponField plan="deposit" qty={count} onApplied={setApplied} />
 
-      {/* The two doors. The deposit leads, because it is the one most people
-          take and the smaller ask; paying in full sits beside it rather than
-          beneath it, as an equal choice rather than an upsell. */}
+      {/* The two doors, weighted the same. Neither is dressed as the
+          recommendation: the difference between them is written underneath
+          in rupees, which is the only part a buyer should be deciding on. */}
       <div className="grid gap-3 sm:grid-cols-2 mt-7">
         <MagicCheckoutButton
           plan="deposit" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
+          tone="choice"
           label={`Book for ${rupees(deposit.nowPaise)}`}
-          note={`${rupees(deposit.balancePaise)} in cash when it is delivered`}
-          onUnavailable={() => setFallback(true)}
+          note={`Then ${rupees(deposit.balancePaise)} in cash when it is delivered`}
+          onUnavailable={() => setFallback('failed')}
+          onDismissed={() => setFallback((f) => f ?? 'dismissed')}
         />
         <MagicCheckoutButton
           plan="full" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
-          tone="ghost"
+          tone="choice"
           label={`Pay ${rupees(full.nowPaise)} in full`}
-          note="Nothing to pay at the door"
-          onUnavailable={() => setFallback(true)}
+          note="Then nothing to pay at the door"
+          onUnavailable={() => setFallback('failed')}
+          onDismissed={() => setFallback((f) => f ?? 'dismissed')}
         />
       </div>
 
@@ -116,10 +119,14 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
           when a window refuses to open and not one moment before. */}
       {fallback && (
         <div className="mt-10 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
-          <p className="t-label m-0 mb-2">The payment window would not open</p>
+          <p className="t-label m-0 mb-2">
+            {fallback === 'failed'
+              ? 'The payment window would not open'
+              : 'Trouble with the payment window?'}
+          </p>
           <p className="text-[14px] mt-0 mb-6" style={{ color: 'var(--muted)' }}>
-            Nothing has been charged. Your details below and we will send a payment link —
-            it takes about a minute.
+            Nothing has been charged. Leave your details and we will send you a payment
+            link instead — it takes about a minute.
           </p>
           {children}
         </div>

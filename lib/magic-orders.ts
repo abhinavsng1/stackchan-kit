@@ -151,6 +151,35 @@ export async function findMagicOrder(orderId: string): Promise<MagicOrderRow | n
   }
 }
 
+/**
+ * Mark an order the buyer walked away from.
+ *
+ * Only ever moves a row off 'created', never off 'paid': the window can be
+ * dismissed a half-second after a payment is captured, and an order that was
+ * actually paid for must not be filed as abandoned on the strength of a
+ * closing modal.
+ *
+ * Worth recording rather than inferring from silence, because 'abandoned' and
+ * 'created' mean two different things to whoever follows these up. Abandoned
+ * is somebody who opened the window and changed their mind. Still 'created'
+ * long after the fact is a payment that may well have happened and never
+ * reached us — which is exactly the failure we spent an evening chasing.
+ */
+export async function markMagicOrderAbandoned(orderId: string): Promise<void> {
+  const id = normaliseOrderId(orderId)
+  if (!id) return
+  const sql = client()
+  if (!sql) return
+  try {
+    await sql`
+      update magic_orders
+      set status = 'abandoned', seen_at = now()
+      where razorpay_order_id = ${id} and status = 'created'`
+  } catch (error) {
+    console.error('[magic-orders] could not mark abandoned', { orderId: id, error: String(error) })
+  }
+}
+
 /** Mark the order paid. Never undone, and never the thing that fails a sale. */
 export async function markMagicOrderPaid(orderId: string, paymentId: string): Promise<void> {
   const id = normaliseOrderId(orderId)

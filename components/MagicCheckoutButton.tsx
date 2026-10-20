@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { CONTACT } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
 import type { Plan } from '@/lib/plans'
@@ -50,6 +50,7 @@ export default function MagicCheckoutButton({
   tone = 'brand',
   disabled = false,
   onUnavailable,
+  onDismissed,
 }: {
   plan: Plan
   qty?: number
@@ -57,14 +58,24 @@ export default function MagicCheckoutButton({
   coupon?: string | null
   label: string
   note?: string
-  tone?: 'brand' | 'ghost'
+  tone?: 'brand' | 'ghost' | 'choice'
   /** Held shut until the buyer has chosen the things Razorpay cannot ask for. */
   disabled?: boolean
   /** Called when this window cannot be opened, so the page can offer the form. */
   onUnavailable?: () => void
+  /** Called when the buyer shut the window without paying. */
+  onDismissed?: () => void
 }) {
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
+
+  /*
+   * Razorpay calls ondismiss for every closing of the window, including the
+   * one that happens a moment after a payment succeeds. A ref, not state:
+   * the callback was built before `state` changed and would still be reading
+   * 'working' — which would file a completed sale as abandoned.
+   */
+  const paid = useRef(false)
 
   function failed(reason: string) {
     setState('error')
@@ -113,13 +124,32 @@ export default function MagicCheckoutButton({
         handler: () => {
           // The booking row is written by the webhook from the address
           // Razorpay collected, so there is nothing for the page to save.
+          paid.current = true
           track(EV.paymentSucceeded, { from: 'magic', plan, qty })
           setState('done')
         },
         modal: {
           ondismiss: () => {
+            if (paid.current) return
             setState('idle')
             track(EV.paymentDismissed, { from: 'magic', plan })
+
+            /*
+             * Tell our own record the buyer walked away. Nothing else can:
+             * Razorpay sends no webhook for a window somebody shut, so
+             * without this an abandoned order is indistinguishable from a
+             * payment whose webhook never arrived — and those two want
+             * opposite responses. keepalive, because this often fires as the
+             * page is being left.
+             */
+            void fetch('/api/magic/abandon', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ order_id: order.order_id }),
+              keepalive: true,
+            }).catch(() => {})
+
+            onDismissed?.()
           },
         },
       })
@@ -141,7 +171,7 @@ export default function MagicCheckoutButton({
     <div>
       <button
         type="button" onClick={buy} disabled={disabled || state === 'working'}
-        className={`btn ${tone === 'brand' ? 'btn-brand' : 'btn-ghost'} w-full`}
+        className={`btn btn-${tone} w-full`}
       >
         {state === 'working' ? 'Opening…' : label}
       </button>

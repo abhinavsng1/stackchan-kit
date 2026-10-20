@@ -346,3 +346,26 @@ describe('what a one-tap sale reports', () => {
     expect(built.$set).not.toHaveProperty('$phone')
   })
 })
+
+describe('an abandoned checkout', () => {
+  beforeEach(() => { process.env.MAGIC_CHECKOUT = '1' })
+
+  it('refuses a request that names no order', async () => {
+    const { POST } = await import('@/app/api/magic/abandon/route')
+    const call = (body: unknown) =>
+      POST(new Request('https://pebblerobo.com/api/magic/abandon', {
+        method: 'POST', body: JSON.stringify(body),
+      }))
+    expect((await call({})).status).toBe(400)
+    expect((await call({ order_id: 'x' })).status).toBe(400)
+  })
+
+  it('does not exist with the flag off', async () => {
+    delete process.env.MAGIC_CHECKOUT
+    const { POST } = await import('@/app/api/magic/abandon/route')
+    const res = await POST(new Request('https://pebblerobo.com/api/magic/abandon', {
+      method: 'POST', body: JSON.stringify({ order_id: 'order_abc123' }),
+    }))
+    expect(res.status).toBe(404)
+  })
+})
