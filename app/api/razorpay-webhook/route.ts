@@ -59,9 +59,23 @@ export async function POST(request: Request) {
   if (raw.length > MAX_BODY_BYTES) return new Response('too large', { status: 413 })
 
   if (!verifyWebhookSignature(raw, signature)) {
-    // Unsigned or wrongly signed: this did not come from Razorpay. Answered
-    // 400 rather than 200, so a misconfigured secret surfaces as failed
-    // deliveries in the dashboard instead of silently dropping payments.
+    /*
+     * Unsigned or wrongly signed: this did not come from Razorpay, or it came
+     * from an account whose secret we do not have. Answered 400 rather than
+     * 200, so a misconfigured secret surfaces as failed deliveries in the
+     * dashboard instead of silently dropping payments.
+     *
+     * Logged, because it did not surface. Twelve deliveries were rejected
+     * here in a row while a test-mode payment went unrecorded, and from the
+     * outside that is indistinguishable from a webhook nobody ever sent.
+     * Neither the body nor the signature is logged — which secrets are even
+     * configured is the whole question, and is not a secret itself.
+     */
+    console.error('[razorpay] webhook signature rejected', {
+      bodyBytes: raw.length,
+      live_secret_set: Boolean(process.env.RAZORPAY_WEBHOOK_SECRET),
+      magic_secret_set: Boolean(process.env.MAGIC_RAZORPAY_WEBHOOK_SECRET),
+    })
     return new Response('bad signature', { status: 400 })
   }
 
@@ -75,13 +89,27 @@ export async function POST(request: Request) {
   // Only the events that mean money actually moved. Anything else is
   // acknowledged, so Razorpay stops retrying what we will never act on.
   if (event.event !== 'payment.captured' && event.event !== 'order.paid') {
+    // Named, so an event we are not subscribed to for the right reason can be
+    // told apart from one that should have been handled and was not.
+    console.log('[razorpay] ignored event', { event: event.event })
     return Response.json({ status: 'ignored' }, { status: 200 })
   }
 
   const payment = event.payload?.payment?.entity
   if (!payment?.id || !payment.order_id || typeof payment.amount !== 'number') {
+    console.error('[razorpay] payment entity incomplete', { event: event.event })
     return Response.json({ status: 'ignored', reason: 'incomplete' }, { status: 200 })
   }
+
+  // Which path this payment is taking, before anything decides what to do
+  // with it. Without this, a payment whose notes do not say what we expect
+  // falls through every branch and leaves no trace at all.
+  console.log('[razorpay] payment', {
+    event: event.event,
+    order_id: payment.order_id,
+    payment_type: payment.notes?.payment_type ?? '(none)',
+    plan: payment.notes?.plan ?? '(none)',
+  })
 
   /**
    * Which of the two payments this is.
