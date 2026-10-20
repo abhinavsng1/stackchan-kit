@@ -50,13 +50,15 @@ export default function Hero() {
   return (
     // Exactly one screen tall on a wide display: the robot row sits on the
     // bottom edge of the first screen, not wherever the content happens to end.
-    <section ref={ref} id="hero" className="relative overflow-hidden lg:min-h-[100svh] lg:flex lg:flex-col pt-[76px] sm:pt-[clamp(96px,12vh,140px)]">
+    <section ref={ref} id="hero" className="relative overflow-hidden lg:min-h-[100svh] lg:flex lg:flex-col pt-[88px] sm:pt-[clamp(96px,12vh,140px)]">
       {/* Three pieces, so a phone can put the robot between the headline and
           the words: headline → robot → line and buttons. On a wide screen the
-          words stack on the left and the robot spans both rows on the right. */}
-      <div className="wrap grid gap-y-4 sm:gap-y-6 lg:gap-y-0 lg:gap-x-10 lg:grid-cols-12 lg:grid-rows-[auto_auto] lg:content-center lg:flex-1">
+          words stack on the left and the robot spans both rows on the right.
+          On a phone the robot sits a little further from the headline than
+          from the words, because its conversation plays in the space above it. */}
+      <div className="wrap grid sm:gap-y-6 lg:gap-y-0 lg:gap-x-10 lg:grid-cols-12 lg:grid-rows-[auto_auto] lg:content-center lg:flex-1">
         <motion.div className="lg:col-span-6 lg:row-start-1 lg:self-end relative z-10" style={{ y: textY, opacity: fade }}>
-          <p className="t-label m-0 mb-3 sm:mb-6 flex items-center gap-3 hero-fade [--d:.1s] [--t:.6s]">
+          <p className="t-label m-0 mb-4 sm:mb-6 flex items-center gap-3 hero-fade [--d:.1s] [--t:.6s]">
             <span className="inline-block w-6 h-px" style={{ background: 'var(--accent)' }} aria-hidden="true" />
             <span>The <span className="accent">AI companion</span> for your desk</span>
           </p>
@@ -67,9 +69,9 @@ export default function Hero() {
                          accent={['own']} />
         </motion.div>
 
-        <motion.div className="lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 lg:self-center relative"
+        <motion.div className="mt-5 sm:mt-0 lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 lg:self-center relative"
                     style={{ y: robotY }}>
-          <div className="mx-auto max-w-[min(330px,40svh)] sm:max-w-[480px] lg:max-w-[min(620px,64svh)] lg:mr-0 hero-robot-in [--d:.05s]">
+          <div className="mx-auto max-w-[min(330px,39svh)] sm:max-w-[480px] lg:max-w-[min(620px,64svh)] lg:mr-0 hero-robot-in [--d:.05s]">
             <HeroRobot area={ref} />
           </div>
         </motion.div>
@@ -78,7 +80,7 @@ export default function Hero() {
             The buttons are the one thing on this screen somebody might be
             reaching for, and they were dimming to nothing within the first
             flick of a scroll — long before they left the screen. */}
-        <motion.div className="lg:col-span-6 lg:row-start-2 lg:self-start relative z-10" style={{ y: textY }}>
+        <motion.div className="mt-2.5 sm:mt-0 lg:col-span-6 lg:row-start-2 lg:self-start relative z-10" style={{ y: textY }}>
           <motion.p className="t-lead mt-0 lg:mt-7 mb-0 max-w-[36ch] hero-rise [--d:.75s]"
                     style={{ opacity: fade }}>
             PebbleRobo is an{' '}
@@ -89,7 +91,7 @@ export default function Hero() {
           {/* Equal halves side by side on a phone; natural widths from sm up.
               The two ways to buy differ in when you pay, so each button says
               what it costs right under it instead of in a line of its own. */}
-          <div className="grid grid-cols-2 gap-x-2.5 sm:flex sm:flex-wrap sm:items-start sm:gap-3 mt-5 sm:mt-7 lg:mt-9 hero-in [--d:.9s]">
+          <div className="grid grid-cols-2 gap-x-2.5 sm:flex sm:flex-wrap sm:items-start sm:gap-3 mt-4 sm:mt-7 lg:mt-9 hero-in [--d:.9s]">
             <div className="flex flex-col">
               <a href="#reserve" className="btn btn-brand hero-cta"
                  onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>

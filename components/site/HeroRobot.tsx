@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { AnimatePresence, motion } from 'motion/react'
-import { LEAD_SHELL, SHELLS, type Shell } from '@/lib/shells'
+import { LEAD_SHELL, SHELLS } from '@/lib/shells'
 import ShellPicker from '@/components/site/ShellPicker'
+import HeroConversation from '@/components/site/HeroConversation'
+import type { Started } from '@/lib/live-robot'
 import { useShell } from '@/lib/shell-store'
 import { rendered } from '@/lib/renders'
 import { OWN_MOODS } from '@/lib/companion-face'
@@ -21,22 +23,30 @@ import { EV, measure } from '@/lib/analytics'
  *
  * The mood readout under it is the robot's own state, reported back from the
  * face it is drawing — tap it and the word changes with the face.
+ *
+ * Over it plays a conversation (HeroConversation): somebody asks it for a
+ * timer and about the weather, and it answers on its screen.
  */
 
 export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement | null> }) {
   const host = useRef<HTMLDivElement>(null)
-  const api = useRef<{ setShell: (way: Shell) => void; dispose: () => void } | null>(null)
+  const api = useRef<Pick<Started, 'setShell' | 'setScreen' | 'nod' | 'dispose'> | null>(null)
   const [live, setLive] = useState(false)
   // The colour is shared with every picker on the page (lib/shell-store.ts).
   const shellId = useShell()
   const shell = Math.max(0, SHELLS.findIndex((s) => s.id === shellId))
   const [mood, setMood] = useState(0)
   const [quiet, setQuiet] = useState<boolean | null>(null)
+  // What the conversation has it doing, which the readout reports instead of a mood.
+  const [doing, setDoing] = useState<string | null>(null)
+  const [pokes, setPokes] = useState(0)
   // The robot reacts inside its canvas, which Mixpanel's own click capture
   // cannot see, so every tap was being reported as a dead click. This says
   // which taps were: `live` false is a tap on the still picture.
   const tapped = useRef(false)
   const onTap = () => {
+    // Tapped, it shows its own faces again for a while.
+    setPokes((n) => n + 1)
     // A quarter of taps landed on the still picture, before the live robot
     // was there to answer. The picture answers too now, with a small nod.
     if (!live && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -122,6 +132,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
             />
           ))}
         </div>
+        <HeroConversation robot={api} live={live} pokes={pokes} onState={setDoing} />
       </div>
 
       {/* The controls sit under the robot, never over it. */}
@@ -130,19 +141,20 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
         <div className="hidden sm:flex items-center gap-3 min-h-[28px]">
           <span className="live-dot" aria-hidden="true" />
           <span className="t-mono text-[12px] text-[var(--muted)]">
-            {live ? 'Feeling ' : 'PebbleRobo'}
+            {live ? (doing ? '' : 'Feeling ') : 'PebbleRobo'}
           </span>
           {live && (
-            <span className="relative inline-block overflow-hidden h-[18px] min-w-[80px]">
+            <span className="relative inline-block overflow-hidden h-[18px] min-w-[180px]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
-                  key={OWN_MOODS[mood]?.id}
-                  className="t-mono text-[12px] text-[var(--ink)] absolute left-0 top-0"
+                  key={doing ?? OWN_MOODS[mood]?.id}
+                  className="t-mono text-[12px] text-[var(--ink)] absolute left-0 top-0 whitespace-nowrap"
                   initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -18, opacity: 0 }}
                   transition={{ duration: 0.35, ease: EASE }}
-                  aria-live="polite"
+                  // The conversation is described once for a screen reader; its steps are not announced.
+                  aria-live={doing ? undefined : 'polite'}
                 >
-                  {OWN_MOODS[mood]?.name.toLowerCase()}
+                  {doing ?? OWN_MOODS[mood]?.name.toLowerCase()}
                 </motion.span>
               </AnimatePresence>
             </span>

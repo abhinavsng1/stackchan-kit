@@ -7,6 +7,7 @@ import { useShell } from '@/lib/shell-store'
 import { shellById } from '@/lib/shells'
 import type { Demo } from '@/lib/live-demo'
 import { EV, measure, track } from '@/lib/analytics'
+import { hushPebble, sayAsPebble } from '@/lib/voice'
 
 type Mode = 'camera' | 'dance' | 'assistant'
 // The assistant opens first. Most visitors arrive inside the Instagram,
@@ -67,7 +68,7 @@ export default function DemoStage() {
     mounted.current = false
     stream.current?.getTracks().forEach(t => t.stop())
     if (beat.current) clearInterval(beat.current)
-    void audio.current?.close(); window.speechSynthesis?.cancel()
+    void audio.current?.close(); hushPebble()
   } }, [])
   useEffect(() => {
     const requested = (e: Event) => {
@@ -80,7 +81,7 @@ export default function DemoStage() {
   useEffect(() => {
     if (mode !== 'camera') stopCamera()
     if (mode !== 'dance') stopMusic()
-    window.speechSynthesis?.cancel(); api.current?.hush(); api.current?.mood('happy')
+    hushPebble(); api.current?.hush(); api.current?.mood('happy')
   // Media resources are owned by their mode, and never continue in a hidden tab.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
@@ -128,12 +129,9 @@ export default function DemoStage() {
   }
   const speak = (text: string) => {
     setAnswer(text); api.current?.mood('happy'); api.current?.nod(1)
-    if (!('speechSynthesis' in window)) return
-    window.speechSynthesis.cancel()
-    const voice = new SpeechSynthesisUtterance(text); voice.rate = .95
-    voice.onstart = () => api.current?.say(60)
-    voice.onend = voice.onerror = () => api.current?.hush()
-    window.speechSynthesis.speak(voice)
+    // The same warm female voice as the hero's conversation (lib/voice.ts).
+    hushPebble()
+    sayAsPebble(text, { start: () => api.current?.say(60), end: () => api.current?.hush() })
   }
   return <div className="demo-fill">
     <div role="tablist" aria-label="Capability demonstrations" className="capability-tabs">
@@ -178,7 +176,7 @@ export default function DemoStage() {
           <p>Meet the expressive side of an AI assistant. Choose a sample conversation and watch its face come alive as it speaks.</p>
           <div className="grid gap-2">{ANSWERS.map(([q,a],i)=><button className="demo-chip text-left" key={q} onClick={()=>{ speak(a); measure(EV.demoAction, { action: 'answer', answer: i + 1 }) }}>{q} ↗</button>)}</div>
           <p className="assistant-answer" role="status">{answer}</p>
-          <button className="link text-left" onClick={()=>{window.speechSynthesis?.cancel();api.current?.hush()}}>Stop voice</button>
+          <button className="link text-left" onClick={()=>{hushPebble();api.current?.hush()}}>Stop voice</button>
           <p className="t-mono text-[11px]">Sample responses with your browser’s voice. The physical robot’s AI conversations use Wi-Fi and the companion app.</p>
         </>}
       </div>

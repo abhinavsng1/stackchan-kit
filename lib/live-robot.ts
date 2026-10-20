@@ -22,9 +22,20 @@ const IDLE_AFTER_MS = 5000
 /** Front three-quarter from the speaker side, a little above. */
 const VIEW = { az: 26, el: 10 }
 
+/**
+ * Something other than its face, drawn on its screen every frame until
+ * cleared: a timer, the weather (lib/assistant-screens.ts). `gaze` is where
+ * the face would be looking, for a screen that still wants eyes.
+ */
+export type ScreenDraw = (ctx: CanvasRenderingContext2D, t: number, gaze: { x: number; y: number }) => void
+
 export type Started = {
   setFace: (id: string) => void
   setShell: (way: Colourway) => void
+  /** Show `draw` instead of the face; null puts the face back. */
+  setScreen: (draw: ScreenDraw | null) => void
+  /** A small nod, the way it acknowledges being asked something. */
+  nod: () => void
   dispose: () => void
 }
 
@@ -82,8 +93,10 @@ export async function start(
 
   let faceIndex = 0
   let gaze = { x: 0, y: 0 }
+  let screenDraw: ScreenDraw | null = null
   const paint = (t: number) => {
-    drawCompanion(robot.ctx, OWN_MOODS[faceIndex % OWN_MOODS.length], t, 0, gaze)
+    if (screenDraw) screenDraw(robot.ctx, t, gaze)
+    else drawCompanion(robot.ctx, OWN_MOODS[faceIndex % OWN_MOODS.length], t, 0, gaze)
     robot.update()
   }
   const drawFace = (index: number) => {
@@ -132,6 +145,8 @@ export async function start(
 
   return {
     setShell: robot.setShell,
+    setScreen: (draw: ScreenDraw | null) => { screenDraw = draw; paint(performance.now()) },
+    nod: () => { tilt.v += 200 },
     setFace: (id: string) => {
       const i = OWN_MOODS.findIndex((m) => m.id === id)
       if (i >= 0) drawFace(i)
