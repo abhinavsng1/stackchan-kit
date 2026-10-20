@@ -39,7 +39,34 @@ export default async function OneTapPage() {
   }
 
   const rows = await listMagicOrders()
+
+  /*
+   * A row still reading 'created' a while after it was made is the shape of
+   * the failure that cost us two sales tonight: Razorpay took the money and
+   * nothing on our side ever heard. Within a few minutes it means nothing —
+   * somebody is still typing their address. So the table separates the two
+   * by the clock rather than making a person work it out from timestamps.
+   */
+  const STALE_AFTER_MS = 30 * 60 * 1000
+  const stalled = (r: { status: string; createdAt: Date }) =>
+    r.status === 'created' && Date.now() - r.createdAt.getTime() > STALE_AFTER_MS
+
   const paid = rows.filter((r) => r.status === 'paid').length
+  const abandoned = rows.filter((r) => r.status === 'abandoned').length
+  const stuck = rows.filter(stalled).length
+  const live = rows.length - paid - abandoned - stuck
+
+  const label = (r: { status: string; paidAt: Date | null; createdAt: Date }) => {
+    if (r.status === 'paid') return `paid · ${when(r.paidAt)}`
+    if (r.status === 'abandoned') return 'abandoned'
+    return stalled(r) ? 'never confirmed' : 'in progress'
+  }
+
+  const colour = (r: { status: string; createdAt: Date }) => {
+    if (r.status === 'paid') return 'var(--ink)'
+    if (stalled(r)) return 'var(--danger)'
+    return 'var(--muted)'
+  }
 
   return (
     <main className="wrap" style={{ paddingBlock: '48px 96px' }}>
@@ -47,12 +74,27 @@ export default async function OneTapPage() {
       <h1 className="t-display text-[clamp(26px,4vw,34px)] mt-0 mb-6">One-tap attempts</h1>
       <AdminNav here="one-tap" />
 
+      <div className="flex flex-wrap gap-x-7 gap-y-2 mb-5">
+        {([
+          ['Paid', paid, 'var(--ink)'],
+          ['Abandoned', abandoned, 'var(--muted)'],
+          ['Never confirmed', stuck, stuck > 0 ? 'var(--danger)' : 'var(--muted)'],
+          ['In progress', live, 'var(--muted)'],
+        ] as const).map(([name, n, c]) => (
+          <div key={name}>
+            <p className="t-label m-0 mb-1">{name}</p>
+            <p className="t-mono text-[22px] m-0" style={{ color: c }}>{n}</p>
+          </div>
+        ))}
+      </div>
+
       <p className="text-[14px] mt-0 mb-6" style={{ color: 'var(--muted)' }}>
-        {rows.length} attempt{rows.length === 1 ? '' : 's'}, {paid} paid.{' '}
-        <strong>abandoned</strong> means the buyer opened the window and closed it without
-        paying — those are the ones worth following up. Still <strong>created</strong> long
-        after the fact is different and worse: the payment may well have happened and never
-        reached us.
+        <strong>Abandoned</strong> is a buyer who opened the window and closed it without
+        paying — worth following up where there is an email beside it.{' '}
+        <strong style={{ color: stuck > 0 ? 'var(--danger)' : 'inherit' }}>Never confirmed</strong>{' '}
+        is different and worse: half an hour on and we still have not been told what
+        happened, so the money may well have moved without us hearing. Check those against
+        the Razorpay dashboard.
       </p>
 
       <div style={{ overflowX: 'auto' }}>
@@ -74,10 +116,8 @@ export default async function OneTapPage() {
             {rows.map((r) => (
               <tr key={r.orderId} style={{ borderBottom: '1px solid var(--line-soft)' }}>
                 <td className="py-3 pr-4 whitespace-nowrap">{when(r.createdAt)}</td>
-                <td className="py-3 pr-4">
-                  <span style={{ color: r.status === 'paid' ? 'var(--ink)' : 'var(--muted)' }}>
-                    {r.status === 'paid' ? `paid · ${when(r.paidAt)}` : r.status}
-                  </span>
+                <td className="py-3 pr-4 whitespace-nowrap">
+                  <span style={{ color: colour(r) }}>{label(r)}</span>
                 </td>
                 <td className="py-3 pr-4">{r.plan}</td>
                 <td className="py-3 pr-4">{r.qty}</td>
