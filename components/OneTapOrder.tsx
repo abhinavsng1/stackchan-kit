@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import MagicCheckoutButton from '@/components/MagicCheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import Swatch from '@/components/site/Swatch'
-import { ORDERABLE_SHELLS } from '@/lib/shells'
+import { ORDERABLE_SHELLS, DEFAULT_SHELL } from '@/lib/shells'
 import { setShell } from '@/lib/shell-store'
 import { quote, rupees } from '@/lib/plans'
 import { EV, track } from '@/lib/analytics'
@@ -18,47 +18,28 @@ import { EV, track } from '@/lib/analytics'
  * both are now on screen at once and a buyer must not have to guess which one
  * takes ₹499 and which takes ₹4,999.
  *
- * Behind ?magic=1 while a one-tap sale is still unaccounted for: a payment
- * went through this path and left neither a booking row nor an email, which
- * is the worst way for a checkout to fail — the money moves and nothing on
- * our side knows. Until that is understood and fixed, the form is the way in
- * for everybody, exactly as it was.
+ * The form is still here, passed in as children and hidden. It appears only
+ * if a window will not open — a blocked script, a refused order — or if
+ * somebody asks for it, because a visitor who wants to buy should never be
+ * left with no way to do it.
  */
 export default function OneTapOrder({ children }: { children: React.ReactNode }) {
   /*
-   * Nothing is chosen until it is chosen.
-   *
-   * The colour control shares a store with the swatches beside the robot, so
-   * it always has a value and always looked decided. The quantity defaulted
-   * to one. Both buttons were therefore live before the buyer had told us
-   * anything, and Razorpay's window cannot ask for either — whatever these
-   * say at the moment of the tap is what gets built and posted.
-   *
-   * So they start empty and the buttons wait.
+   * Both start answered: one robot, in the colour the page is already
+   * showing. Razorpay's window cannot ask for either, so whatever these say
+   * at the moment of the tap is what gets built and posted — which means the
+   * defaults have to be the ones a buyer would have picked anyway, and have
+   * to be visibly selected rather than merely assumed.
    */
-  const [chosenShell, setChosenShell] = useState<string | null>(null)
-  const [qty, setQty] = useState<number | null>(null)
+  const [chosenShell, setChosenShell] = useState<string>(DEFAULT_SHELL)
+  const [qty, setQty] = useState<number>(1)
   const [applied, setApplied] = useState<Applied | null>(null)
   const [fallback, setFallback] = useState(false)
 
-  /*
-   * Decided in an effect rather than during render: the page is static, and
-   * reading the query string while rendering would make the server's HTML and
-   * the browser's first paint disagree.
-   */
-  const [asked, setAsked] = useState(false)
-  useEffect(() => {
-    setAsked(new URLSearchParams(window.location.search).get('magic') === '1')
-  }, [])
-
-  const ready = chosenShell !== null && qty !== null
-  const count = qty ?? 1
+  const count = qty
   const discountPaise = applied?.discountPaise ?? 0
   const deposit = quote('deposit', count, null, discountPaise)
   const full = quote('full', count, null, discountPaise)
-
-  // The ordinary page: the form, and nothing about one tap.
-  if (!asked) return <>{children}</>
 
   return (
     <div>
@@ -90,9 +71,7 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
             ))}
           </div>
           <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            {chosenShell
-              ? `${ORDERABLE_SHELLS.find((s) => s.id === chosenShell)?.name ?? ''} · same price in every colour`
-              : 'Pick a colour · same price in every one'}
+            {ORDERABLE_SHELLS.find((s) => s.id === chosenShell)?.name ?? ''} · same price in every colour
           </span>
         </div>
       </fieldset>
@@ -100,10 +79,9 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
       <div className="mb-6" style={{ maxWidth: 160 }}>
         <label htmlFor="onetap-qty" className="t-label block mb-2">How many</label>
         <select
-          id="onetap-qty" className="field" value={qty ?? ''}
-          onChange={(e) => setQty(e.target.value ? Number(e.target.value) : null)}
+          id="onetap-qty" className="field" value={qty}
+          onChange={(e) => setQty(Number(e.target.value))}
         >
-          <option value="">Choose…</option>
           {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </div>
@@ -116,14 +94,12 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
       <div className="grid gap-3 sm:grid-cols-2 mt-7">
         <MagicCheckoutButton
           plan="deposit" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
-          disabled={!ready}
           label={`Book for ${rupees(deposit.nowPaise)}`}
           note={`${rupees(deposit.balancePaise)} in cash when it is delivered`}
           onUnavailable={() => setFallback(true)}
         />
         <MagicCheckoutButton
           plan="full" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
-          disabled={!ready}
           tone="ghost"
           label={`Pay ${rupees(full.nowPaise)} in full`}
           note="Nothing to pay at the door"
@@ -131,10 +107,8 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
         />
       </div>
 
-      <p className="text-[13px] mt-4 mb-0" style={{ color: 'var(--muted)' }} aria-live="polite">
-        {ready
-          ? 'Address and payment in one window. We never see your card.'
-          : 'Choose a colour and how many, and the payment buttons will open.'}
+      <p className="text-[13px] mt-4 mb-0" style={{ color: 'var(--muted)' }}>
+        Address and payment in one window. We never see your card.
       </p>
 
       {!fallback && (
