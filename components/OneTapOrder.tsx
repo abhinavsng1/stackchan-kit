@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import MagicCheckoutButton, { hadTrouble } from '@/components/MagicCheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import Swatch from '@/components/site/Swatch'
@@ -48,6 +48,31 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (hadTrouble()) setFallback((f) => f ?? 'dismissed')
   }, [])
+
+  const trouble = useRef<HTMLDivElement>(null)
+
+  /*
+   * Bring it to them.
+   *
+   * The form was appearing well below the fold, which on a phone means it
+   * had not appeared at all: somebody who has just failed to pay is looking
+   * at two buttons that did nothing, with the answer a screen and a half
+   * further down. So the panel scrolls itself into view and takes focus,
+   * which also announces it to a screen reader instead of silently growing
+   * the page.
+   *
+   * Honours prefers-reduced-motion, and waits a frame so the browser's own
+   * scroll restoration on a fresh load does not immediately undo it.
+   */
+  useEffect(() => {
+    if (!fallback) return
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const id = window.requestAnimationFrame(() => {
+      trouble.current?.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
+      trouble.current?.focus({ preventScroll: true })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [fallback])
 
   const count = qty
   const discountPaise = applied?.discountPaise ?? 0
@@ -132,15 +157,30 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
           buyer has to make before they can get on with paying. It appears
           when a window refuses to open and not one moment before. */}
       {fallback && (
-        <div className="mt-10 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
-          <p className="t-label m-0 mb-2">
+        <div
+          ref={trouble}
+          tabIndex={-1}
+          role="group"
+          aria-labelledby="checkout-trouble"
+          className="mt-10 p-6 sm:p-7 scroll-mt-24"
+          style={{
+            // Marked out rather than merely present: this panel was not on
+            // the page a moment ago, and the buyer needs to see that it is
+            // the answer to what just happened to them.
+            borderRadius: 18,
+            border: '1.5px solid var(--ember)',
+            background: 'var(--surface)',
+            outline: 'none',
+          }}
+        >
+          <p id="checkout-trouble" className="t-display text-[19px] m-0 mb-2">
             {fallback === 'failed'
-              ? 'The payment window would not open'
+              ? 'That payment window would not open'
               : 'Trouble with the payment window?'}
           </p>
-          <p className="text-[14px] mt-0 mb-6" style={{ color: 'var(--muted)' }}>
-            Nothing has been charged. Leave your details and we will send you a payment
-            link instead — it takes about a minute.
+          <p className="text-[14.5px] mt-0 mb-6">
+            <strong>Nothing has been charged.</strong> Leave your details here instead and we
+            will send you a payment link — it takes about a minute.
           </p>
           {children}
         </div>
