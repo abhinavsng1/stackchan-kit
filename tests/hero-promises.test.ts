@@ -13,7 +13,14 @@ const answer = (q: RegExp) => FAQS.find((f) => q.test(f.q))?.a ?? ''
 
 describe('the promises under the Book button', () => {
   it('are on the first screen', () => {
-    expect(hero).toContain('No tech skills needed · No subscription · Talks over your Wi-Fi')
+    expect(hero).toContain("const PROMISES = ['No tech skills needed', 'No subscription', 'Talks over your Wi-Fi']")
+    expect(hero).toContain('PROMISES.map')
+  })
+
+  it('say under each button what it costs', () => {
+    // Book and Amazon differ in when you pay; that has to be readable at the button.
+    expect(hero).toContain('{PRICE.balance} more when it arrives')
+    expect(hero).toContain('{PRICE.now}, paid upfront')
   })
 
   it('match what the FAQ says', () => {

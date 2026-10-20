@@ -12,6 +12,9 @@ import { EV, track } from '@/lib/analytics'
 import { useEdition } from '@/lib/edition-store'
 import { PRICE } from '@/lib/kit'
 
+/** The FAQ answers opened most, said where the decision is made (tests/hero-promises.test.ts). */
+const PROMISES = ['No tech skills needed', 'No subscription', 'Talks over your Wi-Fi']
+
 /**
  * The first screen. The robot is the protagonist and the headline is one
  * sentence about what it is like to have one — not what it is made of.
@@ -85,30 +88,39 @@ export default function Hero() {
             makes the room feel a little less empty.
           </motion.p>
 
-          {/* Equal halves side by side on a phone; natural widths from sm up. */}
-          <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center sm:gap-3 mt-7 lg:mt-9 hero-in [--d:.9s]">
-            <a href="#reserve" className="btn btn-brand hero-cta"
-               onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>
-              Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
-            </a>
+          {/* Equal halves side by side on a phone; natural widths from sm up.
+              The two ways to buy differ in when you pay, so each button says
+              what it costs right under it instead of in a line of its own. */}
+          <div className="grid grid-cols-2 gap-x-2.5 sm:flex sm:flex-wrap sm:items-start sm:gap-3 mt-7 lg:mt-9 hero-in [--d:.9s]">
+            <div className="flex flex-col">
+              <a href="#reserve" className="btn btn-brand hero-cta"
+                 onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>
+                Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
+              </a>
+              <span className="hero-cta-note">{PRICE.balance} more when it arrives</span>
+            </div>
             {/* Amazon takes the second button: people have bought there
                 before and have not bought from us, and that recognition is
                 worth more in the hero than a link to the demo, which the
-                price line below can carry. */}
-            <AmazonButton location="hero" />
+                line below carries. */}
+            <div className="flex flex-col">
+              <AmazonButton location="hero" />
+              {/* The listing's own price, which is ours (amazon.in, 20 October). */}
+              <span className="hero-cta-note">{PRICE.now}, paid upfront</span>
+            </div>
           </div>
-          <p className="t-mono text-[12.5px] text-[var(--muted)] mt-4 mb-0 hero-fade [--d:1s]">
-            {PRICE.deposit} to book · {PRICE.now} to buy · the rest on delivery ·{' '}
+          {/* The three questions opened most in the FAQ, answered where the
+              decision is made rather than at the bottom of the page. Each is
+              the FAQ's own answer (lib/kit.ts), so the two cannot disagree. */}
+          <ul className="hero-promises hero-fade [--d:1s]">
+            {PROMISES.map((p) => <li key={p}><span aria-hidden="true">✓</span>{p}</li>)}
+          </ul>
+          <p className="t-mono text-[12.5px] text-[var(--muted)] mt-3 mb-0 hero-fade [--d:1s]">
+            Free delivery across India ·{' '}
             <a href="#does" onClick={(e) => { e.preventDefault(); smoothScrollTo('does') }}
                style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
               see what it does <span aria-hidden="true">↓</span>
             </a>
-          </p>
-          {/* The three questions opened most in the FAQ, answered where the
-              decision is made rather than at the bottom of the page. Each is
-              the FAQ's own answer (lib/kit.ts), so the two cannot disagree. */}
-          <p className="t-mono text-[12.5px] text-[var(--muted)] mt-1.5 mb-0 hero-fade [--d:1s]">
-            No tech skills needed · No subscription · Talks over your Wi-Fi
           </p>
         </motion.div>
       </div>
