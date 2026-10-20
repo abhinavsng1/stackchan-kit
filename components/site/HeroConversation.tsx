@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { ScreenDraw } from '@/lib/live-robot'
 import { happy, listening, rain, thinking, timer } from '@/lib/assistant-screens'
-import { canSpeak, hushPebble, sayAsPebble } from '@/lib/voice'
+import { canSpeak, hushPebble, sayAsPebble, warmPebble } from '@/lib/voice'
 import { EASE } from '@/components/site/motion'
 import { EV, measure } from '@/lib/analytics'
 
@@ -155,6 +155,7 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
     if (!on) { hushPebble(); setTalking(false); return }
     // Speak from inside the tap, then start the conversation over so it is heard from the top.
     sayAsPebble(HELLO.text!)
+    warmPebble(SCRIPT.flatMap((s) => (s.who === 'pebble' && s.text ? [s.text] : [])))
     greet.current = true
     setResting(false)
     setRestarts((n) => n + 1)

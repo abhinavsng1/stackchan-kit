@@ -1,87 +1,90 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { LINES } from '@/lib/voice'
 
 /**
- * Pebble speaks with a woman's voice, warm rather than an announcer's. The
- * browser decides which voices exist, so what is tested is the choosing.
+ * Pebble's voice is recorded: one clip per line, the same voice on every
+ * device. Browser speech gave each phone its own voice, a grown-up's on most
+ * and an accent nobody chose on some. What is tested here is that every line
+ * it says has its clip, and that the clips are the ones played.
  */
-type V = { name: string; lang: string }
-const spoken: { text: string; voice?: V; pitch: number; rate: number }[] = []
+const read = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
+const clipFile = (id: string) => new URL(`../public/media/voice/${id}.mp3`, import.meta.url)
 
-async function withVoices(voices: V[]) {
-  vi.resetModules()
-  spoken.length = 0
-  class Utterance {
-    text: string; voice?: V; lang = ''; pitch = 1; rate = 1
-    onstart?: () => void; onend?: () => void; onerror?: () => void
-    constructor(text: string) { this.text = text }
-  }
-  vi.stubGlobal('SpeechSynthesisUtterance', Utterance)
-  vi.stubGlobal('window', {
-    speechSynthesis: {
-      getVoices: () => voices,
-      addEventListener: () => {},
-      speak: (u: Utterance) => spoken.push({ text: u.text, voice: u.voice, pitch: u.pitch, rate: u.rate }),
-      cancel: () => {},
-    },
-  })
-  return import('@/lib/voice')
-}
-
-afterEach(() => { vi.unstubAllGlobals() })
-
-describe('Pebble’s voice', () => {
-  it('chooses a woman’s voice on an iPhone, over the default man’s', async () => {
-    const { pebbleVoice } = await withVoices([
-      { name: 'Daniel', lang: 'en-GB' }, { name: 'Rishi', lang: 'en-IN' },
-      { name: 'Samantha', lang: 'en-US' }, { name: 'Veena', lang: 'en-IN' },
-    ])
-    expect(pebbleVoice()?.name).toBe('Veena')
+describe('Pebble’s lines', () => {
+  it('each have a clip on disk, small enough to fetch on a tap', () => {
+    for (const id of Object.values(LINES)) {
+      expect(existsSync(clipFile(id)), id).toBe(true)
+      expect(statSync(clipFile(id)).size, id).toBeLessThan(80_000)
+    }
   })
 
-  it('prefers Indian English in Edge too', async () => {
-    const { pebbleVoice } = await withVoices([
-      { name: 'Microsoft Prabhat Online (Natural) - English (India)', lang: 'en-IN' },
-      { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US' },
-      { name: 'Microsoft Neerja Online (Natural) - English (India)', lang: 'en-IN' },
-    ])
-    expect(pebbleVoice()?.name).toMatch(/Neerja/)
+  it('are rendered from the same words they are shown with', () => {
+    // tools/voice/render.py holds the text it speaks; a line changed in one
+    // place and not the other would say something the bubble does not.
+    const script = read('tools/voice/render.py')
+    for (const [text, id] of Object.entries(LINES)) expect(script, id).toContain(`'${id}': '${text}'`)
   })
 
-  it('finds Chrome’s female voices by their names', async () => {
-    const { pebbleVoice } = await withVoices([
-      { name: 'Google UK English Male', lang: 'en-GB' }, { name: 'Google UK English Female', lang: 'en-GB' },
-    ])
-    expect(pebbleVoice()?.name).toBe('Google UK English Female')
+  it('cover everything the hero and the demo say', () => {
+    const hero = read('components/site/HeroConversation.tsx')
+    const said = [...hero.matchAll(/who: 'pebble', text: '([^']+)'/g)].map((m) => m[1].replace(/\\n/g, ' '))
+    const demo = read('components/site/DemoStage.tsx')
+    const block = demo.slice(demo.indexOf('const ANSWERS'), demo.indexOf('\n]', demo.indexOf('const ANSWERS')))
+    const answers = [...block.matchAll(/\['[^']+', '([^']+)'\]/g)].map((m) => m[1])
+    expect(said.length).toBe(3)
+    expect(answers.length).toBe(3)
+    for (const line of [...said, ...answers]) expect(Object.keys(LINES), line).toContain(line)
   })
 
-  it('never picks one of Apple’s joke voices', async () => {
-    const { pebbleVoice } = await withVoices([
-      { name: 'Bubbles', lang: 'en-US' }, { name: 'Whisper', lang: 'en-US' }, { name: 'Fred', lang: 'en-US' },
-    ])
-    expect(pebbleVoice()?.name).toBe('Fred')
-  })
-
-  it('sounds like an excited kid: pitched well up, and quick', async () => {
-    // At a touch above its own pitch, a woman's voice sounded too grown-up.
-    const { sayAsPebble } = await withVoices([{ name: 'Samantha', lang: 'en-US' }])
-    expect(sayAsPebble('On it!')).toBe(true)
-    expect(spoken[0]).toMatchObject({ text: 'On it!', voice: { name: 'Samantha' } })
-    expect(spoken[0].pitch).toBeGreaterThanOrEqual(1.6)
-    expect(spoken[0].rate).toBeGreaterThan(1)
-  })
-
-  it('is the voice of both the hero and the demo', () => {
-    for (const file of ['components/site/HeroConversation.tsx', 'components/site/DemoStage.tsx']) {
-      const src = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
-      expect(src, file).toContain('sayAsPebble(')
-      expect(src, file).not.toContain('new SpeechSynthesisUtterance')
+  it('no longer lean on the browser’s own speech', () => {
+    for (const file of ['lib/voice.ts', 'components/site/HeroConversation.tsx', 'components/site/DemoStage.tsx']) {
+      expect(read(file), file).not.toMatch(/speechSynthesis|SpeechSynthesisUtterance/)
     }
   })
 })
 
+describe('saying one', () => {
+  const played: string[] = []
+  async function load() {
+    vi.resetModules()
+    played.length = 0
+    class FakeAudio {
+      src = ''; onplaying?: () => void; onended?: () => void; onerror?: () => void
+      play() { played.push(this.src); this.onplaying?.(); return Promise.resolve() }
+      pause() {}
+    }
+    vi.stubGlobal('Audio', FakeAudio)
+    vi.stubGlobal('window', {})
+    return import('@/lib/voice')
+  }
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('plays that line’s clip, and says when it starts', async () => {
+    const { sayAsPebble } = await load()
+    const start = vi.fn()
+    expect(sayAsPebble('Ooh, it’ll rain this evening!\nDon’t forget your umbrella!', { start })).toBe(true)
+    expect(played).toEqual(['/media/voice/rain.mp3'])
+    expect(start).toHaveBeenCalled()
+  })
+
+  it('says no to a line it has no clip for, so nobody waits on it', async () => {
+    const { sayAsPebble } = await load()
+    expect(sayAsPebble('Something new')).toBe(false)
+    expect(played).toEqual([])
+  })
+
+  it('stops one line when the next begins, and reports the first as ended', async () => {
+    const { sayAsPebble } = await load()
+    const end = vi.fn()
+    sayAsPebble('Hi! I’m Pebble!', { end })
+    sayAsPebble('On it! Five minutes, starting now!')
+    expect(end).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('the hero’s conversation', () => {
-  const src = readFileSync(new URL('../components/site/HeroConversation.tsx', import.meta.url), 'utf8')
+  const src = read('components/site/HeroConversation.tsx')
 
   it('asks for a timer and about the rain, and answers both', () => {
     expect(src).toContain('set a timer for 5 minutes')
