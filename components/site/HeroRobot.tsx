@@ -21,8 +21,9 @@ import { EV, measure } from '@/lib/analytics'
  * dynamic import; until they land the render carries the hero, and that
  * render is also what remains with reduced motion, Save-Data, or no WebGL.
  *
- * The mood readout under it is the robot's own state, reported back from the
- * face it is drawing — tap it and the word changes with the face.
+ * Grab it and turn it round; let go and it turns back to face you. The mood
+ * readout under it is the robot's own state, reported back from the face it
+ * is drawing.
  *
  * Over it plays a conversation (HeroConversation): somebody asks it for a
  * timer and about the weather, and it answers on its screen.
@@ -39,14 +40,13 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
   const [quiet, setQuiet] = useState<boolean | null>(null)
   // What the conversation has it doing, which the readout reports instead of a mood.
   const [doing, setDoing] = useState<string | null>(null)
-  const [pokes, setPokes] = useState(0)
   // The robot reacts inside its canvas, which Mixpanel's own click capture
   // cannot see, so every tap was being reported as a dead click. This says
   // which taps were: `live` false is a tap on the still picture.
   const tapped = useRef(false)
+  // Once a visit: did anyone take hold of it and turn it round.
+  const spun = useRef(false)
   const onTap = () => {
-    // Tapped, it shows its own faces again for a while.
-    setPokes((n) => n + 1)
     // A quarter of taps landed on the still picture, before the live robot
     // was there to answer. The picture answers too now, with a small nod.
     if (!live && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -85,6 +85,11 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
         if (cancelled) return
         const started = await mod.start(el, {
           onFace: setMood,
+          onGrab: () => {
+            if (spun.current) return
+            spun.current = true
+            measure(EV.robotSpun, { location: 'hero' })
+          },
           pointerArea: area.current ?? undefined,
           shell: SHELLS[shell],
         })
@@ -132,7 +137,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
             />
           ))}
         </div>
-        <HeroConversation robot={api} live={live} pokes={pokes} onState={setDoing} />
+        <HeroConversation robot={api} live={live} onState={setDoing} />
       </div>
 
       {/* The controls sit under the robot, never over it. */}
@@ -164,7 +169,7 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
         <ShellPicker location="hero" size={20} />
       </div>
       <p className="t-mono text-[11.5px] text-[var(--muted-2)] mt-3 mb-0 hidden md:block">
-        {live ? 'It’s watching your cursor. Tap it to change its mood.' : ' '}
+        {live ? 'It’s watching your cursor. Grab it and turn it round.' : ' '}
       </p>
     </div>
   )

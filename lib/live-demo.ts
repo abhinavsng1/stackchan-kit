@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import { MOODS, OWN_MOODS, drawCompanion } from '@/lib/companion-face'
+import { MOODS, drawCompanion } from '@/lib/companion-face'
 import { drawNotes } from '@/lib/screen-scenes'
 import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
-import { aimAt, gazeFor, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
+import { aimAt, gazeFor, grabToTurn, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
 
 /**
  * The demo robot: one live robot that the "What it does" section directs.
@@ -52,7 +52,11 @@ export type Demo = {
   dispose: () => void
 }
 
-export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway }): Promise<Demo> {
+export async function startDemo(host: HTMLElement, { shell, onGrab }: {
+  shell: Colourway
+  /** Somebody took hold of it and turned it. */
+  onGrab?: () => void
+}): Promise<Demo> {
   const parts = await loadBody()
   const stage = makeStage(host, { shadow: 0.3 })
   const { scene, camera, studio } = stage
@@ -115,16 +119,12 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
   const pan = new Servo(70, 260), tilt = new Servo(90, 300)
   const pointer = watchPointer(host, stage.renderer.domElement)
   const wander = wanderer(11)
-  const canvas = stage.renderer.domElement
-  canvas.style.cursor = 'pointer'
-  const onDown = () => {
-    if (tapFn) { tapFn(); return }
-    // Left to itself, a tap changes its face and it nods, as on the hero.
-    const i = OWN_MOODS.findIndex((m) => m.id === moodId)
-    moodId = OWN_MOODS[(i + 1) % OWN_MOODS.length].id
-    nodLeft = 1
-  }
-  canvas.addEventListener('pointerdown', onDown)
+  // Grab it and turn it round, as on the hero; let go and it turns back. A
+  // tap is a nod, and leaves its face to whatever the demo is showing.
+  const grab = grabToTurn(stage.renderer.domElement, {
+    onTap: () => { if (tapFn) tapFn(); else { nodLeft = 1; nodPhase = 0 } },
+    onGrab,
+  })
 
   let cameraVideo: HTMLVideoElement | null = null
   let notes = false
@@ -138,12 +138,13 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
       place()
     }
 
+    robot.root.rotation.y = THREE.MathUtils.degToRad(grab.step(dt, now))
     let want = target
     let gaze = { x: 0, y: 0 }
     if (following) {
       const idle = !pointer.inside && now - pointer.lastAt > IDLE_AFTER_MS
       const g = idle ? wander(now) : pointer
-      want = aimAt(robot, camera, g, { maxPan: RANGE.pan, maxTilt: RANGE.tilt })
+      want = aimAt(robot, camera, g, { maxPan: RANGE.pan, maxTilt: RANGE.tilt, letGo: 100 })
       gaze = gazeFor(robot, camera, g)
     }
 
@@ -203,7 +204,7 @@ export async function startDemo(host: HTMLElement, { shell }: { shell: Colourway
     notes: (on) => { notes = on },
     dispose: () => {
       window.removeEventListener('resize', onResize)
-      canvas.removeEventListener('pointerdown', onDown)
+      grab.dispose()
       pointer.dispose()
       robot.dispose()
       stage.dispose()

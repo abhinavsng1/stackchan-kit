@@ -31,6 +31,8 @@ export const EV = {
   pagePerformance: 'Page Performance',
   /** A form field left with something in it. The field's name, never its value. */
   reserveFieldCompleted: 'Reserve Field Completed',
+  /** A robot taken hold of and turned round, once a visit for each place. */
+  robotSpun: 'Robot Spun',
   /** Pebble's voice in the hero's conversation turned on or off. */
   heroVoice: 'Hero Voice Toggled',
 

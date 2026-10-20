@@ -213,3 +213,71 @@ export function wanderer(seed = 0) {
     return t
   }
 }
+
+/**
+ * Grab a robot and turn it round on its base. Sideways drags turn it; up and
+ * down still scroll the page on a phone. Let go and it coasts, then turns
+ * back to face you, the short way round. A press that does not move is a tap.
+ *
+ * `step` advances it and returns the turn, in degrees, for the robot's root.
+ */
+export function grabToTurn(canvas: HTMLElement, { onTap, onGrab }: {
+  onTap?: () => void
+  /** Each time a press becomes a drag. */
+  onGrab?: () => void
+} = {}) {
+  /** How long it coasts after being let go before it turns back. */
+  const RETURN_AFTER_MS = 1400
+  let yaw = 0, v = 0, dragging = false, dragX = 0, moved = 0, grabbed = false, lastDrag = -Infinity
+  const home = new Servo(10, 260)
+  canvas.style.cursor = 'grab'
+  canvas.style.touchAction = 'pan-y'
+  const down = (e: PointerEvent) => {
+    if (e.button > 0) return
+    dragging = true; dragX = e.clientX; moved = 0; grabbed = false
+    canvas.style.cursor = 'grabbing'
+    canvas.setPointerCapture?.(e.pointerId)
+  }
+  const move = (e: PointerEvent) => {
+    if (!dragging) return
+    const dx = e.clientX - dragX
+    dragX = e.clientX; moved += Math.abs(dx)
+    yaw += dx * 0.55
+    v = THREE.MathUtils.clamp(dx * 0.55 * 60, -720, 720)
+    lastDrag = performance.now()
+    if (!grabbed && moved > 6) { grabbed = true; onGrab?.() }
+  }
+  const up = () => {
+    if (!dragging) return
+    dragging = false
+    canvas.style.cursor = 'grab'
+    if (moved < 4) onTap?.()
+    lastDrag = performance.now()
+  }
+  canvas.addEventListener('pointerdown', down)
+  window.addEventListener('pointermove', move, { passive: true })
+  window.addEventListener('pointerup', up)
+  window.addEventListener('pointercancel', up)
+  return {
+    /** Whether it is turned away from you, or in your hand. */
+    get turning() { return dragging || Math.abs(yaw - Math.round(yaw / 360) * 360) > 1 },
+    step(dt: number, now: number) {
+      if (dragging) { home.x = yaw; home.v = 0; return yaw }
+      if (now - lastDrag < RETURN_AFTER_MS) {
+        // A flick coasts, slowing.
+        v *= Math.exp(-dt * 2.5)
+        yaw += v * dt
+        home.x = yaw; home.v = v
+      } else {
+        yaw = home.step(Math.round(yaw / 360) * 360, dt)
+      }
+      return yaw
+    },
+    dispose() {
+      canvas.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    },
+  }
+}

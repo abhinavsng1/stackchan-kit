@@ -1,7 +1,5 @@
 """
-The hero's conversation and the demo's answers, rendered to
-public/media/voice/<id>.mp3: Pebble's lines in its own voice, and the
-questions put to it in a man's.
+Pebble's voice: renders every line it says to public/media/voice/<id>.mp3.
 
 A clear American voice (Kokoro, af_heart), made small and young by raising its
 pitch and formants together, then given a little robot: a doubled copy a hair
@@ -28,7 +26,7 @@ from scipy import signal
 from kokoro_onnx import Kokoro
 from misaki import en
 
-# Same text as LINES in lib/voice.ts. Pebble says these.
+# Same text as LINES in lib/voice.ts.
 LINES = {
     'hello': 'Hi! I’m Pebble!',
     'timer': 'On it! Five minutes, starting now!',
@@ -36,12 +34,6 @@ LINES = {
     'plan-day': 'Let’s start with one thing that matters most. Give it your freshest hour, leave room for a break, then take the small tasks one at a time.',
     'octopus': 'An octopus has three hearts. Two pump blood to its gills, and one keeps it flowing to the rest of its body. A reminder that nature is wonderfully inventive.',
     'encourage': 'One small step counts. Pick something you can finish in five minutes. I’ll keep you company while you get started.',
-}
-# And these are said to it: a grown man's voice, natural and untouched, so the
-# two voices are never mistaken for each other.
-ASKED = {
-    'ask-timer': 'Hey Pebble, set a timer for 5 minutes.',
-    'ask-rain': 'Will it rain today?',
 }
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'public', 'media', 'voice')
 
@@ -81,13 +73,6 @@ def render(kokoro, g2p, text, voice='af_heart', speed=0.86, semis=4.0, shimmer=0
     return x / (np.max(np.abs(x)) + 1e-9) * 0.89, sr
 
 
-def asking(kokoro, g2p, text, voice='am_michael'):
-    phonemes, _ = g2p(text)
-    x, sr = kokoro.create(phonemes, voice=voice, speed=1.0, lang='en-us', is_phonemes=True)
-    x = np.concatenate([np.zeros(int(sr * 0.04)), x.astype(np.float64), np.zeros(int(sr * 0.08))])
-    return x / (np.max(np.abs(x)) + 1e-9) * 0.8, sr
-
-
 def mp3(x, sr, path):
     enc = lameenc.Encoder(); enc.set_bit_rate(48); enc.set_in_sample_rate(sr); enc.set_channels(1); enc.set_quality(2)
     pcm = (np.clip(x, -1, 1) * 32767).astype('<i2').tobytes()
@@ -100,7 +85,7 @@ if __name__ == '__main__':
     kokoro = Kokoro(os.path.join(models, 'kokoro-v1.0.onnx'), os.path.join(models, 'voices-v1.0.bin'))
     g2p = en.G2P(trf=False, british=False, fallback=None)
     os.makedirs(OUT, exist_ok=True)
-    for id, text in [*LINES.items(), *ASKED.items()]:
-        x, sr = (asking if id in ASKED else render)(kokoro, g2p, text)
+    for id, text in LINES.items():
+        x, sr = render(kokoro, g2p, text)
         mp3(x, sr, os.path.join(OUT, f'{id}.mp3'))
         print(f'{id}.mp3  {len(x) / sr:.1f}s')

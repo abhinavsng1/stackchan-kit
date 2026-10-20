@@ -81,7 +81,7 @@ describe('no personal data rides along', () => {
 describe('measurement stays out of the ad accounts', () => {
   // Detail gathered to study the page. Meta and X optimise on what they are
   // sent, so these go through measure(), which reaches Mixpanel alone.
-  const MEASURED = ['robotTapped', 'filmChosen', 'pageEngaged', 'pagePerformance', 'reserveFieldCompleted', 'demoAction', 'heroVoice']
+  const MEASURED = ['robotTapped', 'filmChosen', 'pageEngaged', 'pagePerformance', 'reserveFieldCompleted', 'demoAction', 'heroVoice', 'robotSpun']
   const sources = [
     'components/Analytics.tsx', 'components/site/HeroRobot.tsx', 'components/site/DemoStage.tsx',
     'components/site/Showcase.tsx', 'components/ReserveForm.tsx', 'components/site/HeroConversation.tsx',

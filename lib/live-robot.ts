@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { OWN_MOODS, drawCompanion } from '@/lib/companion-face'
 import { buildRobot, loadBody, type Colourway } from '@/lib/robot-body'
-import { aimAt, gazeFor, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
+import { aimAt, gazeFor, grabToTurn, makeStage, Servo, wanderer, watchPointer } from '@/lib/live-stage'
 
 /**
  * The hero's robot: one live robot, watching the cursor anywhere on the
@@ -43,10 +43,13 @@ export async function start(
   host: HTMLElement,
   {
     onFace,
+    onGrab,
     pointerArea,
     shell = { head: '#e2581a', neck: '#18191c', base: '#e2581a' },
   }: {
     onFace?: (index: number) => void
+    /** Somebody took hold of it and turned it. */
+    onGrab?: () => void
     /** Where the pointer is watched; the hero passes the whole first screen. */
     pointerArea?: HTMLElement
     shell?: Colourway
@@ -110,8 +113,9 @@ export async function start(
 
   const pointer = watchPointer(pointerArea ?? host, stage.renderer.domElement)
   const pan = new Servo(), tilt = new Servo()
-  const onTap = () => { drawFace(faceIndex + 1); tilt.v += 260 }
-  host.addEventListener('pointerdown', onTap)
+  // Grab it and turn it round; let go and it turns back to you. A tap is
+  // only a nod: its moods are its own, not a button.
+  const grab = grabToTurn(stage.renderer.domElement, { onTap: () => { tilt.v += 260 }, onGrab })
   const wander = wanderer(7)
 
   stage.loop((dt, now) => {
@@ -124,7 +128,9 @@ export async function start(
     place()
     studio.turn(look.x * 0.35)
 
-    const want = aimAt(robot, camera, g, { maxPan: PAN_LIMIT, maxTilt: TILT_MAX })
+    robot.root.rotation.y = THREE.MathUtils.degToRad(grab.step(dt, now))
+    // Turned away, it looks ahead rather than wrench its head round to you.
+    const want = aimAt(robot, camera, g, { maxPan: PAN_LIMIT, maxTilt: TILT_MAX, letGo: 100 })
     robot.pose({ pan: pan.step(want.pan, dt), tilt: Math.max(-1, tilt.step(want.tilt, dt)) })
     gaze = gazeFor(robot, camera, g)
     paint(now)
@@ -153,7 +159,7 @@ export async function start(
     },
     dispose: () => {
       window.removeEventListener('resize', onResize)
-      host.removeEventListener('pointerdown', onTap)
+      grab.dispose()
       pointer.dispose()
       robot.dispose()
       stage.dispose()

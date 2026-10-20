@@ -44,10 +44,19 @@ export default function DemoStage() {
   const mounted = useRef(true)
   // Once a visit: did anyone touch the robot here, and was the live one there to answer.
   const tapped = useRef(false)
+  // Once a visit: did anyone take hold of it and turn it round.
+  const spun = useRef(false)
   const shell = useShell()
   const live = useLiveScene(host, async (el) => {
     const { startDemo } = await import('@/lib/live-demo')
-    const d = await startDemo(el, { shell: shellById(shell) })
+    const d = await startDemo(el, {
+      shell: shellById(shell),
+      onGrab: () => {
+        if (spun.current) return
+        spun.current = true
+        measure(EV.robotSpun, { location: 'demo', mode: modeRef.current })
+      },
+    })
     api.current = d; d.framing('centre'); d.look(0, 8); d.mood('happy')
     return { dispose: () => { d.dispose(); api.current = null } }
   })
@@ -177,7 +186,7 @@ export default function DemoStage() {
           <div className="grid gap-2">{ANSWERS.map(([q,a],i)=><button className="demo-chip text-left" key={q} onClick={()=>{ speak(a); measure(EV.demoAction, { action: 'answer', answer: i + 1 }) }}>{q} ↗</button>)}</div>
           <p className="assistant-answer" role="status">{answer}</p>
           <button className="link text-left" onClick={()=>{stopSpeaking();api.current?.hush()}}>Stop voice</button>
-          <p className="t-mono text-[11px]">Sample responses with your browser’s voice. The physical robot’s AI conversations use Wi-Fi and the companion app.</p>
+          <p className="t-mono text-[11px]">Sample responses in Pebble’s voice. The physical robot’s AI conversations use Wi-Fi and the companion app.</p>
         </>}
       </div>
     </div>

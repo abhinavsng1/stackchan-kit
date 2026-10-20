@@ -45,21 +45,16 @@ const SCRIPT: Step[] = [
 /** Said the moment the voice is turned on, from the tap itself: iOS only lets a page speak from a tap. */
 const HELLO: Step = { who: 'pebble', text: 'Hi! I’m Pebble!', screen: happy, ms: 1700, label: 'Happy to help' }
 const LAST_ANSWER = SCRIPT.length - 2
-/** A tap on the robot is somebody playing with it: step aside for a while. */
-const STEP_ASIDE_MS = 8000
 
-export default function HeroConversation({ robot, live, pokes, onState }: {
+export default function HeroConversation({ robot, live, onState }: {
   robot: React.RefObject<Screen | null>
   live: boolean
-  /** Counts taps on the robot. */
-  pokes: number
   onState: (label: string | null) => void
 }) {
   const box = useRef<HTMLDivElement>(null)
   const [step, setStep] = useState<Step | null>(null)
   const [inView, setInView] = useState(false)
   const [shown, setShown] = useState(true)
-  const [resting, setResting] = useState(false)
   const [voice, setVoice] = useState(false)
   const voiceOn = useRef(false)
   const [restarts, setRestarts] = useState(0)
@@ -82,17 +77,10 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
     return () => { io.disconnect(); document.removeEventListener('visibilitychange', vis) }
   }, [])
 
-  useEffect(() => {
-    if (!pokes) return
-    setResting(true)
-    const id = setTimeout(() => setResting(false), STEP_ASIDE_MS)
-    return () => clearTimeout(id)
-  }, [pokes])
-
   // The live robot can arrive mid-step; show it what it should be showing.
   useEffect(() => { if (live) robot.current?.setScreen(current.current) }, [live, robot])
 
-  const running = inView && shown && !resting
+  const running = inView && shown
   useEffect(() => {
     if (!running) return
     let alive = true
@@ -112,9 +100,7 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
     }
     const play = async (s: Step, speak: boolean) => {
       show(s)
-      // Both sides are heard: the question as it is asked (not again while
-      // Pebble thinks it over), then Pebble's answer.
-      const said = speak && s.text && !s.think && voiceOn.current
+      const said = speak && s.who === 'pebble' && voiceOn.current && s.text
         ? new Promise<void>((done) => {
           const end = () => { speaking = false; setTalking(false); done() }
           speaking = speakLine(s.text!.replace(/\n/g, ' '), { start: () => setTalking(true), end })
@@ -157,9 +143,8 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
     if (!on) { stopSpeaking(); setTalking(false); return }
     // Speak from inside the tap, then start the conversation over so it is heard from the top.
     speakLine(HELLO.text!)
-    warmLines(SCRIPT.flatMap((s) => (s.text && !s.think ? [s.text] : [])))
+    warmLines(SCRIPT.flatMap((s) => (s.who === 'pebble' && s.text ? [s.text] : [])))
     greet.current = true
-    setResting(false)
     setRestarts((n) => n + 1)
   }
 
@@ -190,7 +175,7 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
       </p>
       {speakable && (
         <button type="button" className="hero-mic" aria-pressed={voice} data-talking={talking}
-                aria-label="Voices in the conversation" onClick={toggle}>
+                aria-label="Pebble’s voice" onClick={toggle}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                strokeLinejoin="round" aria-hidden="true">
             {voice ? (
@@ -210,7 +195,7 @@ export default function HeroConversation({ robot, live, pokes, onState }: {
               </>
             )}
           </svg>
-          <span>{voice ? 'Sound on' : 'Hear Pebble'}</span>
+          <span>{voice ? 'Voice on' : 'Hear Pebble'}</span>
         </button>
       )}
     </>

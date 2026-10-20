@@ -3,10 +3,10 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { LINES } from '@/lib/voice'
 
 /**
- * The conversation's voices are recorded: one clip per line, the same voices
- * on every device. Browser speech gave each phone its own voice, a grown-up's
- * on most and an accent nobody chose on some. What is tested here is that
- * every line said has its clip, and that the clips are the ones played.
+ * Pebble's voice is recorded: one clip per line, the same voice on every
+ * device. Browser speech gave each phone its own voice, a grown-up's on most
+ * and an accent nobody chose on some. What is tested here is that every line
+ * it says has its clip, and that the clips are the ones played.
  */
 const read = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
 const clipFile = (id: string) => new URL(`../public/media/voice/${id}.mp3`, import.meta.url)
@@ -23,7 +23,6 @@ describe('Pebble’s lines', () => {
     // tools/voice/render.py holds the text it speaks; a line changed in one
     // place and not the other would say something the bubble does not.
     const script = read('tools/voice/render.py')
-    expect(script).toContain("voice='am_michael'")
     for (const [text, id] of Object.entries(LINES)) expect(script, id).toContain(`'${id}': '${text}'`)
   })
 
@@ -35,9 +34,11 @@ describe('Pebble’s lines', () => {
     const block = demo.slice(demo.indexOf('const ANSWERS'), demo.indexOf('\n]', demo.indexOf('const ANSWERS')))
     const answers = [...block.matchAll(/\['[^']+', '([^']+)'\]/g)].map((m) => m[1])
     expect(said.length).toBe(3)
-    expect(new Set(asked)).toEqual(new Set(['Hey Pebble, set a timer for 5 minutes.', 'Will it rain today?']))
+    // Only Pebble talks: the questions are shown in their bubbles, not spoken.
+    expect(asked.length).toBeGreaterThan(0)
+    for (const q of asked) expect(Object.keys(LINES), q).not.toContain(q)
     expect(answers.length).toBe(3)
-    for (const line of [...said, ...asked, ...answers]) expect(Object.keys(LINES), line).toContain(line)
+    for (const line of [...said, ...answers]) expect(Object.keys(LINES), line).toContain(line)
   })
 
   it('no longer lean on the browser’s own speech', () => {

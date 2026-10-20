@@ -1,12 +1,11 @@
 /**
- * The voices in the conversation: a recorded clip for every line Pebble says,
- * and for the questions put to it (public/media/voice).
+ * Pebble's voice: a recorded clip for every line it says (public/media/voice).
  *
  * It used to be the browser's own speech, which meant a different voice on
  * every phone, often a grown-up's and sometimes an accent nobody chose, and no
  * voice at all inside some in-app browsers. The clips are one voice
  * everywhere: clear, small and young, with a little robot in it. The
- * questions are a grown man's voice, plain, so the two are never confused.
+ * questions in the hero are shown, not spoken: only Pebble talks.
  * tools/voice/render.py makes them, from the same lines as below.
  */
 export const LINES: Record<string, string> = {
@@ -16,9 +15,6 @@ export const LINES: Record<string, string> = {
   'Let’s start with one thing that matters most. Give it your freshest hour, leave room for a break, then take the small tasks one at a time.': 'plan-day',
   'An octopus has three hearts. Two pump blood to its gills, and one keeps it flowing to the rest of its body. A reminder that nature is wonderfully inventive.': 'octopus',
   'One small step counts. Pick something you can finish in five minutes. I’ll keep you company while you get started.': 'encourage',
-  // Asked of it.
-  'Hey Pebble, set a timer for 5 minutes.': 'ask-timer',
-  'Will it rain today?': 'ask-rain',
 }
 
 const clip = (text: string) => {
@@ -35,7 +31,7 @@ let player: HTMLAudioElement | null = null
 let finish: (() => void) | null = null
 
 /**
- * Say `text` aloud, in whichever voice says that line. Returns false when there
+ * Say `text` aloud, in Pebble's voice. Returns false when there
  * is no clip for it or no way to play one, so a caller waiting on `end` is
  * never left waiting.
  */
