@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import MagicCheckoutButton from '@/components/MagicCheckoutButton'
+import { useEffect, useState } from 'react'
+import MagicCheckoutButton, { hadTrouble } from '@/components/MagicCheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import Swatch from '@/components/site/Swatch'
 import { ORDERABLE_SHELLS, DEFAULT_SHELL } from '@/lib/shells'
@@ -34,6 +34,20 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
   const [qty, setQty] = useState<number>(1)
   const [applied, setApplied] = useState<Applied | null>(null)
   const [fallback, setFallback] = useState<'failed' | 'dismissed' | null>(null)
+
+  /*
+   * Razorpay's window takes the page over, so a buyer who leaves it unpaid
+   * can come back to a React tree that has been built from scratch — with
+   * the fact that anything went wrong wiped out of it. The dismissal itself
+   * reaches our database fine; it was only ever this screen that forgot.
+   *
+   * Read in an effect rather than during render: the page is static, and
+   * reading storage while rendering would make the server's HTML and the
+   * browser's first paint disagree.
+   */
+  useEffect(() => {
+    if (hadTrouble()) setFallback((f) => f ?? 'dismissed')
+  }, [])
 
   const count = qty
   const discountPaise = applied?.discountPaise ?? 0

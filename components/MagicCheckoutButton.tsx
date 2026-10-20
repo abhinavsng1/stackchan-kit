@@ -22,6 +22,34 @@ import type { Plan } from '@/lib/plans'
  * before it opens and carried on the order.
  */
 
+/**
+ * That the payment window was closed without paying, remembered across a
+ * page load.
+ *
+ * Magic Checkout takes the page over, so leaving it unpaid can bring the
+ * buyer back to a freshly mounted React tree — and a flag held in state is
+ * gone by the time anything could read it. The dismissal was being recorded
+ * in our database (abandoned rows prove the handler runs) while the screen
+ * that was supposed to react to it had already been rebuilt.
+ *
+ * sessionStorage, so it lasts exactly as long as the tab and never follows
+ * anybody to another visit. Wrapped, because it throws outright in a private
+ * window with site data blocked, and a buy button must not fail for that.
+ */
+const TROUBLE_KEY = 'pebblerobo.checkout.trouble'
+
+export function rememberTrouble(): void {
+  try { sessionStorage.setItem(TROUBLE_KEY, '1') } catch { /* nothing to lose */ }
+}
+
+export function hadTrouble(): boolean {
+  try { return sessionStorage.getItem(TROUBLE_KEY) === '1' } catch { return false }
+}
+
+export function forgetTrouble(): void {
+  try { sessionStorage.removeItem(TROUBLE_KEY) } catch { /* nothing to lose */ }
+}
+
 const SRC = 'https://checkout.razorpay.com/v1/magic-checkout.js'
 
 // The global is declared once, in lib/checkout.ts, where the ordinary
@@ -78,6 +106,7 @@ export default function MagicCheckoutButton({
   const paid = useRef(false)
 
   function failed(reason: string) {
+    rememberTrouble()
     setState('error')
     setMessage(reason)
     // The form is the path that works for everybody, including anyone whose
@@ -87,6 +116,9 @@ export default function MagicCheckoutButton({
 
   async function buy() {
     if (state === 'working' || disabled) return
+    // They are trying again. Whatever went wrong last time is no longer the
+    // thing to tell them about, until it happens again.
+    forgetTrouble()
     setState('working')
     setMessage(null)
     track(EV.paymentOpened, { from: 'magic', plan, qty })
@@ -125,12 +157,16 @@ export default function MagicCheckoutButton({
           // The booking row is written by the webhook from the address
           // Razorpay collected, so there is nothing for the page to save.
           paid.current = true
+          forgetTrouble()
           track(EV.paymentSucceeded, { from: 'magic', plan, qty })
           setState('done')
         },
         modal: {
           ondismiss: () => {
             if (paid.current) return
+            // Written before anything else: this is the only part that
+            // survives Razorpay handing the page back.
+            rememberTrouble()
             setState('idle')
             track(EV.paymentDismissed, { from: 'magic', plan })
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { EV } from '@/lib/events'
 
@@ -98,5 +98,38 @@ describe('measurement stays out of the ad accounts', () => {
     const src = read('components/Analytics.tsx')
     expect(src).toMatch(/WATCH\.includes\(e\.target\.id\) \? track : measure/)
     expect(src).toMatch(/WATCH_QUIETLY = \['why', 'films', 'explore'\]/)
+  })
+})
+
+describe('the checkout remembers trouble across a page load', () => {
+  it('only reports trouble once it has been remembered, and forgets on a retry', async () => {
+    // Razorpay's window takes the page over, so the only thing that can
+    // survive it is storage. State cannot.
+    const store = new Map<string, string>()
+    vi.stubGlobal('sessionStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    })
+    const { rememberTrouble, hadTrouble, forgetTrouble } = await import('@/components/MagicCheckoutButton')
+
+    expect(hadTrouble()).toBe(false)
+    rememberTrouble()
+    expect(hadTrouble()).toBe(true)
+    forgetTrouble()
+    expect(hadTrouble()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  it('survives storage that throws, because a buy button must not', async () => {
+    vi.stubGlobal('sessionStorage', {
+      getItem: () => { throw new Error('blocked') },
+      setItem: () => { throw new Error('blocked') },
+      removeItem: () => { throw new Error('blocked') },
+    })
+    const { rememberTrouble, hadTrouble } = await import('@/components/MagicCheckoutButton')
+    expect(() => rememberTrouble()).not.toThrow()
+    expect(hadTrouble()).toBe(false)
+    vi.unstubAllGlobals()
   })
 })
