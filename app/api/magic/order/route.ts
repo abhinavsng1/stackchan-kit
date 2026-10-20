@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import { createOrder } from '@/lib/razorpay'
-import { magicEnabled, lineItemsFor, magicOrderAmount } from '@/lib/magic'
+import { magicEnabled, lineItemsFor, magicOrderAmount, magicBalanceDue } from '@/lib/magic'
 import { validateCoupon } from '@/lib/coupons'
 import { noCostEmiOfferId } from '@/lib/emi'
+import { PLANS } from '@/lib/plans'
+import { isOrderableShell } from '@/lib/shells'
 
 /**
  * The order behind the one-tap path.
@@ -20,6 +22,13 @@ const MAX_BODY_BYTES = 512
 const bodySchema = z.object({
   qty: z.coerce.number().int().min(1).max(5).default(1),
   coupon: z.string().trim().max(32).optional(),
+  // Which of the two doors was tapped. Anything else is not a plan we sell,
+  // and the price is re-derived from this on the server regardless of what
+  // the button believed it was asking for.
+  plan: z.enum(PLANS).default('full'),
+  // Chosen outside Razorpay's window, because the window cannot ask. It is a
+  // label on the order, never a price: every colour costs the same.
+  shell: z.string().trim().max(32).optional(),
 })
 
 export async function POST(request: Request) {
@@ -43,7 +52,9 @@ export async function POST(request: Request) {
   const result = bodySchema.safeParse(parsed)
   if (!result.success) return Response.json({ error: 'Check the request.' }, { status: 400 })
 
-  const { qty } = result.data
+  const { qty, plan } = result.data
+  const wantedShell = result.data.shell ?? ''
+  const shell = isOrderableShell(wantedShell) ? wantedShell : null
 
   // No email yet — Magic Checkout has not asked for one — so a per-buyer
   // limit cannot be enforced here. apply-promotion sees the address and does
@@ -51,15 +62,16 @@ export async function POST(request: Request) {
   let discountPaise = 0
   let couponCode: string | null = null
   if (result.data.coupon) {
-    const verdict = await validateCoupon({ code: result.data.coupon, plan: 'full', qty })
+    const verdict = await validateCoupon({ code: result.data.coupon, plan, qty })
     if (verdict.valid) {
       discountPaise = verdict.discountPaise
       couponCode = verdict.code
     }
   }
 
-  const amountPaise = magicOrderAmount(qty, discountPaise)
-  const { lineItems, lineItemsTotalPaise } = lineItemsFor(qty, 'assembled', discountPaise)
+  const amountPaise = magicOrderAmount(plan, qty, discountPaise)
+  const balanceDuePaise = magicBalanceDue(plan, qty, discountPaise)
+  const { lineItems, lineItemsTotalPaise } = lineItemsFor(plan, qty, 'assembled', discountPaise, shell)
   const offer = noCostEmiOfferId()
 
   const order = await createOrder({
@@ -74,6 +86,13 @@ export async function POST(request: Request) {
       // Read by the webhook: a Magic order has no booking row to find, so it
       // has to be told to create one rather than look one up.
       payment_type: 'magic',
+      // Read by the webhook in preference to any arithmetic. A deposit sold
+      // here settles in full at ₹499, so what a courier is still owed cannot
+      // be worked out from the payment afterwards — it has to be recorded at
+      // the moment the price was decided.
+      plan,
+      balance_due_paise: String(balanceDuePaise),
+      ...(shell ? { shell } : {}),
       // The buyer's browser said "do not track" on this very request. The
       // webhook never sees their browser, so the signal has to travel with
       // the order or it is lost between here and the sale.

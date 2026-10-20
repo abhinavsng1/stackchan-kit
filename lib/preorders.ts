@@ -661,6 +661,8 @@ export type SettledBooking = {
   qty: number
   edition: Edition
   plan: Plan
+  /** The colour chosen, where the buyer was asked. */
+  shell?: string | null
   orderId: string
   paymentId: string
   paidPaise: number
@@ -698,12 +700,12 @@ export async function createSettledBooking(input: SettledBooking): Promise<
   const rows = await sql`
     insert into preorders (
       name, email, phone, address, city, pincode, qty, payment_token, edition,
-      plan, coupon_code, discount_paise, razorpay_order_id, razorpay_payment_id,
+      plan, shell, coupon_code, discount_paise, razorpay_order_id, razorpay_payment_id,
       amount_paid_paise, balance_due_paise, paid_at, needs_review
     ) values (
       ${input.name}, ${input.email.toLowerCase()}, ${input.phone}, ${input.address},
       ${input.city}, ${input.pincode}, ${input.qty}, ${token}, ${input.edition},
-      ${input.plan}, ${input.couponCode ?? null}, ${input.discountPaise ?? 0},
+      ${input.plan}, ${input.shell ?? null}, ${input.couponCode ?? null}, ${input.discountPaise ?? 0},
       ${input.orderId}, ${input.paymentId}, ${input.paidPaise}, ${input.balanceDuePaise},
       now(), ${input.needsReview === true}
     )
@@ -714,6 +716,7 @@ export async function createSettledBooking(input: SettledBooking): Promise<
       pincode             = coalesce(excluded.pincode, preorders.pincode),
       qty                 = excluded.qty,
       plan                = excluded.plan,
+      shell               = coalesce(excluded.shell, preorders.shell),
       coupon_code         = excluded.coupon_code,
       discount_paise      = excluded.discount_paise,
       razorpay_order_id   = excluded.razorpay_order_id,

@@ -19,6 +19,12 @@ export function magicEnabled(): boolean {
   return process.env.MAGIC_CHECKOUT === '1'
 }
 
+/** Razorpay will not take an order, or a line item, below one rupee. */
+const MIN_LINE_TOTAL_PAISE = 100
+
+/** Rupees for a line the buyer reads inside Razorpay's window. */
+const rupeesPlain = (paise: number) => `₹${Math.round(paise / 100).toLocaleString('en-IN')}`
+
 /**
  * Whether to offer Razorpay's own cash-on-delivery inside the one-tap window.
  *
@@ -51,26 +57,60 @@ export function magicCodEnabled(): boolean {
  * total is silently treated as a standard order, which is the kind of failure
  * that looks like the feature simply not working.
  */
-export function lineItemsFor(qty: number, edition: Edition = 'assembled', discountPaise = 0) {
+export function lineItemsFor(
+  plan: Plan,
+  qty: number,
+  edition: Edition = 'assembled',
+  discountPaise = 0,
+  shell: string | null = null,
+) {
   const e = EDITION[edition]
+  const q = quote(plan, qty, null, discountPaise)
+  const colour = shell ? ` · ${shell}` : ''
+
+  if (plan === 'deposit') {
+    // The cart has to total exactly what the window charges, or Razorpay
+    // reads the shortfall as cash on delivery — a method this account cannot
+    // take, and the thing that greyed out every payment option the first
+    // time. So the deposit is sold as the deposit: ₹499 asked, ₹499 declared,
+    // nothing outstanding as far as Razorpay is concerned. The balance is our
+    // arrangement with the buyer and is collected at the door, exactly as it
+    // is for a booking made through the form.
+    const each = Math.round(q.nowPaise / qty)
+    return {
+      lineItems: [{
+        sku: `${e.sku}-deposit`,
+        variant_id: `${e.sku}-${edition}-deposit`,
+        price: each,
+        offer_price: each,
+        tax_amount: 0,
+        quantity: qty,
+        name: `${e.name} — booking${colour}`,
+        description: `Books ${qty === 1 ? 'one robot' : `${qty} robots`}. ${rupeesPlain(q.balancePaise)} is collected in cash on delivery.`,
+        image_url: 'https://pebblerobo.com/media/shots/float-shell-graphite.webp',
+      }],
+      lineItemsTotalPaise: Math.max(MIN_LINE_TOTAL_PAISE, q.nowPaise),
+    }
+  }
+
   const unit = PRICE.depositPaise + PRICE.balancePaise
   // The discount is applied to the first unit's offer price rather than spread
   // across them, because the totals have to add up exactly and paise do not
   // divide evenly.
-  const total = unit * qty - Math.max(0, discountPaise)
+  const total = q.nowPaise
   return {
     lineItems: [{
       sku: e.sku,
       variant_id: `${e.sku}-${edition}`,
       price: unit,
-      offer_price: Math.max(100, Math.round(total / qty)),
+      offer_price: Math.max(MIN_LINE_TOTAL_PAISE, Math.round(total / qty)),
       tax_amount: 0,
       quantity: qty,
-      name: e.name,
+      name: `${e.name}${colour}`,
       description: 'Assembled, flashed and tested. Ships from Bengaluru.',
       image_url: 'https://pebblerobo.com/media/shots/float-shell-graphite.webp',
     }],
-    lineItemsTotalPaise: Math.max(100, total),
+    lineItemsTotalPaise: Math.max(MIN_LINE_TOTAL_PAISE, total),
   }
 }
 
@@ -195,6 +235,37 @@ export function readMagicPayment(order: MagicOrder, payment: MagicPayment): Magi
 
   const due = Number(order.amount_due ?? Math.max(0, orderTotal - paid))
 
+  /*
+   * What the order said it was, when it said it.
+   *
+   * A deposit sold through this window is fully paid as far as Razorpay is
+   * concerned — ₹499 asked, ₹499 settled — so the arithmetic below would read
+   * it as a sale in full and quietly drop the ₹4,500 a courier still has to
+   * collect. The plan and the balance are therefore written into the order's
+   * notes when it is created, and read back here in preference to anything
+   * inferred. Arithmetic is the fallback, not the first answer.
+   */
+  const declared = order.notes?.plan
+  const declaredBalance = Number(order.notes?.balance_due_paise ?? NaN)
+
+  if (declared === 'deposit' && paid > 0) {
+    const readable = Number.isFinite(declaredBalance) && declaredBalance >= 0
+    // An order that says it is a deposit but cannot say what is owed must not
+    // fall through to the arithmetic below, which would read it as a sale in
+    // full and tell a courier to collect nothing. Record it, flag it, and let
+    // a person decide what the door is owed.
+    return {
+      plan: 'deposit',
+      paidPaise: paid,
+      balanceDuePaise: readable ? declaredBalance : 0,
+      unrecognised: !readable,
+    }
+  }
+
+  if (declared === 'full' && paid > 0 && due <= 0) {
+    return { plan: 'full', paidPaise: paid, balanceDuePaise: 0, unrecognised: false }
+  }
+
   if (due <= 0 && paid > 0) {
     return { plan: 'full', paidPaise: paid, balanceDuePaise: 0, unrecognised: false }
   }
@@ -235,6 +306,11 @@ export function readMagicCustomer(order: MagicOrder): MagicCustomer | null {
 }
 
 /** What a Magic order is worth, before Razorpay takes anything. */
-export function magicOrderAmount(qty: number, discountPaise = 0): number {
-  return quote('full', qty, null, discountPaise).nowPaise
+export function magicOrderAmount(plan: Plan, qty: number, discountPaise = 0): number {
+  return quote(plan, qty, null, discountPaise).nowPaise
+}
+
+/** What a courier is still owed after a one-tap booking settles. */
+export function magicBalanceDue(plan: Plan, qty: number, discountPaise = 0): number {
+  return quote(plan, qty, null, discountPaise).balancePaise
 }

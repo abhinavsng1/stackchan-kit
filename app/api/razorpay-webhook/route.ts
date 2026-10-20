@@ -152,6 +152,10 @@ export async function POST(request: Request) {
       qty: Number(payment.notes.kits ?? order.notes?.kits ?? 1) || 1,
       edition: 'assembled',
       plan: outcome.plan,
+      // Chosen before the window opened, carried on the order, and recorded
+      // here — otherwise a one-tap sale arrives with no colour and somebody
+      // has to ask the buyer what they picked.
+      shell: payment.notes.shell ?? order.notes?.shell ?? null,
       orderId: payment.order_id,
       paymentId: payment.id,
       paidPaise: outcome.paidPaise,

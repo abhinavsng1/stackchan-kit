@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { readMagicPayment, readMagicCustomer, shippingFor, servicedPincode, lineItemsFor, magicEnabled } from '@/lib/magic'
+import { readMagicPayment, readMagicCustomer, shippingFor, servicedPincode, lineItemsFor, magicEnabled, magicOrderAmount, magicBalanceDue } from '@/lib/magic'
 import { PRICE } from '@/lib/kit'
 
 /**
@@ -124,17 +124,101 @@ describe('answering whether we ship there', () => {
 
 describe('the cart Razorpay is given', () => {
   it('always carries a total, without which the order is not a Magic order', () => {
-    const { lineItems, lineItemsTotalPaise } = lineItemsFor(1)
+    const { lineItems, lineItemsTotalPaise } = lineItemsFor('full', 1)
     expect(lineItems).toHaveLength(1)
     expect(lineItemsTotalPaise).toBe(LIST)
   })
 
   it('totals by quantity', () => {
-    expect(lineItemsFor(3).lineItemsTotalPaise).toBe(LIST * 3)
+    expect(lineItemsFor('full', 3).lineItemsTotalPaise).toBe(LIST * 3)
   })
 
   it('takes a discount off the total it declares', () => {
-    expect(lineItemsFor(1, 'assembled', 50_000).lineItemsTotalPaise).toBe(LIST - 50_000)
+    expect(lineItemsFor('full', 1, 'assembled', 50_000).lineItemsTotalPaise).toBe(LIST - 50_000)
+  })
+})
+
+
+/* --------------------------- the two doors ------------------------------- */
+
+describe('selling the ₹499 booking through the one-tap window', () => {
+  it('asks Razorpay for the deposit, not the price of the robot', () => {
+    expect(magicOrderAmount('deposit', 1)).toBe(PRICE.depositPaise)
+    expect(magicOrderAmount('full', 1)).toBe(LIST)
+  })
+
+  it('declares a cart worth exactly what it charges, so nothing reads as cash on delivery', () => {
+    // The whole reason the window broke the first time: a shortfall between
+    // the cart and the payment is partial COD, which this account cannot take.
+    const { lineItemsTotalPaise } = lineItemsFor('deposit', 1)
+    expect(lineItemsTotalPaise).toBe(magicOrderAmount('deposit', 1))
+  })
+
+  it('still owes the balance, and says so in the line it shows the buyer', () => {
+    expect(magicBalanceDue('deposit', 1)).toBe(PRICE.balancePaise)
+    expect(magicBalanceDue('full', 1)).toBe(0)
+    expect(lineItemsFor('deposit', 1).lineItems[0]!.description).toContain('4,500')
+  })
+
+  it('counts by quantity on both doors', () => {
+    expect(magicOrderAmount('deposit', 3)).toBe(PRICE.depositPaise * 3)
+    expect(lineItemsFor('deposit', 3).lineItemsTotalPaise).toBe(PRICE.depositPaise * 3)
+    expect(magicBalanceDue('deposit', 3)).toBe(PRICE.balancePaise * 3)
+  })
+
+  it('takes a deposit discount off the door, never off the ₹499 charged now', () => {
+    expect(magicOrderAmount('deposit', 1, 50_000)).toBe(PRICE.depositPaise)
+    expect(magicBalanceDue('deposit', 1, 50_000)).toBe(PRICE.balancePaise - 50_000)
+  })
+
+  it('names the colour on the line, where one was chosen', () => {
+    expect(lineItemsFor('deposit', 1, 'assembled', 0, 'graphite').lineItems[0]!.name).toContain('graphite')
+    expect(lineItemsFor('full', 1, 'assembled', 0, null).lineItems[0]!.name).not.toContain('·')
+  })
+})
+
+describe('reading a ₹499 booking back, after it has settled', () => {
+  const order = {
+    amount: PRICE.depositPaise,
+    amount_paid: PRICE.depositPaise,
+    amount_due: 0,
+    notes: { plan: 'deposit', balance_due_paise: String(PRICE.balancePaise) },
+  }
+
+  it('is a deposit with a balance, not a sale in full', () => {
+    // Left to arithmetic this is a fully-paid order and the ₹4,500 a courier
+    // collects would vanish from the booking.
+    expect(readMagicPayment(order, { method: 'upi' })).toEqual({
+      plan: 'deposit',
+      paidPaise: PRICE.depositPaise,
+      balanceDuePaise: PRICE.balancePaise,
+      unrecognised: false,
+    })
+  })
+
+  it('carries a discounted balance through unchanged', () => {
+    const discounted = { ...order, notes: { plan: 'deposit', balance_due_paise: '400000' } }
+    expect(readMagicPayment(discounted, { method: 'card' }).balanceDuePaise).toBe(400_000)
+  })
+
+  it('still reads a full sale as owing nothing', () => {
+    const full = { amount: LIST, amount_paid: LIST, amount_due: 0, notes: { plan: 'full', balance_due_paise: '0' } }
+    expect(readMagicPayment(full, { method: 'upi' })).toMatchObject({ plan: 'full', balanceDuePaise: 0 })
+  })
+
+  it('falls back to the arithmetic when an order carries no note', () => {
+    expect(readMagicPayment({ amount: LIST, amount_paid: LIST, amount_due: 0 }, { method: 'upi' }))
+      .toMatchObject({ plan: 'full', balanceDuePaise: 0 })
+  })
+
+  it('flags a deposit whose balance it cannot read, rather than calling it paid in full', () => {
+    // The dangerous direction: falling through to the arithmetic here would
+    // record a ₹499 booking as a completed sale and send the courier to the
+    // door with nothing to collect.
+    const bad = { ...order, notes: { plan: 'deposit', balance_due_paise: 'who knows' } }
+    expect(readMagicPayment(bad, { method: 'upi' })).toMatchObject({
+      plan: 'deposit', unrecognised: true,
+    })
   })
 })
 
@@ -187,6 +271,51 @@ describe('with the flag on', () => {
 
   it('survives a request with no addresses at all', async () => {
     expect((await call(shipping, {})).status).toBe(200)
+  })
+
+  it('asks the gateway for the deposit when the deposit door is tapped', async () => {
+    const { createOrder } = await import('@/lib/razorpay')
+    vi.mocked(createOrder).mockResolvedValue({
+      status: 'created', keyId: 'rzp_test', orderId: 'order_1', amountPaise: PRICE.depositPaise, currency: 'INR',
+    } as Awaited<ReturnType<typeof createOrder>>)
+
+    await call(order, { plan: 'deposit', qty: 1, shell: 'graphite' })
+
+    const asked = vi.mocked(createOrder).mock.calls.at(-1)![0]
+    expect(asked.amountPaise).toBe(PRICE.depositPaise)
+    // The cart must match the charge exactly, or Razorpay reads the gap as COD.
+    expect(asked.lineItemsTotalPaise).toBe(PRICE.depositPaise)
+    // What the courier is owed cannot be derived afterwards, so it travels here.
+    expect(asked.notes).toMatchObject({
+      plan: 'deposit', balance_due_paise: String(PRICE.balancePaise), shell: 'graphite',
+    })
+  })
+
+  it('asks for the whole price when the full door is tapped', async () => {
+    const { createOrder } = await import('@/lib/razorpay')
+    vi.mocked(createOrder).mockResolvedValue({
+      status: 'created', keyId: 'rzp_test', orderId: 'order_2', amountPaise: LIST, currency: 'INR',
+    } as Awaited<ReturnType<typeof createOrder>>)
+
+    await call(order, { plan: 'full', qty: 1 })
+
+    const asked = vi.mocked(createOrder).mock.calls.at(-1)![0]
+    expect(asked.amountPaise).toBe(LIST)
+    expect(asked.notes).toMatchObject({ plan: 'full', balance_due_paise: '0' })
+  })
+
+  it('refuses a plan it does not sell, rather than falling back to one', async () => {
+    expect((await call(order, { plan: 'whenever', qty: 1 })).status).toBe(400)
+  })
+
+  it('ignores a colour that is not on sale instead of recording it', async () => {
+    const { createOrder } = await import('@/lib/razorpay')
+    vi.mocked(createOrder).mockResolvedValue({
+      status: 'created', keyId: 'k', orderId: 'order_3', amountPaise: LIST, currency: 'INR',
+    } as Awaited<ReturnType<typeof createOrder>>)
+
+    await call(order, { plan: 'full', qty: 1, shell: 'tartan' })
+    expect(vi.mocked(createOrder).mock.calls.at(-1)![0].notes).not.toHaveProperty('shell')
   })
 })
 

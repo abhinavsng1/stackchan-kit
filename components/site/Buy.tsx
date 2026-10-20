@@ -1,7 +1,7 @@
 import Gallery from '@/components/Gallery'
 import BuyBox from '@/components/BuyBox'
 import ReserveForm from '@/components/ReserveForm'
-import MagicCheckoutButton from '@/components/MagicCheckoutButton'
+import OneTapOrder from '@/components/OneTapOrder'
 import PartArt from '@/components/PartArt'
 import { OrderSteps } from '@/components/OrderSteps'
 import { TrackedDetails } from '@/components/Tracked'
@@ -116,17 +116,16 @@ export default function Buy({ magic = false }: { magic?: boolean }) {
             <p className="t-label m-0 mb-6">Order</p>
             <h2 className="t-display t-h2 m-0 mb-5">Book yours.</h2>
             <p className="t-lead mt-0 mb-12 max-w-[42ch]">
-              Your details and your colour. It takes about a minute.
+              {magic
+                ? 'Your colour, then one tap. Razorpay takes the address and the payment in a single window.'
+                : 'Your details and your colour. It takes about a minute.'}
             </p>
             {/* One tap, when Razorpay has the feature switched on for this
-                account. The form stays below it and stays the path that works
-                for everybody. */}
-            {magic && (
-              <div className="mb-8 pb-8" style={{ borderBottom: '1px solid var(--line)' }}>
-                <MagicCheckoutButton />
-              </div>
-            )}
-            <ReserveForm />
+                account. The form is still built and still works — it is handed
+                to OneTapOrder and shown only if a window will not open. */}
+            {magic
+              ? <OneTapOrder><ReserveForm /></OneTapOrder>
+              : <ReserveForm />}
           </div>
 
           <aside className="lg:col-span-5 card p-7 md:p-8 h-fit lg:sticky lg:top-28">

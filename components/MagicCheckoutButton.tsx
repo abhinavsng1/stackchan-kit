@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { CONTACT, PRICE } from '@/lib/kit'
+import { useState } from 'react'
+import { CONTACT } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
+import type { Plan } from '@/lib/plans'
 
 /**
  * Buy in one tap: Magic Checkout collects the address, we collect nothing.
@@ -11,16 +12,14 @@ import { EV, track } from '@/lib/analytics'
  * prop rather than a public environment variable — with MAGIC_CHECKOUT unset
  * this component is never mounted and its script is never fetched.
  *
- * It sells the robot outright at the full price. The ₹499 deposit does not
- * come through this window: Magic Checkout would have to treat the ₹4,500
- * balance as cash on delivery, which this Razorpay account cannot take, and
- * offering it is what greyed out every payment method the first time. The
- * form below is the deposit's path, and with this button hidden it is the
- * only path a visitor is offered.
+ * Both doors come through here. The ₹4,999 sells the robot outright; the ₹499
+ * sells the booking, declared to Razorpay as a ₹499 cart that settles in full
+ * so nothing reads as cash on delivery — a method this account cannot take,
+ * and what greyed out every payment option the first time. What a courier is
+ * still owed travels on the order's notes and is read back by the webhook.
  *
- * The ordinary form stays exactly where it is. This is a second door, not a
- * replacement: the form is the one that works for everybody, including anyone
- * whose browser blocks Razorpay's window.
+ * The colour cannot be chosen inside Razorpay's window, so it is chosen
+ * before it opens and carried on the order.
  */
 
 const SRC = 'https://checkout.razorpay.com/v1/magic-checkout.js'
@@ -41,33 +40,42 @@ function loadMagic(): Promise<void> {
   })
 }
 
-export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: number; coupon?: string | null }) {
+export default function MagicCheckoutButton({
+  plan,
+  qty = 1,
+  shell = null,
+  coupon = null,
+  label,
+  note,
+  tone = 'brand',
+  onUnavailable,
+}: {
+  plan: Plan
+  qty?: number
+  shell?: string | null
+  coupon?: string | null
+  label: string
+  note?: string
+  tone?: 'brand' | 'ghost'
+  /** Called when this window cannot be opened, so the page can offer the form. */
+  onUnavailable?: () => void
+}) {
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
 
-  /**
-   * Back behind ?magic=1, by request, after a spell open to everyone.
-   *
-   * The feature itself works — Razorpay has it switched on, Shipping Setup is
-   * configured and a real payment has been through the window. This is not a
-   * broken button being hidden; it is a working one held back until we want
-   * it selling, which is a decision about the storefront rather than about
-   * the code.
-   *
-   * Decided in an effect rather than during render: the page is static, and
-   * reading the query string while rendering would make the server's HTML
-   * and the browser's first paint disagree.
-   */
-  const [asked, setAsked] = useState(false)
-  useEffect(() => {
-    setAsked(new URLSearchParams(window.location.search).get('magic') === '1')
-  }, [])
+  function failed(reason: string) {
+    setState('error')
+    setMessage(reason)
+    // The form is the path that works for everybody, including anyone whose
+    // browser blocks Razorpay's window. It is hidden until this moment.
+    onUnavailable?.()
+  }
 
   async function buy() {
     if (state === 'working') return
     setState('working')
     setMessage(null)
-    track(EV.paymentOpened, { from: 'magic' })
+    track(EV.paymentOpened, { from: 'magic', plan, qty })
 
     try {
       await loadMagic()
@@ -75,19 +83,19 @@ export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: 
       const res = await fetch('/api/magic/order', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ qty, coupon: coupon ?? fromUrl ?? undefined }),
+        body: JSON.stringify({
+          plan, qty,
+          ...(shell ? { shell } : {}),
+          coupon: coupon ?? fromUrl ?? undefined,
+        }),
       })
       const order = await res.json().catch(() => ({}))
       if (!res.ok || !order.key_id) {
-        setState('error')
-        return setMessage(order?.error ?? 'Could not open checkout. Use the form below.')
+        return failed(order?.error ?? 'Could not open the payment window. Use the form below.')
       }
 
       const Razorpay = window.Razorpay
-      if (!Razorpay) {
-        setState('error')
-        return setMessage('Could not open checkout. Use the form below.')
-      }
+      if (!Razorpay) return failed('Could not open the payment window. Use the form below.')
 
       const rzp = new Razorpay({
         key: order.key_id,
@@ -102,24 +110,21 @@ export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: 
         handler: () => {
           // The booking row is written by the webhook from the address
           // Razorpay collected, so there is nothing for the page to save.
-          track(EV.paymentSucceeded, { from: 'magic' })
+          track(EV.paymentSucceeded, { from: 'magic', plan, qty })
           setState('done')
         },
         modal: {
           ondismiss: () => {
             setState('idle')
-            track(EV.paymentDismissed, { from: 'magic' })
+            track(EV.paymentDismissed, { from: 'magic', plan })
           },
         },
       })
       rzp.open()
     } catch {
-      setState('error')
-      setMessage('Could not open checkout. Use the form below.')
+      failed('Could not open the payment window. Use the form below.')
     }
   }
-
-  if (!asked) return null
 
   if (state === 'done') {
     return (
@@ -131,12 +136,18 @@ export default function MagicCheckoutButton({ qty = 1, coupon = null }: { qty?: 
 
   return (
     <div>
-      <button type="button" onClick={buy} disabled={state === 'working'} className="btn btn-brand">
-        {state === 'working' ? 'Opening…' : 'Buy with 1-tap checkout'}
+      <button
+        type="button" onClick={buy} disabled={state === 'working'}
+        className={`btn ${tone === 'brand' ? 'btn-brand' : 'btn-ghost'} w-full`}
+      >
+        {state === 'working' ? 'Opening…' : label}
       </button>
-      <p className="text-[13px] mt-2 mb-0" style={{ color: 'var(--muted)' }}>
-        {message ?? `Pay ${PRICE.now} in full — address and payment in one window. Or book for ${PRICE.deposit} with the form below.`}
-      </p>
+      {(message ?? note) && (
+        <p className="text-[13px] mt-2 mb-0"
+           style={{ color: message ? 'var(--danger)' : 'var(--muted)' }}>
+          {message ?? note}
+        </p>
+      )}
     </div>
   )
 }
