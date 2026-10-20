@@ -44,7 +44,7 @@ export default function Footer({ socials, product = HOME_PRODUCT }: {
           <div className="col-span-2 md:col-span-4">
             <Wordmark size={26} invert />
             <p className="text-[15px] text-[var(--muted)] mt-5 mb-0 max-w-[30ch]">
-              A little robot that looks back. Designed and built in Bengaluru by{' '}
+              A robot that looks back. Designed and built in Bengaluru by{' '}
               {BUILDERS.map((b, i) => (
                 <span key={b.href}>
                   {i > 0 && ' and '}

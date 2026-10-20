@@ -97,7 +97,7 @@ export default function Showcase() {
   const status = sound !== null ? 'Sound on · rotation held' : paused || reduced ? 'Manual browsing · sound off' : 'Auto-playing · sound off'
 
   return <section id="films" className="section video-gallery scroll-mt-16"><div className="wrap">
-    <div className="gallery-heading"><div><p className="t-label">See it for yourself</p><h2 className="t-display t-h2">A little personality.<br />In every frame.</h2></div><p className="t-lead">Four films, always in motion.<br />Tap a card to listen.</p></div>
+    <div className="gallery-heading"><div><p className="t-label">See it for yourself</p><h2 className="t-display t-h2">Full of personality.<br />In every frame.</h2></div><p className="t-lead">Four films, always in motion.<br />Tap a card to listen.</p></div>
     <div ref={root} className="film-deck" aria-roledescription="carousel" aria-label="PebbleRobo video gallery">
       <div className="film-deck-top"><span className="t-mono"><i aria-hidden="true" /> PebbleRobo / In motion</span><span className="film-deck-status">{status}</span></div>
       <div className="film-deck-stage" onPointerDown={e => { swiped.current = false; dragStart.current = e.clientX }} onPointerUp={e => {

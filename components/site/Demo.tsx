@@ -15,7 +15,7 @@ export default function Demo() {
           <Reveal className="lg:col-span-7">
             <p className="t-label m-0 mb-3 sm:mb-4">Try PebbleRobo</p>
             <h2 className="t-display m-0" style={{ fontSize: 'clamp(30px, 4.2vw, 60px)' }}>
-              A little hands-on time.
+              Hands-on, right here.
             </h2>
           </Reveal>
           <Reveal className="hidden sm:block lg:col-span-4 lg:col-start-9" delay={0.1}>

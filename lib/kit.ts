@@ -239,7 +239,7 @@ export type Faq = { q: string; a: string }
 
 export const FAQS: Faq[] = [
   { q: 'What is PebbleRobo?',
-    a: 'A little AI companion that lives on your desk. It has a face, a head that turns and a personality of its own, and it keeps you company.' },
+    a: 'An AI companion that lives on your desk. It has a face, a head that turns and a personality of its own, and it keeps you company.' },
   { q: 'Does it need Wi-Fi?',
     a: 'To talk with you, yes. Conversations happen over Wi-Fi, and so do updates and the app. Its faces, its movement and its reactions to your touch work without it.' },
   { q: 'Is there a subscription, or anything to set up for conversations?',

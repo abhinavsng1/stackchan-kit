@@ -16,8 +16,8 @@ type Mode = 'camera' | 'dance' | 'assistant'
 const TABS: [Mode, string][] = [['assistant', 'AI assistant'], ['dance', 'Dance'], ['camera', 'Camera & movement']]
 const ANSWERS = [
   ['Help me plan my day', 'Let’s start with one thing that matters most. Give it your freshest hour, leave room for a break, then take the small tasks one at a time.'],
-  ['Tell me something interesting', 'An octopus has three hearts. Two pump blood to its gills, and one keeps it flowing to the rest of its body. A little reminder that nature is wonderfully inventive.'],
-  ['I need a little encouragement', 'One small step counts. Pick something you can finish in five minutes. I’ll keep you company while you get started.'],
+  ['Tell me something interesting', 'An octopus has three hearts. Two pump blood to its gills, and one keeps it flowing to the rest of its body. A reminder that nature is wonderfully inventive.'],
+  ['I need some encouragement', 'One small step counts. Pick something you can finish in five minutes. I’ll keep you company while you get started.'],
 ]
 
 export default function DemoStage() {
@@ -168,7 +168,7 @@ export default function DemoStage() {
         </>}
         {mode === 'dance' && <>
           <p className="t-label">A desk-sized dance floor</p><h3 className="t-display t-h3">Press play. Watch it groove.</h3>
-          <p>A little head tilt, a happy face, and a rhythm to move to. Try its pan-and-tilt dance with an original little tune.</p>
+          <p>A head tilt, a happy face, and a rhythm to move to. Try its pan-and-tilt dance with an original tune.</p>
           <button className="btn btn-brand" disabled={!live} onClick={() => void startMusic()}>{playing ? 'Stop music & dance' : 'Play music & dance'}</button>
           <div className={`music-meter ${playing ? 'is-playing' : ''}`} aria-hidden="true">{Array.from({length:12},(_,i)=><i key={i} style={{animationDelay:`${i*.11}s`}} />)}</div>
           <p className="t-mono text-[11px]">Sound starts only when you press play.</p>

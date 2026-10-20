@@ -65,7 +65,7 @@
   --mint:      var(--positive);
 
   /* ---- type ---- */
-  --t-hero:  clamp(52px, 8.4vw, 132px);
+  --t-hero:  clamp(44px, 8.4vw, 132px);
   --t-h1:    clamp(44px, 6.6vw, 104px);
   --t-h2:    clamp(38px, 5.4vw, 80px);
   --t-h3:    clamp(24px, 2.3vw, 32px);
