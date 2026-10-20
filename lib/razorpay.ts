@@ -23,9 +23,24 @@ export type OrderResult =
   | { status: 'unconfigured' }
   | { status: 'upstream_error'; detail: string }
 
-function credentials() {
-  const id = process.env.RAZORPAY_KEY_ID
-  const secret = process.env.RAZORPAY_KEY_SECRET
+/**
+ * Which Razorpay account a call speaks to.
+ *
+ * 'magic' exists so the one-tap window can be driven by test keys while the
+ * form keeps taking real money through the live ones. Both halves of a pair
+ * must be present or the scope is ignored entirely — half a key pair is how
+ * you end up charging a live card against a test order.
+ */
+export type KeyScope = 'default' | 'magic'
+
+export function magicKeysInUse(): boolean {
+  return Boolean(process.env.MAGIC_RAZORPAY_KEY_ID && process.env.MAGIC_RAZORPAY_KEY_SECRET)
+}
+
+function credentials(scope: KeyScope = 'default') {
+  const useMagic = scope === 'magic' && magicKeysInUse()
+  const id = useMagic ? process.env.MAGIC_RAZORPAY_KEY_ID : process.env.RAZORPAY_KEY_ID
+  const secret = useMagic ? process.env.MAGIC_RAZORPAY_KEY_SECRET : process.env.RAZORPAY_KEY_SECRET
   if (!id || !secret) return null
   return { id, secret, basic: Buffer.from(`${id}:${secret}`).toString('base64') }
 }
@@ -85,8 +100,8 @@ export type OrderRequest = {
  * price. Trusting a browser-supplied amount is how a robot gets bought for ₹1,
  * and it is the single most common way a checkout integration is exploited.
  */
-export async function createOrder(input: OrderRequest): Promise<OrderResult> {
-  const creds = credentials()
+export async function createOrder(input: OrderRequest, scope: KeyScope = 'default'): Promise<OrderResult> {
+  const creds = credentials(scope)
   if (!creds) return { status: 'unconfigured' }
 
   const amountPaise = Math.round(input.amountPaise)
@@ -140,8 +155,8 @@ export async function createOrder(input: OrderRequest): Promise<OrderResult> {
  * Reads an order back from Razorpay. Magic Checkout puts the buyer's address
  * on the order rather than in the callback, so this is the only way to see it.
  */
-export async function fetchOrder(orderId: string): Promise<Record<string, unknown> | null> {
-  const creds = credentials()
+export async function fetchOrder(orderId: string, scope: KeyScope = 'default'): Promise<Record<string, unknown> | null> {
+  const creds = credentials(scope)
   if (!creds) return null
   try {
     const res = await fetch(`${API}/orders/${encodeURIComponent(orderId)}`, {
@@ -191,12 +206,25 @@ export function verifyPaymentSignature(input: {
  * every signature would fail.
  */
 export function verifyWebhookSignature(rawBody: string, signature: string): boolean {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET
-  if (!secret) return false
+  /*
+   * Either secret, because there may be two accounts sending here.
+   * Razorpay signs a test-mode webhook with whatever secret is configured in
+   * test mode, which is not the live one. Both are tried, both in constant
+   * time, and a request that matches neither is rejected exactly as before —
+   * accepting one more known secret is not the same as accepting anything.
+   */
+  const secrets = [process.env.RAZORPAY_WEBHOOK_SECRET, process.env.MAGIC_RAZORPAY_WEBHOOK_SECRET]
+    .filter((v): v is string => Boolean(v))
+  if (secrets.length === 0) return false
 
-  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
-  const a = Buffer.from(expected, 'utf8')
-  const b = Buffer.from(signature, 'utf8')
-  if (a.length !== b.length) return false
-  return crypto.timingSafeEqual(a, b)
+  const given = Buffer.from(signature, 'utf8')
+  let matched = false
+  for (const secret of secrets) {
+    const expected = Buffer.from(
+      crypto.createHmac('sha256', secret).update(rawBody).digest('hex'), 'utf8')
+    // Not short-circuited: every candidate is compared, so the time taken
+    // does not reveal which secret was the one that matched.
+    if (expected.length === given.length && crypto.timingSafeEqual(expected, given)) matched = true
+  }
+  return matched
 }

@@ -1,5 +1,5 @@
 import { magicEnabled, shippingFor, type MagicAddress } from '@/lib/magic'
-import { rememberMagicBuyer } from '@/lib/magic-buyers'
+import { attachMagicBuyer } from '@/lib/magic-orders'
 
 /**
  * Magic Checkout asks whether we deliver to an address, and on what terms.
@@ -53,7 +53,7 @@ async function answer(request: Request) {
    */
   const orderId = typeof body.razorpay_order_id === 'string' ? body.razorpay_order_id : ''
   if (orderId) {
-    await rememberMagicBuyer({
+    await attachMagicBuyer({
       orderId,
       email: typeof body.email === 'string' ? body.email : null,
       contact: typeof body.contact === 'string' ? body.contact : null,

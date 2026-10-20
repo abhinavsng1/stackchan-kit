@@ -288,3 +288,34 @@ create table if not exists magic_buyers (
   seen_at           timestamptz not null default now(),
   created_at        timestamptz not null default now()
 );
+
+-- A one-tap order, written when it is created rather than when it is paid.
+--
+-- Supersedes magic_buyers above, which held only the buyer and can be dropped
+-- by hand once nothing references it. This holds the whole attempt: what was
+-- decided when the order was created, the buyer added when Razorpay asks
+-- about shipping, and the payment stamped on when it settles.
+--
+-- Unpaid rows are kept on purpose. An abandoned window is worth knowing
+-- about, and a payment that arrives late still finds its order.
+create table if not exists magic_orders (
+  razorpay_order_id   text primary key,
+  plan                text not null,
+  qty                 integer not null default 1,
+  shell               text,
+  coupon_code         text,
+  discount_paise      integer not null default 0,
+  amount_paise        integer not null default 0,
+  balance_due_paise   integer not null default 0,
+  email               text,
+  contact             text,
+  pincode             text,
+  status              text not null default 'created',
+  razorpay_payment_id text,
+  seen_at             timestamptz,
+  paid_at             timestamptz,
+  created_at          timestamptz not null default now()
+);
+
+create index if not exists magic_orders_unpaid
+  on magic_orders (created_at desc) where status <> 'paid';

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import MagicCheckoutButton from '@/components/MagicCheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import Swatch from '@/components/site/Swatch'
-import { ORDERABLE_SHELLS, isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
-import { useShell, setShell } from '@/lib/shell-store'
+import { ORDERABLE_SHELLS } from '@/lib/shells'
+import { setShell } from '@/lib/shell-store'
 import { quote, rupees } from '@/lib/plans'
 import { EV, track } from '@/lib/analytics'
 
@@ -25,9 +25,19 @@ import { EV, track } from '@/lib/analytics'
  * for everybody, exactly as it was.
  */
 export default function OneTapOrder({ children }: { children: React.ReactNode }) {
-  const previewed = useShell()
-  const shell = isOrderableShell(previewed) ? previewed : DEFAULT_SHELL
-  const [qty, setQty] = useState(1)
+  /*
+   * Nothing is chosen until it is chosen.
+   *
+   * The colour control shares a store with the swatches beside the robot, so
+   * it always has a value and always looked decided. The quantity defaulted
+   * to one. Both buttons were therefore live before the buyer had told us
+   * anything, and Razorpay's window cannot ask for either — whatever these
+   * say at the moment of the tap is what gets built and posted.
+   *
+   * So they start empty and the buttons wait.
+   */
+  const [chosenShell, setChosenShell] = useState<string | null>(null)
+  const [qty, setQty] = useState<number | null>(null)
   const [applied, setApplied] = useState<Applied | null>(null)
   const [fallback, setFallback] = useState(false)
 
@@ -41,17 +51,21 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
     setAsked(new URLSearchParams(window.location.search).get('magic') === '1')
   }, [])
 
+  const ready = chosenShell !== null && qty !== null
+  const count = qty ?? 1
   const discountPaise = applied?.discountPaise ?? 0
-  const deposit = quote('deposit', qty, null, discountPaise)
-  const full = quote('full', qty, null, discountPaise)
+  const deposit = quote('deposit', count, null, discountPaise)
+  const full = quote('full', count, null, discountPaise)
 
   // The ordinary page: the form, and nothing about one tap.
   if (!asked) return <>{children}</>
 
   return (
     <div>
-      {/* Colour. Shared with every other colour control on the page
-          (lib/shell-store.ts), so picking beside the robot picks here too. */}
+      {/* Colour. Picking here sets it everywhere else on the page
+          (lib/shell-store.ts), but the choice has to be made here: the window
+          cannot ask, and a swatch that merely looks selected is not an
+          instruction anybody gave us. */}
       <fieldset className="border-0 p-0 m-0 mb-6">
         <legend className="t-label mb-2 p-0">Colour</legend>
         <div className="flex flex-wrap items-center gap-3">
@@ -61,13 +75,13 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
             {ORDERABLE_SHELLS.map((s) => (
               <button
                 key={s.id} type="button" role="radio"
-                aria-checked={s.id === shell} aria-label={s.name}
-                onClick={() => setShell(s.id)}
+                aria-checked={chosenShell === s.id} aria-label={s.name}
+                onClick={() => { setShell(s.id); setChosenShell(s.id) }}
                 className="block cursor-pointer rounded-full"
                 style={{
                   // The ring sits outside the swatch so it never tints the
                   // colour someone is trying to judge.
-                  outline: s.id === shell ? '2px solid var(--ink)' : '2px solid transparent',
+                  outline: chosenShell === s.id ? '2px solid var(--ink)' : '2px solid transparent',
                   outlineOffset: 2,
                 }}
               >
@@ -76,7 +90,9 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
             ))}
           </div>
           <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            {ORDERABLE_SHELLS.find((s) => s.id === shell)?.name ?? ''} · same price in every colour
+            {chosenShell
+              ? `${ORDERABLE_SHELLS.find((s) => s.id === chosenShell)?.name ?? ''} · same price in every colour`
+              : 'Pick a colour · same price in every one'}
           </span>
         </div>
       </fieldset>
@@ -84,27 +100,30 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
       <div className="mb-6" style={{ maxWidth: 160 }}>
         <label htmlFor="onetap-qty" className="t-label block mb-2">How many</label>
         <select
-          id="onetap-qty" className="field" value={qty}
-          onChange={(e) => setQty(Number(e.target.value))}
+          id="onetap-qty" className="field" value={qty ?? ''}
+          onChange={(e) => setQty(e.target.value ? Number(e.target.value) : null)}
         >
+          <option value="">Choose…</option>
           {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </div>
 
-      <CouponField plan="deposit" qty={qty} onApplied={setApplied} />
+      <CouponField plan="deposit" qty={count} onApplied={setApplied} />
 
       {/* The two doors. The deposit leads, because it is the one most people
           take and the smaller ask; paying in full sits beside it rather than
           beneath it, as an equal choice rather than an upsell. */}
       <div className="grid gap-3 sm:grid-cols-2 mt-7">
         <MagicCheckoutButton
-          plan="deposit" qty={qty} shell={shell} coupon={applied?.code ?? null}
+          plan="deposit" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
+          disabled={!ready}
           label={`Book for ${rupees(deposit.nowPaise)}`}
           note={`${rupees(deposit.balancePaise)} in cash when it is delivered`}
           onUnavailable={() => setFallback(true)}
         />
         <MagicCheckoutButton
-          plan="full" qty={qty} shell={shell} coupon={applied?.code ?? null}
+          plan="full" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
+          disabled={!ready}
           tone="ghost"
           label={`Pay ${rupees(full.nowPaise)} in full`}
           note="Nothing to pay at the door"
@@ -112,14 +131,16 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
         />
       </div>
 
-      <p className="text-[13px] mt-4 mb-0" style={{ color: 'var(--muted)' }}>
-        Address and payment in one window. We never see your card.
+      <p className="text-[13px] mt-4 mb-0" style={{ color: 'var(--muted)' }} aria-live="polite">
+        {ready
+          ? 'Address and payment in one window. We never see your card.'
+          : 'Choose a colour and how many, and the payment buttons will open.'}
       </p>
 
       {!fallback && (
         <button
           type="button"
-          onClick={() => { setFallback(true); track(EV.planChosen, { plan: 'deposit', location: 'form-revealed', qty }) }}
+          onClick={() => { setFallback(true); track(EV.planChosen, { plan: 'deposit', location: 'form-revealed', qty: count }) }}
           className="bg-transparent border-0 p-0 mt-5 cursor-pointer text-[13.5px] underline"
           style={{ color: 'var(--muted)' }}
         >

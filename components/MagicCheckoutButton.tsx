@@ -48,6 +48,7 @@ export default function MagicCheckoutButton({
   label,
   note,
   tone = 'brand',
+  disabled = false,
   onUnavailable,
 }: {
   plan: Plan
@@ -57,6 +58,8 @@ export default function MagicCheckoutButton({
   label: string
   note?: string
   tone?: 'brand' | 'ghost'
+  /** Held shut until the buyer has chosen the things Razorpay cannot ask for. */
+  disabled?: boolean
   /** Called when this window cannot be opened, so the page can offer the form. */
   onUnavailable?: () => void
 }) {
@@ -72,7 +75,7 @@ export default function MagicCheckoutButton({
   }
 
   async function buy() {
-    if (state === 'working') return
+    if (state === 'working' || disabled) return
     setState('working')
     setMessage(null)
     track(EV.paymentOpened, { from: 'magic', plan, qty })
@@ -137,7 +140,7 @@ export default function MagicCheckoutButton({
   return (
     <div>
       <button
-        type="button" onClick={buy} disabled={state === 'working'}
+        type="button" onClick={buy} disabled={disabled || state === 'working'}
         className={`btn ${tone === 'brand' ? 'btn-brand' : 'btn-ghost'} w-full`}
       >
         {state === 'working' ? 'Opening…' : label}

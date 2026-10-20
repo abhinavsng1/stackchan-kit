@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveMagicCustomer } from '@/lib/magic'
-import { normaliseOrderId } from '@/lib/magic-buyers'
+import { normaliseOrderId } from '@/lib/magic-orders'
 
 /**
  * Putting a name on money that has already arrived.
@@ -22,13 +22,13 @@ const FULL = {
 
 describe('the order id, spelled one way', () => {
   it('adds the prefix the shipping callback leaves off', () => {
-    // Razorpay sends razorpay_order_id without `order_` to the callback and
-    // with it everywhere else. Stored unnormalised, the two never meet.
-    expect(normaliseOrderId('TqGZ7JofOpOj9o')).toBe('order_TqGZ7JofOpOj9o')
+    // Razorpay sends razorpay_order_id without `order_` to that callback and
+    // with it everywhere else. Stored as received, the two never meet.
+    expect(normaliseOrderId('TqGzRgz5URBk8k')).toBe('order_TqGzRgz5URBk8k')
   })
 
   it('leaves an id that already has it alone', () => {
-    expect(normaliseOrderId('order_TqGZ7JofOpOj9o')).toBe('order_TqGZ7JofOpOj9o')
+    expect(normaliseOrderId('order_TqGzRgz5URBk8k')).toBe('order_TqGzRgz5URBk8k')
     expect(normaliseOrderId('  order_x  ')).toBe('order_x')
   })
 
@@ -38,12 +38,13 @@ describe('the order id, spelled one way', () => {
 })
 
 describe('finding the buyer', () => {
-  it('prefers the order, which is the only source with an address', () => {
-    const c = resolveMagicCustomer(FULL, { email: 'other@example.com' }, { email: 'third@example.com', contact: null, pincode: null })
+  it('prefers the order, which is the only source carrying an address', () => {
+    const c = resolveMagicCustomer(FULL, { email: 'other@example.com' },
+      { email: 'third@example.com', contact: null, pincode: null })
     expect(c).toMatchObject({ email: 'asha@example.com', address: '42, Sector 18', city: 'Bengaluru' })
   })
 
-  it('falls back to what the shipping callback saw', () => {
+  it('falls back to our own row for the order', () => {
     const c = resolveMagicCustomer({}, {}, { email: 'Asha@example.com', contact: '+919876543210', pincode: '560078' })
     expect(c).toMatchObject({ email: 'asha@example.com', phone: '+919876543210', pincode: '560078' })
   })
@@ -53,14 +54,15 @@ describe('finding the buyer', () => {
     expect(c).toMatchObject({ email: 'asha@example.com', phone: '+919000090000' })
   })
 
-  it('prefers what we saw over what the payment carries', () => {
-    const c = resolveMagicCustomer({}, { email: 'card@example.com' }, { email: 'typed@example.com', contact: null, pincode: null })
+  it('prefers what we recorded over what the payment carries', () => {
+    const c = resolveMagicCustomer({}, { email: 'card@example.com' },
+      { email: 'typed@example.com', contact: null, pincode: null })
     expect(c?.email).toBe('typed@example.com')
   })
 
   it('leaves the address empty rather than inventing one', () => {
-    // A booking with no address is something a person can fix by asking. A
-    // wrong address is a robot posted to a stranger.
+    // A booking with no address is a phone call. A wrong one posts a robot
+    // to a stranger.
     const c = resolveMagicCustomer({}, { email: 'asha@example.com' }, null)
     expect(c).toMatchObject({ address: null, city: null })
   })

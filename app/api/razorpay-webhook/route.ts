@@ -5,7 +5,7 @@ import { waitUntil } from '@vercel/functions'
 import { sendXConversion } from '@/lib/x-conversions'
 import { sendPaymentConfirmed, sendBuyerProfile } from '@/lib/mixpanel-server'
 import { resolveMagicCustomer, readMagicPayment, type MagicOrder } from '@/lib/magic'
-import { recallMagicBuyer } from '@/lib/magic-buyers'
+import { findMagicOrder, markMagicOrderPaid } from '@/lib/magic-orders'
 
 /**
  * The authoritative record of a payment.
@@ -126,7 +126,9 @@ export async function POST(request: Request) {
    * idempotent on the order id for exactly that reason.
    */
   if (payment.notes?.payment_type === 'magic') {
-    const order = (await fetchOrder(payment.order_id)) as MagicOrder | null
+    // Read with the same keys the order was created on, or a test-mode order
+    // is invisible to a live-key lookup.
+    const order = (await fetchOrder(payment.order_id, 'magic')) as MagicOrder | null
     if (!order) {
       console.error('[razorpay] magic order could not be read back', { order_id: payment.order_id })
       // Not acknowledged: Razorpay retries, and a retry is far better than a
@@ -134,11 +136,12 @@ export async function POST(request: Request) {
       return Response.json({ status: 'retry' }, { status: 500 })
     }
 
-    // What the shipping-info callback saw while they were still typing. Read
-    // before the order is given up on, because it is the record that exists
-    // when the order's own customer_details does not.
-    const remembered = await recallMagicBuyer(payment.order_id)
-    const customer = resolveMagicCustomer(order, payment, remembered)
+    // Our own record of this order, written before anyone paid for it. It
+    // carries the buyer the shipping callback saw and the plan, colour and
+    // balance decided at the time, none of which then depend on Razorpay
+    // handing them back.
+    const ours = await findMagicOrder(payment.order_id)
+    const customer = resolveMagicCustomer(order, payment, ours)
     const outcome = readMagicPayment(order, payment)
 
     if (!customer) {
@@ -147,7 +150,7 @@ export async function POST(request: Request) {
       console.error('[razorpay] magic order carried no buyer', {
         order_id: payment.order_id,
         had_customer_details: Boolean(order.customer_details?.email),
-        had_remembered: Boolean(remembered?.email),
+        had_our_order: Boolean(ours?.email),
         had_payment_email: Boolean(payment.email),
       })
       return Response.json({ status: 'retry' }, { status: 500 })
@@ -165,13 +168,13 @@ export async function POST(request: Request) {
 
     const written = await createSettledBooking({
       ...customer,
-      qty: Number(payment.notes.kits ?? order.notes?.kits ?? 1) || 1,
+      qty: ours?.qty ?? (Number(payment.notes.kits ?? order.notes?.kits ?? 1) || 1),
       edition: 'assembled',
       plan: outcome.plan,
       // Chosen before the window opened, carried on the order, and recorded
       // here — otherwise a one-tap sale arrives with no colour and somebody
       // has to ask the buyer what they picked.
-      shell: payment.notes.shell ?? order.notes?.shell ?? null,
+      shell: ours?.shell ?? payment.notes.shell ?? order.notes?.shell ?? null,
       orderId: payment.order_id,
       paymentId: payment.id,
       paidPaise: outcome.paidPaise,
@@ -180,6 +183,10 @@ export async function POST(request: Request) {
       discountPaise: Number(payment.notes.discount_paise ?? 0) || 0,
       needsReview: outcome.unrecognised,
     })
+
+    // Stamped whatever happens next: the order was paid, and that is true
+    // even if the booking below turns out to need a person.
+    await markMagicOrderPaid(payment.order_id, payment.id)
 
     if (written.status === 'paid') {
       const qty = Number(payment.notes.kits ?? 1) || 1

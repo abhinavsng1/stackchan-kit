@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { createOrder } from '@/lib/razorpay'
+import { recordMagicOrder } from '@/lib/magic-orders'
 import { magicEnabled, lineItemsFor, magicOrderAmount, magicBalanceDue } from '@/lib/magic'
 import { validateCoupon } from '@/lib/coupons'
 import { noCostEmiOfferId } from '@/lib/emi'
@@ -74,6 +75,8 @@ export async function POST(request: Request) {
   const { lineItems, lineItemsTotalPaise } = lineItemsFor(plan, qty, 'assembled', discountPaise, shell)
   const offer = noCostEmiOfferId()
 
+  // 'magic' so this window can run on test keys while the form keeps taking
+  // real money on the live ones.
   const order = await createOrder({
     amountPaise,
     lineItems,
@@ -100,12 +103,31 @@ export async function POST(request: Request) {
       ...(couponCode ? { coupon: couponCode } : {}),
       ...(discountPaise ? { discount_paise: String(discountPaise) } : {}),
     },
-  })
+  }, 'magic')
 
   if (order.status !== 'created') {
     console.error('[magic/order] could not create', { status: order.status })
     return Response.json({ error: 'Could not start the payment.' }, { status: 502 })
   }
+
+  /*
+   * Our own copy of the order, written before anybody pays for it.
+   *
+   * Everything decided here — the plan, the colour, what a courier is owed —
+   * is now on our side of the wire, so the webhook does not have to hope
+   * Razorpay echoes it back. Awaited, because the payment can settle within
+   * seconds and a row written after the webhook has looked is a row that was
+   * never there. It fails soft inside, so bookkeeping cannot cost the sale.
+   */
+  await recordMagicOrder({
+    orderId: order.orderId,
+    plan, qty, shell,
+    couponCode,
+    discountPaise,
+    amountPaise,
+    balanceDuePaise,
+    email: null, contact: null, pincode: null,
+  })
 
   return Response.json({
     key_id: order.keyId,
