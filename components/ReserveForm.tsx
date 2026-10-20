@@ -66,10 +66,10 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
   const [errors, setErrors] = useState<Record<string, string>>(EMPTY)
   // Starts on a real colourway rather than empty, so the optional field is
   // optional in the sense that matters: ignoring it still produces an order.
-  // Shared with every other colour control on the page (lib/shell-store.ts).
-  // The hero shows all five colourways; only two are printed for this batch,
-  // so a buyer who arrives having previewed Ember orders the default rather
-  // than an order nobody can pack. The radio below shows what will be sent.
+  // Shared with every other colour control on the page (lib/shell-store.ts),
+  // so the colour someone picked in the hero is the one they order. A colour
+  // that is shown but not printed falls back to the default rather than
+  // becoming an order nobody can pack. The radio below shows what will be sent.
   const previewed = useShell()
   const shell = isOrderableShell(previewed) ? previewed : DEFAULT_SHELL
   const qtyRef = useRef<HTMLSelectElement>(null)
@@ -530,11 +530,9 @@ export default function ReserveForm({ variant, chooseEdition = false }: {
               </button>
             ))}
           </div>
-          {/* The page shows five colourways; this batch is printed in two.
-              Said beside the swatches rather than above them — it is a
-              footnote, not a warning. */}
+          {/* The colour picked, by name, and that it changes nothing else. */}
           <span className="t-mono text-[12.5px]" style={{ color: 'var(--muted)' }}>
-            {ORDERABLE_SHELLS.find((s) => s.id === shell)?.name ?? ''} · this batch is printed in black and white
+            {ORDERABLE_SHELLS.find((s) => s.id === shell)?.name ?? ''} · same price in every colour
           </span>
         </div>
       </fieldset>

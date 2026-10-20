@@ -61,16 +61,16 @@ export const SHELLS: Shell[] = [
 export const SHELL_IDS = SHELLS.map((s) => s.id) as [string, ...string[]]
 
 /**
- * What can actually be ordered today, which is not the same as what is shown.
+ * What can actually be ordered today, which is not always what is shown.
  *
- * All five are modelled and photographed, but only black and white are being
- * printed for the first batch, so those are the only two the order form
- * offers and the only two the schema accepts. Showing a colour is a picture;
- * selling it is a promise, and the promise is the narrower list.
- *
- * Adding a colour back to the batch means adding its id here — nowhere else.
+ * The first batch was printed in black and white only, and the form offered
+ * just those two. All five are printed to order now, so the form offers every
+ * colour the page shows. Showing a colour is a picture; selling it is a
+ * promise, so this list stays separate: a colour that stops being printed
+ * comes out of here, and out of the form and the schema with it — nowhere
+ * else needs to change.
  */
-export const ORDERABLE_SHELL_IDS = ['graphite', 'bone'] as [string, ...string[]]
+export const ORDERABLE_SHELL_IDS = ['graphite', 'bone', 'ember', 'signal', 'moss'] as [string, ...string[]]
 
 export const ORDERABLE_SHELLS = SHELLS.filter((s) => ORDERABLE_SHELL_IDS.includes(s.id))
 

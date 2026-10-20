@@ -38,8 +38,10 @@ describe('the order schema', () => {
   it('refuses a colour that is not made', () => {
     // A colour nobody prints is an order nobody can pack.
     expect(preorderSchema.safeParse({ ...valid, shell: 'chartreuse' }).success).toBe(false)
-    // The colours that were dropped, black and white being all that is printed.
-    for (const gone of ['ember', 'signal', 'moss']) expect(preorderSchema.safeParse({ ...valid, shell: gone }).success).toBe(false)
+  })
+
+  it('takes every colour the page shows, all five being printed', () => {
+    for (const id of SHELL_IDS) expect(preorderSchema.safeParse({ ...valid, shell: id }).success, id).toBe(true)
   })
 
   it('never blocks an order over the colour', () => {
