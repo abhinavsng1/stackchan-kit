@@ -697,17 +697,35 @@ export async function createSettledBooking(input: SettledBooking): Promise<
   if (seen[0]) return { status: 'already_paid' }
 
   const token = newPaymentToken()
-  const rows = await sql`
+
+  /*
+   * Written after the money has already moved, which changes what a failure
+   * means here.
+   *
+   * An older unique index on `phone` decided that a number belongs to one
+   * email for ever. A returning buyer with a new address violated it, the
+   * insert threw, the webhook answered 500, and Razorpay retried into the
+   * same wall until it gave up — a captured payment with no booking and no
+   * confirmation. The index is dropped in db/schema.sql, but a database that
+   * has not had that run must still not swallow a paid order, and nor must
+   * the next constraint somebody adds.
+   *
+   * So a unique violation on anything other than the email this statement
+   * already resolves is retried once without the colliding detail, and the
+   * booking is flagged for a person. Losing a phone number off a booking is
+   * something a human can repair. Losing the booking is not.
+   */
+  const write = (phone: string | null, note: string | null) => sql`
     insert into preorders (
       name, email, phone, address, city, pincode, qty, payment_token, edition,
       plan, shell, coupon_code, discount_paise, razorpay_order_id, razorpay_payment_id,
-      amount_paid_paise, balance_due_paise, paid_at, needs_review
+      amount_paid_paise, balance_due_paise, paid_at, needs_review, admin_note
     ) values (
-      ${input.name}, ${input.email.toLowerCase()}, ${input.phone}, ${input.address},
+      ${input.name}, ${input.email.toLowerCase()}, ${phone}, ${input.address},
       ${input.city}, ${input.pincode}, ${input.qty}, ${token}, ${input.edition},
       ${input.plan}, ${input.shell ?? null}, ${input.couponCode ?? null}, ${input.discountPaise ?? 0},
       ${input.orderId}, ${input.paymentId}, ${input.paidPaise}, ${input.balanceDuePaise},
-      now(), ${input.needsReview === true}
+      now(), ${input.needsReview === true || note !== null}, ${note}
     )
     on conflict (email) do update set
       phone               = coalesce(excluded.phone, preorders.phone),
@@ -724,8 +742,29 @@ export async function createSettledBooking(input: SettledBooking): Promise<
       amount_paid_paise   = excluded.amount_paid_paise,
       balance_due_paise   = excluded.balance_due_paise,
       paid_at             = coalesce(preorders.paid_at, excluded.paid_at),
-      needs_review        = excluded.needs_review
+      needs_review        = excluded.needs_review,
+      admin_note          = coalesce(excluded.admin_note, preorders.admin_note)
     returning id, payment_token`
+
+  let rows
+  try {
+    rows = await write(input.phone, null)
+  } catch (error) {
+    // 23505 is a unique violation. The `on conflict (email)` clause above has
+    // already handled the one we expect, so anything still thrown is a second
+    // unique claim somewhere else on the row.
+    const code = (error as { code?: string } | null)?.code
+    const constraint = (error as { constraint?: string } | null)?.constraint
+    if (code !== '23505') throw error
+    console.error('[preorders] settled booking hit a unique constraint', {
+      orderId: input.orderId, constraint,
+    })
+    rows = await write(
+      null,
+      `Paid, but the phone number collided with an existing booking (${constraint ?? 'unique constraint'}). ` +
+      'Recorded without it — ask the buyer and fill it in.',
+    )
+  }
 
   const row = rows[0]
   if (!row) return { status: 'already_paid' }

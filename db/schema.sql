@@ -30,9 +30,22 @@ alter table preorders alter column address drop not null;
 alter table preorders alter column city drop not null;
 alter table preorders alter column pincode drop not null;
 
--- Supplied numbers stay unique. PostgreSQL permits multiple NULL values here,
--- so reservations without a phone do not collide with one another.
-create unique index if not exists preorders_phone_key on preorders (phone);
+-- Phone numbers are NOT unique, and the index that claimed they were is gone.
+--
+-- It was meant to stop one person booking twice. What it actually decided was
+-- that a phone number belongs to exactly one email address for ever — so a
+-- buyer ordering again from a new address, two people in a house sharing a
+-- number, or anyone correcting a typo in their email becomes an insert that
+-- violates it. In the one-tap path that is a captured payment with no booking
+-- and no confirmation, because the row is written after the money has moved.
+--
+-- Email is the identity this table keys on: every upsert says `on conflict
+-- (email)`. A second unique claim on another column cannot be resolved by
+-- that clause, so it does not deduplicate — it throws.
+--
+-- Existing databases need this run by hand; see docs/operations.md.
+drop index if exists preorders_phone_key;
+create index if not exists preorders_phone_lookup on preorders (phone);
 
 -- ---------------------------------------------------------------------------
 -- Payments. Additive and safe to re-run.
