@@ -4,7 +4,8 @@ import { sendPaymentReceiptEmail, sendBalanceReceiptEmail } from '@/lib/email'
 import { waitUntil } from '@vercel/functions'
 import { sendXConversion } from '@/lib/x-conversions'
 import { sendPaymentConfirmed, sendBuyerProfile } from '@/lib/mixpanel-server'
-import { readMagicCustomer, readMagicPayment, type MagicOrder } from '@/lib/magic'
+import { resolveMagicCustomer, readMagicPayment, type MagicOrder } from '@/lib/magic'
+import { recallMagicBuyer } from '@/lib/magic-buyers'
 
 /**
  * The authoritative record of a payment.
@@ -37,6 +38,10 @@ type Entity = {
   /** 'cod' on a cash-on-delivery payment through Magic Checkout. */
   method?: string
   notes?: Record<string, string>
+  /** Razorpay documents both on the payment entity. The one-tap path needs
+      them when the order itself comes back without a customer. */
+  email?: string
+  contact?: string
 }
 
 export async function POST(request: Request) {
@@ -129,11 +134,22 @@ export async function POST(request: Request) {
       return Response.json({ status: 'retry' }, { status: 500 })
     }
 
-    const customer = readMagicCustomer(order)
+    // What the shipping-info callback saw while they were still typing. Read
+    // before the order is given up on, because it is the record that exists
+    // when the order's own customer_details does not.
+    const remembered = await recallMagicBuyer(payment.order_id)
+    const customer = resolveMagicCustomer(order, payment, remembered)
     const outcome = readMagicPayment(order, payment)
 
     if (!customer) {
-      console.error('[razorpay] magic order carried no buyer', { order_id: payment.order_id })
+      // All three sources empty. Logged without the payload, because what is
+      // missing is the point and what is present is a buyer's contact detail.
+      console.error('[razorpay] magic order carried no buyer', {
+        order_id: payment.order_id,
+        had_customer_details: Boolean(order.customer_details?.email),
+        had_remembered: Boolean(remembered?.email),
+        had_payment_email: Boolean(payment.email),
+      })
       return Response.json({ status: 'retry' }, { status: 500 })
     }
 

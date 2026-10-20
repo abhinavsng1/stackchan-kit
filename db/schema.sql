@@ -256,3 +256,22 @@ alter table preorders add column if not exists admin_note text;
 
 create index if not exists preorders_live_orders
   on preorders (created_at desc) where archived_at is null;
+
+-- Who is buying through the one-tap window, learned before the money moves.
+--
+-- Razorpay's shipping-info callback carries the buyer's email and contact
+-- while they are still filling in the window. The Orders API is supposed to
+-- carry the same details afterwards and once did not, which left a captured
+-- payment with no booking row and no confirmation email. This is where the
+-- earlier sighting is kept so the webhook has somewhere else to look.
+--
+-- Not a booking, and never read by anything that shows a customer their
+-- order: one row per Razorpay order, read once, by the webhook.
+create table if not exists magic_buyers (
+  razorpay_order_id text primary key,
+  email             text,
+  contact           text,
+  pincode           text,
+  seen_at           timestamptz not null default now(),
+  created_at        timestamptz not null default now()
+);

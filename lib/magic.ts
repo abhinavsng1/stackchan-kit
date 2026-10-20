@@ -178,6 +178,9 @@ export type MagicPayment = {
   method?: string
   amount?: number
   notes?: Record<string, string>
+  /** Razorpay documents both on the payment entity in a webhook payload. */
+  email?: string
+  contact?: string
 }
 
 export type MagicOrder = {
@@ -302,6 +305,49 @@ export function readMagicCustomer(order: MagicOrder): MagicCustomer | null {
     address: line || null,
     city: text(a.city),
     pincode: text(a.zipcode),
+  }
+}
+
+/**
+ * Who bought it, from whichever source actually knows.
+ *
+ * Three sightings of the same person, in order of how much they tell us:
+ *
+ *   1. the order's own `customer_details`, which carries the full shipping
+ *      address and is what this was written against;
+ *   2. what the shipping-info callback told us while they were still filling
+ *      in the window, kept against the order id;
+ *   3. the payment entity in the webhook payload, which Razorpay documents as
+ *      carrying `email` and `contact`.
+ *
+ * The first has been seen to arrive empty on a captured payment — no buyer,
+ * no booking, no confirmation, and a retry that failed identically every
+ * time. The other two are poorer records, and both are better than losing a
+ * paid customer. Anything missing stays null rather than invented: a booking
+ * with no address is a thing a person can fix, and a wrong address is not.
+ */
+export function resolveMagicCustomer(
+  order: MagicOrder,
+  payment: MagicPayment,
+  remembered: { email: string | null; contact: string | null; pincode: string | null } | null = null,
+): MagicCustomer | null {
+  const full = readMagicCustomer(order)
+  if (full) return full
+
+  const email = (remembered?.email ?? payment.email ?? '').trim().toLowerCase()
+  if (!email) return null
+
+  const phone = (remembered?.contact ?? payment.contact ?? '').trim()
+  const pincode = (remembered?.pincode ?? '').trim()
+
+  return {
+    // Razorpay's window asks for a name, but not on any of these two routes.
+    name: 'PebbleRobo buyer',
+    email,
+    phone: phone || null,
+    address: null,
+    city: null,
+    pincode: pincode || null,
   }
 }
 

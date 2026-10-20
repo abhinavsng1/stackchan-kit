@@ -1,4 +1,5 @@
 import { magicEnabled, shippingFor, type MagicAddress } from '@/lib/magic'
+import { rememberMagicBuyer } from '@/lib/magic-buyers'
 
 /**
  * Magic Checkout asks whether we deliver to an address, and on what terms.
@@ -36,6 +37,29 @@ async function answer(request: Request) {
 
   const addresses = Array.isArray(body.addresses) ? body.addresses : []
   const answer = { addresses: addresses.map(shippingFor) }
+
+  /*
+   * The earliest we ever learn who is buying.
+   *
+   * Razorpay sends the email and contact here, before the payment, and this
+   * is the only point in the one-tap flow where we see them on our own
+   * servers. An order once came back from the Orders API with no customer at
+   * all and the webhook had nothing to write a booking against, so the
+   * sighting is kept against the order id rather than used and discarded.
+   *
+   * Awaited, not fired and forgotten: the payment can land within seconds of
+   * the last address check, and a note written after the webhook has already
+   * looked is a note that was never there.
+   */
+  const orderId = typeof body.razorpay_order_id === 'string' ? body.razorpay_order_id : ''
+  if (orderId) {
+    await rememberMagicBuyer({
+      orderId,
+      email: typeof body.email === 'string' ? body.email : null,
+      contact: typeof body.contact === 'string' ? body.contact : null,
+      pincode: addresses[0]?.zipcode ?? null,
+    })
+  }
 
   /**
    * What Razorpay asked and what we said, while this is still being proved
