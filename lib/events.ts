@@ -62,6 +62,10 @@ export const EV = {
   paymentSucceeded: 'Payment Succeeded',
   paymentDismissed: 'Payment Dismissed',
   paymentFailed: 'Payment Failed',
+  /** How many robots, where the window cannot ask. */
+  quantityChosen: 'Quantity Chosen',
+  /** The one-tap window let somebody down and the form was offered instead. */
+  checkoutFallbackShown: 'Checkout Fallback Shown',
 } as const
 
 /**

@@ -261,38 +261,60 @@ export async function POST(request: Request) {
       })
     }
 
-    if (written.status === 'paid' && customer.emailKnown) {
-      const qty = Number(payment.notes.kits ?? 1) || 1
-      sendAndReport('magic receipt', payment.order_id, sendPaymentReceiptEmail({
-        name: customer.name, email: customer.email, qty,
-        edition: 'assembled', amountPaise: outcome.paidPaise,
-        balanceDuePaise: outcome.balanceDuePaise,
-        phone: customer.phone, address: customer.address,
-        city: customer.city, pincode: customer.pincode,
-        paymentId: payment.id,
-      }))
+    if (written.status === 'paid') {
+      const qty = ours?.qty ?? (Number(payment.notes.kits ?? 1) || 1)
 
-      // The sale, reported the way every other sale is. A one-tap buyer never
-      // touches our form, so the browser cannot identify them and this is the
-      // only place their profile can be written at all — without it the sale
-      // lands in Mixpanel as an event belonging to nobody.
+      /*
+       * The sale is counted whether or not we know who made it.
+       *
+       * Email is optional in Razorpay's window, and a buyer who gave none
+       * used to take the whole of this block down with them — no purchase
+       * event, no revenue, the sale simply absent from Mixpanel. It is now
+       * reported under a per-order identity instead, flagged email_known:
+       * false, so the money is in the numbers and the gap is visible rather
+       * than silent.
+       */
       afterResponse(sendPaymentConfirmed({
-        orderId: payment.order_id, paymentId: payment.id, email: customer.email,
+        orderId: payment.order_id, paymentId: payment.id,
+        email: customer.emailKnown ? customer.email : null,
+        plan: outcome.plan,
         edition: 'assembled', qty, amountPaise: outcome.paidPaise,
         balanceDuePaise: outcome.balanceDuePaise, source: 'webhook',
       }))
-      afterResponse(sendBuyerProfile({
-        email: customer.email, name: customer.name, phone: customer.phone,
-        city: customer.city, pincode: customer.pincode, qty,
-        edition: 'assembled', balanceDuePaise: outcome.balanceDuePaise,
-      }))
 
-      // Nothing at all for a buyer whose browser asked not to be tracked.
-      if (payment.notes.ad_opt_out !== '1') {
+      if (customer.emailKnown) {
+        sendAndReport('magic receipt', payment.order_id, sendPaymentReceiptEmail({
+          name: customer.name, email: customer.email, qty,
+          edition: 'assembled', amountPaise: outcome.paidPaise,
+          balanceDuePaise: outcome.balanceDuePaise,
+          phone: customer.phone, address: customer.address,
+          city: customer.city, pincode: customer.pincode,
+          paymentId: payment.id,
+        }))
+
+        // A one-tap buyer never touches our form, so the browser cannot
+        // identify them and this is the only place their profile can be
+        // written at all. Only ever for a real address: a profile keyed on
+        // the .invalid placeholder is a person who can never be reached and
+        // never merged with anything.
+        afterResponse(sendBuyerProfile({
+          email: customer.email, name: customer.name, phone: customer.phone,
+          city: customer.city, pincode: customer.pincode, qty,
+          edition: 'assembled', balanceDuePaise: outcome.balanceDuePaise,
+        }))
+      }
+
+      // Nothing at all for a buyer whose browser asked not to be tracked, and
+      // nothing without something to match on.
+      if (payment.notes.ad_opt_out !== '1' && (customer.emailKnown || customer.phone)) {
         afterResponse(sendXConversion({
           event: 'purchase',
           conversionId: payment.id,
-          identity: { email: customer.email, phone: customer.phone, twclid: null },
+          identity: {
+            email: customer.emailKnown ? customer.email : null,
+            phone: customer.phone,
+            twclid: null,
+          },
         }))
       }
     }

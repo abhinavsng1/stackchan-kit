@@ -31,6 +31,8 @@ const sha256Hex = (v: string) => crypto.createHash('sha256').update(v, 'utf8').d
 export const buyerDistinctId = (email: string) => sha256Hex(email.trim().toLowerCase())
 
 export type PaymentConfirmed = {
+  /** 'deposit' or 'full'. */
+  plan?: string
   orderId: string
   paymentId: string
   /** Only used to derive the distinct_id. Never sent. */
@@ -63,6 +65,15 @@ export function buildPaymentConfirmed(token: string, input: PaymentConfirmed) {
       amount_inr: input.amountPaise / 100,
       ...(input.balanceDuePaise !== undefined ? { balance_due_inr: input.balanceDuePaise / 100 } : {}),
       source: input.source,
+      ...(input.plan ? { plan: input.plan } : {}),
+      // A one-tap buyer can complete a purchase without giving an email —
+      // it is optional in Razorpay's window. The sale is still counted, under
+      // a per-order id, and this says which kind of row it is.
+      //
+      // Named for the buyer rather than the field, because the test that
+      // guards this payload rejects any property whose *name* contains
+      // "email" — and that rule is worth more than the nicer word.
+      buyer_identified: Boolean(input.email?.trim()),
       server: true,
     },
   }

@@ -7,6 +7,7 @@ import Swatch from '@/components/site/Swatch'
 import { ORDERABLE_SHELLS, DEFAULT_SHELL } from '@/lib/shells'
 import { setShell } from '@/lib/shell-store'
 import { quote, rupees } from '@/lib/plans'
+import { EV, track } from '@/lib/analytics'
 
 /**
  * Ordering without a form.
@@ -66,6 +67,9 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
    */
   useEffect(() => {
     if (!fallback) return
+    // How many people the one-tap window sends to the form, and why. This is
+    // the number that says whether one tap is actually working.
+    track(EV.checkoutFallbackShown, { reason: fallback })
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     const id = window.requestAnimationFrame(() => {
       trouble.current?.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
@@ -95,7 +99,11 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
               <button
                 key={s.id} type="button" role="radio"
                 aria-checked={chosenShell === s.id} aria-label={s.name}
-                onClick={() => { setShell(s.id); setChosenShell(s.id) }}
+                onClick={() => {
+                  setShell(s.id)
+                  setChosenShell(s.id)
+                  track(EV.colourChosen, { shell: s.id, location: 'one-tap' })
+                }}
                 className="block cursor-pointer rounded-full"
                 style={{
                   // The ring sits outside the swatch so it never tints the
@@ -118,7 +126,11 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
         <label htmlFor="onetap-qty" className="t-label block mb-2">How many</label>
         <select
           id="onetap-qty" className="field" value={qty}
-          onChange={(e) => setQty(Number(e.target.value))}
+          onChange={(e) => {
+            const n = Number(e.target.value)
+            setQty(n)
+            track(EV.quantityChosen, { qty: n, location: 'one-tap' })
+          }}
         >
           {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>

@@ -133,3 +133,36 @@ describe('the checkout remembers trouble across a page load', () => {
     vi.unstubAllGlobals()
   })
 })
+
+describe('the one-tap flow reports every step it takes', () => {
+  const read = (f: string) => readFileSync(f, 'utf8')
+  const button = read('components/MagicCheckoutButton.tsx')
+  const order = read('components/OneTapOrder.tsx')
+
+  it('reports the window opening, succeeding, being closed and failing', () => {
+    // Four outcomes, and the funnel is unreadable if any one of them is
+    // silent: a blocked script would look like a buyer who never tried.
+    for (const ev of ['paymentOpened', 'paymentSucceeded', 'paymentDismissed', 'paymentFailed']) {
+      expect(button, ev).toContain(`EV.${ev}`)
+    }
+  })
+
+  it('reports the two choices Razorpay cannot ask for', () => {
+    expect(order).toContain('EV.colourChosen')
+    expect(order).toContain('EV.quantityChosen')
+  })
+
+  it('reports when the window gave up and the form was offered', () => {
+    expect(order).toContain('EV.checkoutFallbackShown')
+  })
+
+  it('carries no buyer detail into any of them', () => {
+    // The profile holds who they are; events hold what happened. A one-tap
+    // buyer's email arrives from Razorpay and must not leak into an event.
+    const calls = [...button.matchAll(/track\([^)]*\)/gs), ...order.matchAll(/track\([^)]*\)/gs)]
+    expect(calls.length).toBeGreaterThan(5)
+    for (const [call] of calls) {
+      expect(call).not.toMatch(/\bemail\b|\bname:|\bphone\b|\baddress\b|pincode/i)
+    }
+  })
+})

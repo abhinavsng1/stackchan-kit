@@ -109,6 +109,9 @@ export default function MagicCheckoutButton({
     rememberTrouble()
     setState('error')
     setMessage(reason)
+    // How often the window lets somebody down, and at which door. Without
+    // this a blocked script looks exactly like a buyer who never tried.
+    track(EV.paymentFailed, { from: 'magic', plan, qty, reason })
     // The form is the path that works for everybody, including anyone whose
     // browser blocks Razorpay's window. It is hidden until this moment.
     onUnavailable?.()
