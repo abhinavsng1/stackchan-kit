@@ -2,9 +2,10 @@
  * Pebble's voice, from the browser's own speech synthesis.
  *
  * Every browser ships different voices, and the default is often a man's.
- * Pebble speaks with a warm female voice wherever one is installed: Indian
- * English first, then British or American. Pitch is lifted a touch and the
- * pace slowed a touch, which reads as friendly rather than as an announcer.
+ * Pebble speaks with a female voice wherever one is installed: Indian
+ * English first, then British or American. It is pitched well up and hurried
+ * along a little, so it sounds like an excited kid rather than a grown-up
+ * reading the news: a woman's voice at its own pitch sounded too mature.
  *
  * Voice names are the only signal browsers give, so this is a list of the
  * female voices the common platforms ship (Apple, Windows, Android, Chrome),
@@ -26,8 +27,9 @@ if (supported()) {
 function rank(v: SpeechSynthesisVoice): number {
   const gender = FEMALE.test(v.name) ? 0 : MALE.test(v.name) ? 2 : 1
   const lang = /^en[-_]IN/i.test(v.lang) ? 0 : /^en[-_](GB|US)/i.test(v.lang) ? 1 : /^en/i.test(v.lang) ? 2 : 9
-  // Prefer the newer "natural" voices where a platform offers them.
-  const quality = /natural|neural|online|premium|enhanced/i.test(v.name) ? 0 : 1
+  // Apple's better recordings of the same voices. Not Microsoft's cloud
+  // "natural" ones: the kid in the voice is all pitch, which those may not honour.
+  const quality = /premium|enhanced/i.test(v.name) ? 0 : 1
   return (NOVELTY.test(v.name) ? 1000 : 0) + gender * 100 + lang * 10 + quality
 }
 
@@ -53,8 +55,8 @@ export function sayAsPebble(text: string, on: { start?: () => void; end?: () => 
   const u = new SpeechSynthesisUtterance(text)
   const v = pebbleVoice()
   if (v) { u.voice = v; u.lang = v.lang } else u.lang = 'en-IN'
-  u.pitch = 1.15
-  u.rate = 0.97
+  u.pitch = 1.7
+  u.rate = 1.1
   u.onstart = () => on.start?.()
   u.onend = u.onerror = () => on.end?.()
   window.speechSynthesis.speak(u)

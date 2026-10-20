@@ -39,7 +39,7 @@ describe('Pebble’s voice', () => {
     expect(pebbleVoice()?.name).toBe('Veena')
   })
 
-  it('prefers Indian English, then the natural voices Edge offers', async () => {
+  it('prefers Indian English in Edge too', async () => {
     const { pebbleVoice } = await withVoices([
       { name: 'Microsoft Prabhat Online (Natural) - English (India)', lang: 'en-IN' },
       { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US' },
@@ -62,12 +62,13 @@ describe('Pebble’s voice', () => {
     expect(pebbleVoice()?.name).toBe('Fred')
   })
 
-  it('speaks a touch higher and slower than the default', async () => {
+  it('sounds like an excited kid: pitched well up, and quick', async () => {
+    // At a touch above its own pitch, a woman's voice sounded too grown-up.
     const { sayAsPebble } = await withVoices([{ name: 'Samantha', lang: 'en-US' }])
-    expect(sayAsPebble('Done.')).toBe(true)
-    expect(spoken[0]).toMatchObject({ text: 'Done.', voice: { name: 'Samantha' } })
-    expect(spoken[0].pitch).toBeGreaterThan(1)
-    expect(spoken[0].rate).toBeLessThan(1)
+    expect(sayAsPebble('On it!')).toBe(true)
+    expect(spoken[0]).toMatchObject({ text: 'On it!', voice: { name: 'Samantha' } })
+    expect(spoken[0].pitch).toBeGreaterThanOrEqual(1.6)
+    expect(spoken[0].rate).toBeGreaterThan(1)
   })
 
   it('is the voice of both the hero and the demo', () => {

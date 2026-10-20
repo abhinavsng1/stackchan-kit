@@ -36,14 +36,14 @@ const ASK_RAIN = 'Will it rain today?'
 const SCRIPT: Step[] = [
   { who: 'you', text: ASK_TIMER, screen: listening, ms: 2800, label: 'Listening' },
   { who: 'you', text: ASK_TIMER, think: true, screen: thinking, ms: 1400, label: 'Thinking' },
-  { who: 'pebble', text: 'Done. Five minutes, starting now.', screen: () => timer(5), ms: 4800, label: 'Timer: 5 minutes' },
+  { who: 'pebble', text: 'On it! Five minutes, starting now!', screen: () => timer(5), ms: 4800, label: 'Timer: 5 minutes' },
   { who: 'you', text: ASK_RAIN, screen: listening, ms: 2300, label: 'Listening' },
   { who: 'you', text: ASK_RAIN, think: true, screen: thinking, ms: 1400, label: 'Thinking' },
-  { who: 'pebble', text: 'It’ll rain this evening.\nDon’t forget your umbrella!', screen: rain, ms: 5600, label: 'Checking the weather' },
+  { who: 'pebble', text: 'Ooh, it’ll rain this evening!\nDon’t forget your umbrella!', screen: rain, ms: 5600, label: 'Checking the weather' },
   { who: null, screen: happy, ms: 2600, label: 'Happy to help' },
 ]
 /** Said the moment the voice is turned on, from the tap itself: iOS only lets a page speak from a tap. */
-const HELLO: Step = { who: 'pebble', text: 'Hi, I’m Pebble!', screen: happy, ms: 1700, label: 'Happy to help' }
+const HELLO: Step = { who: 'pebble', text: 'Hi! I’m Pebble!', screen: happy, ms: 1700, label: 'Happy to help' }
 const LAST_ANSWER = SCRIPT.length - 2
 /** A tap on the robot is somebody playing with it: step aside for a while. */
 const STEP_ASIDE_MS = 8000
