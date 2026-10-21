@@ -92,7 +92,7 @@ export default function BuyBar({ location = 'buybar', magic = false, oneButton =
             {magic && oneButton
               ? `${PRICE.now}, or ${PRICE.deposit} now · rest on delivery`
               : magic
-                ? `${PRICE.deposit} books it · ${PRICE.now} in full`
+                ? `${PRICE.deposit} now (${PRICE.balance} on delivery)`
                 : `${PRICE.now} to buy · rest on delivery · free shipping`}
           </div>
         </div>
@@ -110,20 +110,16 @@ export default function BuyBar({ location = 'buybar', magic = false, oneButton =
             Order <span className="arrow" aria-hidden="true">→</span>
           </BookNowButton>
         ) : magic ? (
-          <div className="flex items-center gap-2 ml-auto shrink-0">
-            <BookNowButton magic location={location} plan="deposit"
-                           ariaLabel={`Book for ${PRICE.deposit}, the rest on delivery`}
-                           className="btn btn-choice btn-sm"
-                           tabIndex={show ? undefined : -1}>
-              {PRICE.deposit}
-            </BookNowButton>
-            <BookNowButton magic location={location} plan="full"
-                           ariaLabel={`Pay ${PRICE.now} in full`}
-                           className="btn btn-choice btn-sm"
-                           tabIndex={show ? undefined : -1}>
-              {PRICE.now}
-            </BookNowButton>
-          </div>
+          /* One price in the bar: the booking, which is the smaller ask and
+             the one most people take. Paying in full is a tap away in the
+             order section, and crowding two prices into a pill on a phone
+             made neither of them easy to read. */
+          <BookNowButton magic location={location} plan="deposit"
+                         ariaLabel={`Book for ${PRICE.deposit}, then ${PRICE.balance} on delivery`}
+                         className="btn btn-brand ml-auto shrink-0"
+                         tabIndex={show ? undefined : -1}>
+            Book {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
+          </BookNowButton>
         ) : (
           <BookNowButton magic={false} location={location}
                          className="btn btn-brand ml-auto shrink-0"

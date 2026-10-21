@@ -469,3 +469,23 @@ describe('who asks which way the buyer wants to pay', () => {
     expect(gatewayCarriesTheChoice()).toBe(true)
   })
 })
+
+describe('what the gateway cart says about the balance', () => {
+  it('names the ₹4,500 on the line itself, not only in the description', () => {
+    // Razorpay sees a ₹499 order that settles in full, so unless the line
+    // says so, nothing on the screen where somebody decides to pay mentions
+    // the ₹4,500 a courier will ask them for.
+    const line = lineItemsFor('deposit', 1, 'assembled', 0, 'graphite').lineItems[0]!
+    expect(line.name).toContain('4,500')
+    expect(line.name).toContain('on delivery')
+    expect(line.name).toContain('Black')
+  })
+
+  it('counts the balance by quantity', () => {
+    expect(lineItemsFor('deposit', 2).lineItems[0]!.name).toContain('9,000')
+  })
+
+  it('says nothing about a balance on a full-price order', () => {
+    expect(lineItemsFor('full', 1).lineItems[0]!.name).not.toContain('on delivery')
+  })
+})

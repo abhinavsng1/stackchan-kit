@@ -116,7 +116,11 @@ export function lineItemsFor(
         offer_price: each,
         tax_amount: 0,
         quantity: qty,
-        name: `${e.name} — booking${colour}`,
+        // The balance, in the one place a buyer is certain to look: the cart
+        // Razorpay shows them while they are deciding to pay. Razorpay sees a
+        // ₹499 order that settles in full, so without this nothing on that
+        // screen mentions the ₹4,500 at all.
+        name: `${e.name} — booking${colour} (${rupeesPlain(q.balancePaise)} on delivery)`,
         description: `Books ${qty === 1 ? 'one robot' : `${qty} robots`}. ${rupeesPlain(q.balancePaise)} is collected in cash on delivery.`,
         image_url: shotFor(shell),
       }],

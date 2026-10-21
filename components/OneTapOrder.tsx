@@ -194,7 +194,7 @@ export default function OneTapOrder({ oneButton = false, children }: {
             plan="deposit" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
             tone="choice"
             label={`Book for ${rupees(deposit.nowPaise)}`}
-            note={`Then ${rupees(deposit.balancePaise)} in cash when it is delivered`}
+            note={`(${rupees(deposit.balancePaise)} in cash on delivery)`}
             onUnavailable={() => setFallback('failed')}
             onDismissed={() => setFallback((f) => f ?? 'dismissed')}
           />
