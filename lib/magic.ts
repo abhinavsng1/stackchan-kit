@@ -161,9 +161,27 @@ export const servicedPincode = (zip: string | undefined): boolean =>
  * the door — and `cod_fee` stays zero because the buyer is not charged for
  * choosing it.
  */
-export function shippingFor(address: MagicAddress): { id: string; zipcode?: string; country?: string; shipping_methods: ShippingMethod[] } {
+export function shippingFor(
+  address: MagicAddress,
+  /**
+   * Which plan this order is on, read from our own record of it.
+   *
+   * COD is only ever correct on the full price. On a ₹499 deposit order the
+   * cart Razorpay holds is ₹499 — so "cash on delivery" would mean collecting
+   * ₹499 at the door and nothing else, and the ₹4,500 that pays for the robot
+   * would simply cease to exist. The money is gone before anybody notices,
+   * which is the worst kind of bug this codebase can have.
+   *
+   * What we actually want for the deposit is partial COD: a ₹4,999 cart with
+   * a ₹499 advance taken online. That is a separate Razorpay feature, being
+   * enabled on the account, and until it is implemented a deposit order must
+   * not offer cash at the door at all.
+   */
+  plan: Plan | null = null,
+): { id: string; zipcode?: string; country?: string; shipping_methods: ShippingMethod[] } {
   const serviceable = servicedPincode(address.zipcode)
     && (address.country ?? 'IN').toUpperCase() === 'IN'
+  const codAllowed = plan === 'full' && magicCodEnabled()
 
   return {
     id: address.id,
@@ -178,7 +196,7 @@ export function shippingFor(address: MagicAddress): { id: string; zipcode?: stri
       description: 'Free delivery across India',
       serviceable,
       shipping_fee: 0,
-      cod: serviceable && magicCodEnabled(),
+      cod: serviceable && codAllowed,
       // Zero whenever cod is false, which Razorpay requires, and zero when it
       // is true because we do not charge for paying at the door.
       cod_fee: 0,

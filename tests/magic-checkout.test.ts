@@ -110,10 +110,25 @@ describe('answering whether we ship there', () => {
     expect(method).toMatchObject({ id: '1', serviceable: true, shipping_fee: 0, cod: false, cod_fee: 0 })
   })
 
-  it('can offer it the day the account can take it', () => {
+  it('offers cash at the door on the full price, once the account can take it', () => {
     process.env.MAGIC_COD = '1'
-    const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }).shipping_methods
+    const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }, 'full').shipping_methods
     expect(method).toMatchObject({ serviceable: true, cod: true })
+  })
+
+  it('never offers it on a deposit order, however enabled the account is', () => {
+    // The deposit order holds a ₹499 cart. Cash on delivery against it means
+    // collecting ₹499 at the door and letting the ₹4,500 that pays for the
+    // robot disappear — the money gone before anybody notices.
+    process.env.MAGIC_COD = '1'
+    const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }, 'deposit').shipping_methods
+    expect(method).toMatchObject({ serviceable: true, cod: false })
+  })
+
+  it('errs towards prepaid when it cannot tell which plan the order is on', () => {
+    process.env.MAGIC_COD = '1'
+    const [method] = shippingFor({ id: '0', zipcode: '560078', country: 'IN' }, null).shipping_methods
+    expect(method.cod).toBe(false)
   })
 
   it('offers nothing where we do not, and charges no COD fee either', () => {

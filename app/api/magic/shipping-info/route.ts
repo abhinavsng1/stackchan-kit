@@ -1,5 +1,5 @@
 import { magicEnabled, shippingFor, type MagicAddress } from '@/lib/magic'
-import { attachMagicBuyer } from '@/lib/magic-orders'
+import { attachMagicBuyer, findMagicOrder } from '@/lib/magic-orders'
 
 /**
  * Magic Checkout asks whether we deliver to an address, and on what terms.
@@ -36,7 +36,21 @@ async function answer(request: Request) {
   }
 
   const addresses = Array.isArray(body.addresses) ? body.addresses : []
-  const answer = { addresses: addresses.map(shippingFor) }
+  const askedOrderId = typeof body.razorpay_order_id === 'string' ? body.razorpay_order_id : ''
+
+  /*
+   * Which plan this order is on, from our own record of it.
+   *
+   * It decides whether cash at the door may be offered at all. A ₹499 deposit
+   * order holds a ₹499 cart, so COD on it would collect ₹499 at the door and
+   * let the ₹4,500 that pays for the robot quietly disappear. Unknown is
+   * treated as not-full, so a lookup that fails errs towards prepaid rather
+   * than towards losing the balance.
+   */
+  const ours = askedOrderId ? await findMagicOrder(askedOrderId) : null
+  const plan = ours?.plan === 'full' ? 'full' : ours?.plan === 'deposit' ? 'deposit' : null
+
+  const answer = { addresses: addresses.map((a) => shippingFor(a, plan)) }
 
   /*
    * The earliest we ever learn who is buying.
@@ -51,10 +65,9 @@ async function answer(request: Request) {
    * the last address check, and a note written after the webhook has already
    * looked is a note that was never there.
    */
-  const orderId = typeof body.razorpay_order_id === 'string' ? body.razorpay_order_id : ''
-  if (orderId) {
+  if (askedOrderId) {
     await attachMagicBuyer({
-      orderId,
+      orderId: askedOrderId,
       email: typeof body.email === 'string' ? body.email : null,
       contact: typeof body.contact === 'string' ? body.contact : null,
       pincode: addresses[0]?.zipcode ?? null,
@@ -76,6 +89,7 @@ async function answer(request: Request) {
     contentType: request.headers.get('content-type'),
     bodyBytes: raw.length,
     keys: Object.keys(body ?? {}),
+    plan: plan ?? '(unknown)',
     asked: addresses.map((a) => ({ id: a.id, zipcode: a.zipcode, state: a.state_code, country: a.country })),
     answered: answer.addresses.map((a) => ({ id: a.id, methods: a.shipping_methods })),
   }))
