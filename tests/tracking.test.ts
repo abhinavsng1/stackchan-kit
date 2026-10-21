@@ -111,7 +111,7 @@ describe('the checkout remembers trouble across a page load', () => {
       setItem: (k: string, v: string) => void store.set(k, v),
       removeItem: (k: string) => void store.delete(k),
     })
-    const { rememberTrouble, hadTrouble, forgetTrouble } = await import('@/components/MagicCheckoutButton')
+    const { rememberTrouble, hadTrouble, forgetTrouble } = await import('@/lib/magic-checkout')
 
     expect(hadTrouble()).toBe(false)
     rememberTrouble()
@@ -127,7 +127,7 @@ describe('the checkout remembers trouble across a page load', () => {
       setItem: () => { throw new Error('blocked') },
       removeItem: () => { throw new Error('blocked') },
     })
-    const { rememberTrouble, hadTrouble } = await import('@/components/MagicCheckoutButton')
+    const { rememberTrouble, hadTrouble } = await import('@/lib/magic-checkout')
     expect(() => rememberTrouble()).not.toThrow()
     expect(hadTrouble()).toBe(false)
     vi.unstubAllGlobals()
@@ -136,7 +136,9 @@ describe('the checkout remembers trouble across a page load', () => {
 
 describe('the one-tap flow reports every step it takes', () => {
   const read = (f: string) => readFileSync(f, 'utf8')
-  const button = read('components/MagicCheckoutButton.tsx')
+  // The window is opened by lib/magic-checkout.ts, which the buy panel, the
+  // header and the sticky bar all call; the reporting lives with it.
+  const button = read('lib/magic-checkout.ts')
   const order = read('components/OneTapOrder.tsx')
 
   it('reports the window opening, succeeding, being closed and failing', () => {

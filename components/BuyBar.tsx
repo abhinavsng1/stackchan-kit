@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { EDITION, PRICE } from '@/lib/kit'
 import { EV, track } from '@/lib/analytics'
+import BookNowButton from '@/components/BookNowButton'
 import { useEdition } from '@/lib/edition-store'
 
 /**
@@ -14,7 +15,11 @@ import { useEdition } from '@/lib/edition-store'
  * a section below the hero — exactly what the nav links do — produced no
  * callback at all and the bar never appeared.
  */
-export default function BuyBar({ location = 'buybar' }: { location?: string } = {}) {
+export default function BuyBar({ location = 'buybar', magic = false }: {
+  location?: string
+  /** Whether Book opens the one-tap window or jumps to the form. */
+  magic?: boolean
+} = {}) {
   const [show, setShow] = useState(false)
   const edition = useEdition()
 
@@ -83,11 +88,11 @@ export default function BuyBar({ location = 'buybar' }: { location?: string } = 
             {PRICE.now} to buy · rest on delivery · free shipping
           </div>
         </div>
-        <a href="#reserve" className="btn btn-brand ml-auto shrink-0"
-           onClick={() => track(EV.reserveCtaClicked, { location, edition })}
-           tabIndex={show ? undefined : -1}>
+        <BookNowButton magic={magic} location={location}
+                       className="btn btn-brand ml-auto shrink-0"
+                       tabIndex={show ? undefined : -1}>
           Book <span className="arrow" aria-hidden="true">→</span>
-        </a>
+        </BookNowButton>
       </div>
     </div>
   )

@@ -5,8 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import Wordmark from '@/components/site/Wordmark'
 import { EASE } from '@/components/site/motion'
 import { PRICE } from '@/lib/kit'
-import { EV, track } from '@/lib/analytics'
-import { useEdition } from '@/lib/edition-store'
+import BookNowButton from '@/components/BookNowButton'
 
 /**
  * Large and transparent over the hero; once the page moves, it gathers itself
@@ -16,8 +15,10 @@ import { useEdition } from '@/lib/edition-store'
  * The links are written for a buyer, not an org chart: what it is, what it
  * does, who has one, and the questions.
  */
-export default function SiteNav({ stories = false, links: own, home = '#top' }: {
+export default function SiteNav({ stories = false, links: own, home = '#top', magic = false }: {
   stories?: boolean
+  /** Whether Book opens the one-tap window or jumps to the form. */
+  magic?: boolean
   /** In-page links for pages other than the home page. */
   links?: [string, string][]
   /** Where the wordmark goes. */
@@ -25,7 +26,6 @@ export default function SiteNav({ stories = false, links: own, home = '#top' }: 
 }) {
   const [compact, setCompact] = useState(false)
   const [open, setOpen] = useState(false)
-  const edition = useEdition()
 
   const links: [string, string][] = own ?? [
     ['What it does', '#does'],
@@ -53,11 +53,6 @@ export default function SiteNav({ stories = false, links: own, home = '#top' }: 
     return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey) }
   }, [open])
 
-  const buy = (location: string) => () => {
-    setOpen(false)
-    track(EV.reserveCtaClicked, { location, edition })
-  }
-
   return (
     <>
       <header className="nav" data-compact={compact}>
@@ -77,9 +72,9 @@ export default function SiteNav({ stories = false, links: own, home = '#top' }: 
                 cascade layer and this stylesheet does not, so unlayered
                 component CSS wins whatever the specificity. The button stayed
                 visible at 320px and pushed the menu button off the screen. */}
-            <a href="#reserve" onClick={buy('nav')} className="btn btn-brand btn-sm nav-cta">
+            <BookNowButton magic={magic} location="nav" className="btn btn-brand btn-sm nav-cta">
               Book for {PRICE.deposit}
-            </a>
+            </BookNowButton>
             <button
               type="button"
               className="lg:hidden grid place-items-center w-11 h-11 rounded-full cursor-pointer"
@@ -137,9 +132,10 @@ export default function SiteNav({ stories = false, links: own, home = '#top' }: 
             <motion.div className="mt-auto grid gap-3"
                         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.45, duration: 0.5, ease: EASE }}>
-              <a href="#reserve" onClick={buy('menu')} className="btn btn-brand btn-lg w-full">
+              <BookNowButton magic={magic} location="menu" onPress={() => setOpen(false)}
+                             className="btn btn-brand btn-lg w-full">
                 Book PebbleRobo for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
-              </a>
+              </BookNowButton>
               <p className="t-mono text-[12px] text-center text-[var(--muted)] m-0">
                 {PRICE.now} to buy · remaining {PRICE.balance} on delivery · Free shipping in India
               </p>

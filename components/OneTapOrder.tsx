@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import MagicCheckoutButton, { hadTrouble } from '@/components/MagicCheckoutButton'
+import MagicCheckoutButton from '@/components/MagicCheckoutButton'
+import { hadTrouble, TROUBLE_EVENT } from '@/lib/magic-checkout'
 import CouponField, { type Applied } from '@/components/CouponField'
 import Swatch from '@/components/site/Swatch'
 import { ORDERABLE_SHELLS, isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
@@ -58,6 +59,20 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
    */
   useEffect(() => {
     if (hadTrouble()) setFallback((f) => f ?? 'dismissed')
+
+    /*
+     * The header's button and the bar that follows you up the page open the
+     * same window, and they are nowhere near this component in the React
+     * tree. When one of them is closed unpaid there is no way down to the
+     * form except through the page itself, so they say so on the window and
+     * this listens.
+     */
+    const heard = (e: Event) => {
+      const why = (e as CustomEvent<'failed' | 'dismissed'>).detail
+      setFallback((f) => f ?? (why === 'failed' ? 'failed' : 'dismissed'))
+    }
+    window.addEventListener(TROUBLE_EVENT, heard)
+    return () => window.removeEventListener(TROUBLE_EVENT, heard)
   }, [])
 
   const trouble = useRef<HTMLDivElement>(null)

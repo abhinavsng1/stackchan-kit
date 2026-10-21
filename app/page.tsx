@@ -28,7 +28,7 @@ export default function Page() {
   return (
     <MotionRoot>
       <StructuredData />
-      <SiteNav stories={SHOW_STORIES && proof.hasStories} />
+      <SiteNav stories={SHOW_STORIES && proof.hasStories} magic={magicEnabled()} />
 
       {/* The order follows what visitors do. Three in four never leave the
           first screen; those who go further mostly jump straight to "what it
@@ -47,7 +47,7 @@ export default function Page() {
       </main>
 
       <Footer socials={proof.socials} />
-      <BuyBar />
+      <BuyBar magic={magicEnabled()} />
     </MotionRoot>
   )
 }
