@@ -39,7 +39,7 @@ export function SpecGrid({ table }: { table: (typeof SPEC_TABLES)[number] }) {
   )
 }
 
-export default function Buy({ magic = false }: { magic?: boolean }) {
+export default function Buy({ magic = false, oneButton = false }: { magic?: boolean; oneButton?: boolean }) {
   return (
     <>
       <section id="buy" className="section scroll-mt-20">
@@ -123,7 +123,7 @@ export default function Buy({ magic = false }: { magic?: boolean }) {
             {/* One tap is the way in. OneTapOrder keeps the form and shows it
                 only if a window will not open, or if somebody asks for it. */}
             {magic
-              ? <OneTapOrder><ReserveForm /></OneTapOrder>
+              ? <OneTapOrder oneButton={oneButton}><ReserveForm /></OneTapOrder>
               : <ReserveForm />}
           </div>
 

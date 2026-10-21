@@ -453,3 +453,19 @@ describe('partial COD, the way Razorpay says to recognise it', () => {
       .toMatchObject({ plan: 'deposit', balanceDuePaise: atTheDoor })
   })
 })
+
+describe('who asks which way the buyer wants to pay', () => {
+  it('leaves it to the page while the gateway cannot take cash at the door', async () => {
+    const { gatewayCarriesTheChoice } = await import('@/lib/magic')
+    delete process.env.MAGIC_COD
+    expect(gatewayCarriesTheChoice()).toBe(false)
+  })
+
+  it('hands it to the gateway the moment COD is on', async () => {
+    // Then the choice is a payment method, which is the one thing Razorpay's
+    // window genuinely controls — and the page stops asking.
+    const { gatewayCarriesTheChoice } = await import('@/lib/magic')
+    process.env.MAGIC_COD = '1'
+    expect(gatewayCarriesTheChoice()).toBe(true)
+  })
+})

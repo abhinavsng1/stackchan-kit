@@ -24,7 +24,19 @@ import { EV, track } from '@/lib/analytics'
  * somebody asks for it, because a visitor who wants to buy should never be
  * left with no way to do it.
  */
-export default function OneTapOrder({ children }: { children: React.ReactNode }) {
+export default function OneTapOrder({ oneButton = false, children }: {
+  /**
+   * The gateway carries the choice.
+   *
+   * With cash on delivery available, there is one order at the full price and
+   * the buyer decides between paying now and paying on delivery by choosing a
+   * payment method inside Razorpay's window — where partial COD takes the
+   * ₹499 advance. Two buttons here would be asking a question the window is
+   * about to ask properly.
+   */
+  oneButton?: boolean
+  children: React.ReactNode
+}) {
   /*
    * Both start answered: one robot, in the colour the page is already
    * showing. Razorpay's window cannot ask for either, so whatever these say
@@ -165,24 +177,37 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
       {/* The two doors, weighted the same. Neither is dressed as the
           recommendation: the difference between them is written underneath
           in rupees, which is the only part a buyer should be deciding on. */}
-      <div className="grid gap-3 sm:grid-cols-2 mt-7">
-        <MagicCheckoutButton
-          plan="deposit" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
-          tone="choice"
-          label={`Book for ${rupees(deposit.nowPaise)}`}
-          note={`Then ${rupees(deposit.balancePaise)} in cash when it is delivered`}
-          onUnavailable={() => setFallback('failed')}
-          onDismissed={() => setFallback((f) => f ?? 'dismissed')}
-        />
-        <MagicCheckoutButton
-          plan="full" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
-          tone="choice"
-          label={`Pay ${rupees(full.nowPaise)} in full`}
-          note="Then nothing to pay at the door"
-          onUnavailable={() => setFallback('failed')}
-          onDismissed={() => setFallback((f) => f ?? 'dismissed')}
-        />
-      </div>
+      {oneButton ? (
+        <div className="mt-7">
+          <MagicCheckoutButton
+            plan="full" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
+            tone="brand"
+            label={`Order for ${rupees(full.nowPaise)}`}
+            note={`Pay now, or ${rupees(deposit.nowPaise)} now and ${rupees(deposit.balancePaise)} in cash on delivery — choose in the next window.`}
+            onUnavailable={() => setFallback('failed')}
+            onDismissed={() => setFallback((f) => f ?? 'dismissed')}
+          />
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 mt-7">
+          <MagicCheckoutButton
+            plan="deposit" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
+            tone="choice"
+            label={`Book for ${rupees(deposit.nowPaise)}`}
+            note={`Then ${rupees(deposit.balancePaise)} in cash when it is delivered`}
+            onUnavailable={() => setFallback('failed')}
+            onDismissed={() => setFallback((f) => f ?? 'dismissed')}
+          />
+          <MagicCheckoutButton
+            plan="full" qty={count} shell={chosenShell} coupon={applied?.code ?? null}
+            tone="choice"
+            label={`Pay ${rupees(full.nowPaise)} in full`}
+            note="Then nothing to pay at the door"
+            onUnavailable={() => setFallback('failed')}
+            onDismissed={() => setFallback((f) => f ?? 'dismissed')}
+          />
+        </div>
+      )}
 
       <p className="text-[13px] mt-4 mb-0" style={{ color: 'var(--muted)' }}>
         Address and payment in one window. We never see your card.

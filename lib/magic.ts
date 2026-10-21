@@ -58,6 +58,22 @@ export function magicCodEnabled(): boolean {
 }
 
 /**
+ * Whether the page shows one button or two.
+ *
+ * It follows the account, not a separate switch. Once Razorpay will take cash
+ * at the door, the choice between paying now and paying on delivery belongs
+ * inside their window — it is a payment method, and payment methods are the
+ * one thing that window genuinely controls. One order at the full price, and
+ * the buyer decides by choosing how to pay.
+ *
+ * Until then the page has to ask, because a ₹499 cart and a ₹4,999 cart are
+ * two different orders and nothing in the window can switch between them.
+ */
+export function gatewayCarriesTheChoice(): boolean {
+  return magicCodEnabled()
+}
+
+/**
  * The cart, as Magic Checkout wants it.
  *
  * Both `line_items` and `line_items_total` are required: an order without the

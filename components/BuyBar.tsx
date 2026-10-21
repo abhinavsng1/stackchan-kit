@@ -15,10 +15,12 @@ import { useEdition } from '@/lib/edition-store'
  * a section below the hero — exactly what the nav links do — produced no
  * callback at all and the bar never appeared.
  */
-export default function BuyBar({ location = 'buybar', magic = false }: {
+export default function BuyBar({ location = 'buybar', magic = false, oneButton = false }: {
   location?: string
   /** Whether Book opens the one-tap window or jumps to the form. */
   magic?: boolean
+  /** The gateway carries the choice, so the bar carries one price. */
+  oneButton?: boolean
 } = {}) {
   const [show, setShow] = useState(false)
   const edition = useEdition()
@@ -87,9 +89,11 @@ export default function BuyBar({ location = 'buybar', magic = false }: {
             {edition === 'kit' ? 'The kit' : 'PebbleRobo'}
           </div>
           <div className="t-mono text-[11.5px] text-[var(--muted)] mt-0.5 truncate">
-            {magic
-              ? `${PRICE.deposit} books it · ${PRICE.now} in full`
-              : `${PRICE.now} to buy · rest on delivery · free shipping`}
+            {magic && oneButton
+              ? `${PRICE.now}, or ${PRICE.deposit} now · rest on delivery`
+              : magic
+                ? `${PRICE.deposit} books it · ${PRICE.now} in full`
+                : `${PRICE.now} to buy · rest on delivery · free shipping`}
           </div>
         </div>
 
@@ -98,7 +102,14 @@ export default function BuyBar({ location = 'buybar', magic = false }: {
             cannot offer the choice inside the window — the amount is fixed
             when the order is made — so if it is not here it is nowhere, and a
             single Book button would quietly decide for them. */}
-        {magic ? (
+        {magic && oneButton ? (
+          <BookNowButton magic location={location} plan="full"
+                         ariaLabel={`Order for ${PRICE.now}`}
+                         className="btn btn-brand ml-auto shrink-0"
+                         tabIndex={show ? undefined : -1}>
+            Order <span className="arrow" aria-hidden="true">→</span>
+          </BookNowButton>
+        ) : magic ? (
           <div className="flex items-center gap-2 ml-auto shrink-0">
             <BookNowButton magic location={location} plan="deposit"
                            ariaLabel={`Book for ${PRICE.deposit}, the rest on delivery`}

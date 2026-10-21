@@ -12,7 +12,7 @@ import Buy from '@/components/site/Buy'
 import Faq from '@/components/site/Faq'
 import Footer from '@/components/site/Footer'
 import { visibleProof } from '@/lib/proof'
-import { magicEnabled } from '@/lib/magic'
+import { magicEnabled, gatewayCarriesTheChoice } from '@/lib/magic'
 
 /**
  * Stories (customer reviews) is hidden for now, everywhere: the section and
@@ -42,12 +42,12 @@ export default function Page() {
         <Meet />
         <Explore />
         {SHOW_STORIES && <Stories proof={proof} />}
-        <Buy magic={magicEnabled()} />
+        <Buy magic={magicEnabled()} oneButton={gatewayCarriesTheChoice()} />
         <Faq />
       </main>
 
       <Footer socials={proof.socials} />
-      <BuyBar magic={magicEnabled()} />
+      <BuyBar magic={magicEnabled()} oneButton={gatewayCarriesTheChoice()} />
     </MotionRoot>
   )
 }
