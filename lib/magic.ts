@@ -1,4 +1,5 @@
 import { EDITION, PRICE, type Edition } from '@/lib/kit'
+import { shellById, isOrderableShell } from '@/lib/shells'
 import { DEFAULT_PLAN, quote, type Plan } from '@/lib/plans'
 
 /**
@@ -21,6 +22,12 @@ export function magicEnabled(): boolean {
 
 /** Razorpay will not take an order, or a line item, below one rupee. */
 const MIN_LINE_TOTAL_PAISE = 100
+
+/** The robot they actually chose, in the cart Razorpay shows them. */
+const shotFor = (shell: string | null) =>
+  `https://pebblerobo.com/media/shots/float-shell-${
+    shell && isOrderableShell(shell) ? shell : 'graphite'
+  }.webp`
 
 /** Rupees for a line the buyer reads inside Razorpay's window. */
 const rupeesPlain = (paise: number) => `₹${Math.round(paise / 100).toLocaleString('en-IN')}`
@@ -66,7 +73,15 @@ export function lineItemsFor(
 ) {
   const e = EDITION[edition]
   const q = quote(plan, qty, null, discountPaise)
-  const colour = shell ? ` · ${shell}` : ''
+  /*
+   * The colour by the name the buyer knows it by.
+   *
+   * `shell` is an internal id — 'graphite', 'bone' — and the names on the
+   * page are Black and White. Razorpay's cart is the last thing somebody
+   * reads before paying and the one place a wrong colour can still be
+   * caught, so it has to say the same word the swatch did.
+   */
+  const colour = shell && isOrderableShell(shell) ? ` · ${shellById(shell).name}` : ''
 
   if (plan === 'deposit') {
     // The cart has to total exactly what the window charges, or Razorpay
@@ -87,7 +102,7 @@ export function lineItemsFor(
         quantity: qty,
         name: `${e.name} — booking${colour}`,
         description: `Books ${qty === 1 ? 'one robot' : `${qty} robots`}. ${rupeesPlain(q.balancePaise)} is collected in cash on delivery.`,
-        image_url: 'https://pebblerobo.com/media/shots/float-shell-graphite.webp',
+        image_url: shotFor(shell),
       }],
       lineItemsTotalPaise: Math.max(MIN_LINE_TOTAL_PAISE, q.nowPaise),
     }
@@ -108,7 +123,7 @@ export function lineItemsFor(
       quantity: qty,
       name: `${e.name}${colour}`,
       description: 'Assembled, flashed and tested. Ships from Bengaluru.',
-      image_url: 'https://pebblerobo.com/media/shots/float-shell-graphite.webp',
+      image_url: shotFor(shell),
     }],
     lineItemsTotalPaise: Math.max(MIN_LINE_TOTAL_PAISE, total),
   }

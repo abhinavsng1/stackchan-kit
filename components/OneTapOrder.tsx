@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import MagicCheckoutButton, { hadTrouble } from '@/components/MagicCheckoutButton'
 import CouponField, { type Applied } from '@/components/CouponField'
 import Swatch from '@/components/site/Swatch'
-import { ORDERABLE_SHELLS, DEFAULT_SHELL } from '@/lib/shells'
-import { setShell } from '@/lib/shell-store'
+import { ORDERABLE_SHELLS, isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
+import { useShell, setShell } from '@/lib/shell-store'
 import { quote, rupees } from '@/lib/plans'
 import { EV, track } from '@/lib/analytics'
 
@@ -31,7 +31,17 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
    * defaults have to be the ones a buyer would have picked anyway, and have
    * to be visibly selected rather than merely assumed.
    */
-  const [chosenShell, setChosenShell] = useState<string>(DEFAULT_SHELL)
+  /*
+   * Whatever the page is already showing.
+   *
+   * The shared store starts on LEAD_SHELL and follows every other colour
+   * control on the page, so picking Moss beside the robot arrives here
+   * picked. Defaulting to DEFAULT_SHELL instead put Black in this panel
+   * while an Ember robot sat on the screen above it — and since Razorpay's
+   * window cannot ask, whatever this says is what gets built and posted.
+   */
+  const previewed = useShell()
+  const chosenShell = isOrderableShell(previewed) ? previewed : DEFAULT_SHELL
   const [qty, setQty] = useState<number>(1)
   const [applied, setApplied] = useState<Applied | null>(null)
   const [fallback, setFallback] = useState<'failed' | 'dismissed' | null>(null)
@@ -101,7 +111,6 @@ export default function OneTapOrder({ children }: { children: React.ReactNode })
                 aria-checked={chosenShell === s.id} aria-label={s.name}
                 onClick={() => {
                   setShell(s.id)
-                  setChosenShell(s.id)
                   track(EV.colourChosen, { shell: s.id, location: 'one-tap' })
                 }}
                 className="block cursor-pointer rounded-full"

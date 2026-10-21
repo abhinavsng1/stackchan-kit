@@ -171,9 +171,25 @@ describe('selling the ₹499 booking through the one-tap window', () => {
     expect(magicBalanceDue('deposit', 1, 50_000)).toBe(PRICE.balancePaise - 50_000)
   })
 
-  it('names the colour on the line, where one was chosen', () => {
-    expect(lineItemsFor('deposit', 1, 'assembled', 0, 'graphite').lineItems[0]!.name).toContain('graphite')
+  it('names the colour the way the buyer knows it, not by its id', () => {
+    // 'graphite' is an internal id; the swatch says Black. Razorpay's cart is
+    // the last place a wrong colour can be caught, so it has to use the same
+    // word the page did.
+    const line = lineItemsFor('deposit', 1, 'assembled', 0, 'graphite').lineItems[0]!
+    expect(line.name).toContain('Black')
+    expect(line.name).not.toContain('graphite')
     expect(lineItemsFor('full', 1, 'assembled', 0, null).lineItems[0]!.name).not.toContain('·')
+  })
+
+  it('shows the robot they chose, not always the black one', () => {
+    expect(lineItemsFor('full', 1, 'assembled', 0, 'moss').lineItems[0]!.image_url).toContain('float-shell-moss')
+    expect(lineItemsFor('full', 1, 'assembled', 0, null).lineItems[0]!.image_url).toContain('float-shell-graphite')
+  })
+
+  it('ignores a colour we do not sell rather than printing it', () => {
+    const line = lineItemsFor('full', 1, 'assembled', 0, 'tartan').lineItems[0]!
+    expect(line.name).not.toContain('tartan')
+    expect(line.image_url).toContain('float-shell-graphite')
   })
 })
 
