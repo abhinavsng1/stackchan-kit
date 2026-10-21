@@ -481,6 +481,17 @@ describe('what the gateway cart says about the balance', () => {
     expect(line.name).toContain('Black')
   })
 
+  it('stays short enough that the money is not the part cut off', () => {
+    // Razorpay truncates the line to roughly two lines. The full edition name
+    // — "PebbleRobo robot, fully assembled" — pushed the ₹4,500 past the end,
+    // so the one figure the buyer needed was the one thing hidden.
+    const line = lineItemsFor('deposit', 1, 'assembled', 0, 'ember').lineItems[0]!
+    expect(line.name.length).toBeLessThanOrEqual(45)
+    expect(line.name).not.toContain('fully assembled')
+    // And the money is last, so if anything goes it is the colour.
+    expect(line.name.indexOf('4,500')).toBeGreaterThan(line.name.indexOf('Ember'))
+  })
+
   it('counts the balance by quantity', () => {
     expect(lineItemsFor('deposit', 2).lineItems[0]!.name).toContain('9,000')
   })

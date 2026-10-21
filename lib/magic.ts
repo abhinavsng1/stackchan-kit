@@ -23,6 +23,20 @@ export function magicEnabled(): boolean {
 /** Razorpay will not take an order, or a line item, below one rupee. */
 const MIN_LINE_TOTAL_PAISE = 100
 
+/**
+ * The product name, short enough to survive Razorpay's cart.
+ *
+ * That cart truncates a line item to about two lines — "PebbleRobo robot,
+ * fully assembled — booking · Ember…" ran out of room exactly where the
+ * ₹4,500 was supposed to be, so the one figure the buyer most needed was the
+ * one thing cut off. The full edition name is on the page they came from and
+ * in the confirmation they get afterwards; here it earns none of that space.
+ */
+const SHORT_NAME: Record<Edition, string> = {
+  assembled: 'PebbleRobo',
+  kit: 'PebbleRobo kit',
+}
+
 /** The robot they actually chose, in the cart Razorpay shows them. */
 const shotFor = (shell: string | null) =>
   `https://pebblerobo.com/media/shots/float-shell-${
@@ -119,8 +133,9 @@ export function lineItemsFor(
         // The balance, in the one place a buyer is certain to look: the cart
         // Razorpay shows them while they are deciding to pay. Razorpay sees a
         // ₹499 order that settles in full, so without this nothing on that
-        // screen mentions the ₹4,500 at all.
-        name: `${e.name} — booking${colour} (${rupeesPlain(q.balancePaise)} on delivery)`,
+        // screen mentions the ₹4,500 at all — and it is last in the line so
+        // that if anything is truncated it is the colour, never the money.
+        name: `${SHORT_NAME[edition]}${colour} — ${rupeesPlain(q.balancePaise)} on delivery`,
         description: `Books ${qty === 1 ? 'one robot' : `${qty} robots`}. ${rupeesPlain(q.balancePaise)} is collected in cash on delivery.`,
         image_url: shotFor(shell),
       }],
@@ -141,7 +156,7 @@ export function lineItemsFor(
       offer_price: Math.max(MIN_LINE_TOTAL_PAISE, Math.round(total / qty)),
       tax_amount: 0,
       quantity: qty,
-      name: `${e.name}${colour}`,
+      name: `${SHORT_NAME[edition]}${colour}`,
       description: 'Assembled, flashed and tested. Ships from Bengaluru.',
       image_url: shotFor(shell),
     }],
