@@ -45,13 +45,39 @@ Ask Razorpay for: the exact HTTP method and path to create a COD payment
 against an existing order, its request body, and whether it is called by the
 merchant server or raised by Razorpay itself.
 
-## The other open question
+## The other open questions
 
-How the ₹499 advance is configured on the order. The note shows a fetched order
-carrying `offer_id`/`offers` but never shows the create request. It may be
+**How the ₹499 advance is configured.** The note shows a fetched order carrying
+`offer_id`/`offers` but never the create request. It may be
 `first_payment_min_amount` (the Orders API validates that field), it may be an
-offer, or it may be set on their side when they enable the feature. Confirm
-before changing order creation.
+offer, or it may be set on their side when they enable the feature. It matters
+whether it can be a **fixed ₹499 per unit** rather than a percentage: a
+percentage of ₹4,999 is not the price this product advertises, and a percentage
+of two robots is not ₹499 either.
+
+**Whether the window names it plainly.** The buyer must see that choosing cash
+on delivery charges ₹499 now and ₹4,500 later. If Razorpay's UI only says
+"Cash on Delivery", somebody will expect to pay nothing today, and the first
+they learn otherwise is a charge on their card.
+
+## The design this unlocks: one button
+
+Partial COD moves the choice off our page and into the window, where it
+belongs. There is one order, always ₹4,999, with the real line items. Razorpay
+shows its payment methods and COD sits among them:
+
+- card, UPI, netbanking → ₹4,999 now, nothing at the door;
+- cash on delivery → ₹499 taken as the advance, ₹4,500 collected on delivery.
+
+So the page needs **one** button, not two, and no plan picker. The plans stop
+being a thing a buyer decides on our page and become a thing they decide by
+choosing how to pay — which is the one choice Razorpay's window actually
+controls. Everything else about a one-tap order (colour, quantity) still has to
+be settled before the window opens, because that part it cannot ask.
+
+It is also more honest than what ships today. The buyer sees ₹4,999 with
+₹4,500 due on delivery, instead of a ₹499 "booking" line that never mentions
+the balance.
 
 ## When both answers arrive
 
@@ -61,6 +87,9 @@ before changing order creation.
    that forbids it today exists because a ₹499 cart plus COD means collecting
    ₹499 at the door and losing ₹4,500.
 3. The webhook creates the COD payment for `amount_due + cod_fee`.
+4. The buy panel collapses to one button, the sticky bar to one, and
+   `lib/plans.ts` stops being asked which door a buyer took — the payment
+   method answers that.
 
 ## Pricing
 
