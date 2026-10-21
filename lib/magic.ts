@@ -209,6 +209,8 @@ export function shippingFor(
 export type MagicPayment = {
   /** 'cod' for cash on delivery, anything else for a prepaid method. */
   method?: string
+  /** 'captured' for money taken, 'pending' for a COD payment awaiting the door. */
+  status?: string
   amount?: number
   notes?: Record<string, string>
   /** Razorpay documents both on the payment entity in a webhook payload. */
@@ -223,6 +225,8 @@ export type MagicOrder = {
   amount_due?: number
   partial_payment?: boolean
   status?: string
+  /** Not included in `amount`; a courier collects amount_due plus this. */
+  cod_fee?: number
   customer_details?: {
     name?: string
     email?: string
@@ -270,6 +274,38 @@ export function readMagicPayment(order: MagicOrder, payment: MagicPayment): Magi
   }
 
   const due = Number(order.amount_due ?? Math.max(0, orderTotal - paid))
+
+  /*
+   * Partial COD: an advance online, the rest in cash at the door.
+   *
+   * Razorpay's integration note for native merchants is explicit about how to
+   * recognise it, and the tell is the order status rather than any arithmetic:
+   *
+   *   - prepaid in full      → order 'paid' or 'placed', payment 'captured'
+   *   - cash on delivery     → payment 'pending'
+   *   - partial COD          → order 'attempted', prepaid payment 'captured'
+   *
+   * 'attempted' is the whole signal. The order is deliberately left unfinished
+   * because money is still owed, and what a courier collects is amount_due
+   * plus the COD fee — order.amount does not include that fee.
+   *
+   * This is what the ₹499 booking should be: a ₹4,999 order with a ₹499
+   * advance, rather than a ₹499 cart that hides the balance from everyone
+   * including the buyer.
+   */
+  const partialCod = order.status === 'attempted'
+    && (payment.status ?? '').toLowerCase() === 'captured'
+    && paid > 0
+    && due > 0
+
+  if (partialCod) {
+    return {
+      plan: 'deposit',
+      paidPaise: paid,
+      balanceDuePaise: due + Number(order.cod_fee ?? 0),
+      unrecognised: false,
+    }
+  }
 
   /*
    * What the order said it was, when it said it.

@@ -400,3 +400,56 @@ describe('an abandoned checkout', () => {
     expect(res.status).toBe(404)
   })
 })
+
+describe('partial COD, the way Razorpay says to recognise it', () => {
+  // Their integration note for native merchants: the tell is the order status,
+  // not the arithmetic. 'attempted' means money is still owed at the door.
+  const advance = PRICE.depositPaise
+  const atTheDoor = PRICE.balancePaise
+
+  it('reads an advance paid online with the rest owed at the door', () => {
+    const order = {
+      amount: LIST, amount_paid: advance, amount_due: atTheDoor, status: 'attempted',
+    }
+    expect(readMagicPayment(order, { method: 'card', status: 'captured' })).toEqual({
+      plan: 'deposit',
+      paidPaise: advance,
+      balanceDuePaise: atTheDoor,
+      unrecognised: false,
+    })
+  })
+
+  it('adds the COD fee, which the order amount does not include', () => {
+    const order = {
+      amount: LIST, amount_paid: advance, amount_due: atTheDoor,
+      status: 'attempted', cod_fee: 2_000,
+    }
+    expect(readMagicPayment(order, { method: 'card', status: 'captured' }).balanceDuePaise)
+      .toBe(atTheDoor + 2_000)
+  })
+
+  it('is not confused with a sale that completed', () => {
+    const paidInFull = { amount: LIST, amount_paid: LIST, amount_due: 0, status: 'paid' }
+    expect(readMagicPayment(paidInFull, { method: 'upi', status: 'captured' }))
+      .toMatchObject({ plan: 'full', balanceDuePaise: 0 })
+  })
+
+  it('is not confused with a plain cash-on-delivery order', () => {
+    // Nothing settled online, the whole price at the door.
+    const cod = { amount: LIST, amount_paid: 0, amount_due: LIST, status: 'attempted' }
+    expect(readMagicPayment(cod, { method: 'cod', status: 'pending' }))
+      .toMatchObject({ paidPaise: 0, balanceDuePaise: LIST })
+  })
+
+  it('still trusts our own note over the status, where we wrote one', () => {
+    // Today's ₹499 orders carry the plan and balance in their notes, and those
+    // must keep winning while both shapes are in flight.
+    const ours = {
+      amount: PRICE.depositPaise, amount_paid: PRICE.depositPaise, amount_due: 0,
+      status: 'paid',
+      notes: { plan: 'deposit', balance_due_paise: String(atTheDoor) },
+    }
+    expect(readMagicPayment(ours, { method: 'upi', status: 'captured' }))
+      .toMatchObject({ plan: 'deposit', balanceDuePaise: atTheDoor })
+  })
+})
