@@ -6,6 +6,7 @@ import { useShell } from '@/lib/shell-store'
 import { useEdition } from '@/lib/edition-store'
 import { isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
 import { EV, track } from '@/lib/analytics'
+import type { Plan } from '@/lib/plans'
 
 /**
  * Book now, wherever it is pressed.
@@ -28,6 +29,8 @@ export default function BookNowButton({
   magic,
   location,
   className,
+  plan = 'deposit',
+  ariaLabel,
   tabIndex,
   onPress,
   children,
@@ -35,6 +38,10 @@ export default function BookNowButton({
   magic: boolean
   location: string
   className: string
+  /** Which door this one opens. Razorpay cannot ask, so the button decides. */
+  plan?: Plan
+  /** For a button whose label is a price and nothing else. */
+  ariaLabel?: string
   /** The sticky bar is off-screen until it is shown, and must not be tabbable. */
   tabIndex?: number
   /** Run before the window opens — the mobile menu closes itself this way. */
@@ -51,7 +58,8 @@ export default function BookNowButton({
         href="#reserve"
         className={className}
         tabIndex={tabIndex}
-        onClick={() => { onPress?.(); track(EV.reserveCtaClicked, { location, edition }) }}
+        aria-label={ariaLabel}
+        onClick={() => { onPress?.(); track(EV.reserveCtaClicked, { location, edition, plan }) }}
       >
         {children}
       </a>
@@ -62,15 +70,16 @@ export default function BookNowButton({
     <button
       type="button"
       className={className}
+      aria-label={ariaLabel}
       tabIndex={tabIndex}
       disabled={working}
       onClick={async () => {
         if (working) return
         onPress?.()
         setWorking(true)
-        track(EV.reserveCtaClicked, { location, edition })
+        track(EV.reserveCtaClicked, { location, edition, plan })
         await openMagicCheckout({
-          plan: 'deposit',
+          plan,
           qty: 1,
           shell: isOrderableShell(previewed) ? previewed : DEFAULT_SHELL,
           from: location,

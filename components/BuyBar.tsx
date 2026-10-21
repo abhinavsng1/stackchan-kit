@@ -83,16 +83,43 @@ export default function BuyBar({ location = 'buybar', magic = false }: {
     <div className="buybar" data-show={show} aria-hidden={!show}>
       <div className="flex items-center gap-3">
         <div className="min-w-0">
-          <div className="text-[15px] font-medium leading-tight">Book {edition === 'kit' ? 'the kit' : 'PebbleRobo'} for {PRICE.deposit}</div>
+          <div className="text-[15px] font-medium leading-tight">
+            {edition === 'kit' ? 'The kit' : 'PebbleRobo'}
+          </div>
           <div className="t-mono text-[11.5px] text-[var(--muted)] mt-0.5 truncate">
-            {PRICE.now} to buy · rest on delivery · free shipping
+            {magic
+              ? `${PRICE.deposit} books it · ${PRICE.now} in full`
+              : `${PRICE.now} to buy · rest on delivery · free shipping`}
           </div>
         </div>
-        <BookNowButton magic={magic} location={location}
-                       className="btn btn-brand ml-auto shrink-0"
-                       tabIndex={show ? undefined : -1}>
-          Book <span className="arrow" aria-hidden="true">→</span>
-        </BookNowButton>
+
+        {/* Both doors, because this bar now opens the payment window rather
+            than carrying somebody to a page where they could choose. Razorpay
+            cannot offer the choice inside the window — the amount is fixed
+            when the order is made — so if it is not here it is nowhere, and a
+            single Book button would quietly decide for them. */}
+        {magic ? (
+          <div className="flex items-center gap-2 ml-auto shrink-0">
+            <BookNowButton magic location={location} plan="deposit"
+                           ariaLabel={`Book for ${PRICE.deposit}, the rest on delivery`}
+                           className="btn btn-choice btn-sm"
+                           tabIndex={show ? undefined : -1}>
+              {PRICE.deposit}
+            </BookNowButton>
+            <BookNowButton magic location={location} plan="full"
+                           ariaLabel={`Pay ${PRICE.now} in full`}
+                           className="btn btn-choice btn-sm"
+                           tabIndex={show ? undefined : -1}>
+              {PRICE.now}
+            </BookNowButton>
+          </div>
+        ) : (
+          <BookNowButton magic={false} location={location}
+                         className="btn btn-brand ml-auto shrink-0"
+                         tabIndex={show ? undefined : -1}>
+            Book <span className="arrow" aria-hidden="true">→</span>
+          </BookNowButton>
+        )}
       </div>
     </div>
   )

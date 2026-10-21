@@ -558,6 +558,13 @@ p { text-wrap: pretty; }
 .buybar[data-show="true"] { transform: none; }
 @media (min-width: 1024px) { .buybar { display: none; } }
 
+/* Two prices and a name have to fit a pill on a 320px screen, so the bar
+   gives up its generous left padding before it gives up either button. */
+@media (max-width: 400px) {
+  .buybar { padding-left: 14px; }
+  .buybar .btn-sm { padding-inline: 12px; font-size: 13.5px; }
+}
+
 /* ---------- films ---------- */
 
 .film-play {
