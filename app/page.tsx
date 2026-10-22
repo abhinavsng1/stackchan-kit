@@ -36,7 +36,7 @@ export default function Page() {
           half stopped inside the two-screen story that used to come next. So
           the demo comes first, then the films as proof, then the story. */}
       <main id="top">
-        <Hero />
+        <Hero magic={magicEnabled()} />
         <Demo />
         <Showcase />
         <Meet />
@@ -46,7 +46,7 @@ export default function Page() {
         <Faq />
       </main>
 
-      <Footer socials={proof.socials} />
+      <Footer socials={proof.socials} magic={magicEnabled()} />
       <BuyBar magic={magicEnabled()} oneButton={gatewayCarriesTheChoice()} />
     </MotionRoot>
   )

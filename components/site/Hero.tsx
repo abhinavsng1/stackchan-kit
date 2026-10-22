@@ -9,7 +9,7 @@ import FaceIcon from '@/components/site/FaceIcon'
 import AmazonButton from '@/components/AmazonButton'
 import { SplitHeadline } from '@/components/site/motion'
 import { EV, track } from '@/lib/analytics'
-import { useEdition } from '@/lib/edition-store'
+import BookNowButton from '@/components/BookNowButton'
 import { PRICE } from '@/lib/kit'
 
 /** The FAQ answers opened most, said where the decision is made (tests/hero-promises.test.ts). */
@@ -24,9 +24,11 @@ const PROMISES = ['No tech skills needed', 'No subscription', 'Talks over your W
  * facts along the bottom. Scrolling away, the robot drifts up a little slower
  * than the page, so the hero hands over rather than being cut off.
  */
-export default function Hero() {
+export default function Hero({ magic = false }: {
+  /** Whether Book opens the one-tap window or carries them to the form. */
+  magic?: boolean
+}) {
   const ref = useRef<HTMLElement>(null)
-  const edition = useEdition()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
   const robotY = useTransform(scrollYProgress, [0, 1], ['0%', '14%'])
   const textY = useTransform(scrollYProgress, [0, 1], ['0%', '-10%'])
@@ -93,10 +95,10 @@ export default function Hero() {
               what it costs right under it instead of in a line of its own. */}
           <div className="grid grid-cols-2 gap-x-2.5 sm:flex sm:flex-wrap sm:items-start sm:gap-3 mt-4 sm:mt-7 lg:mt-9 hero-in [--d:.9s]">
             <div className="flex flex-col">
-              <a href="#reserve" className="btn btn-brand hero-cta"
-                 onClick={() => track(EV.reserveCtaClicked, { location: 'hero', edition })}>
+              <BookNowButton magic={magic} location="hero" plan="deposit"
+                             className="btn btn-brand hero-cta">
                 Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
-              </a>
+              </BookNowButton>
               <span className="hero-cta-note">{PRICE.balance} more when it arrives</span>
             </div>
             {/* Amazon takes the second button: people have bought there

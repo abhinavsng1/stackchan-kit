@@ -3,6 +3,7 @@ import Wordmark from '@/components/site/Wordmark'
 import { SplitHeadline } from '@/components/site/motion'
 import { TrackedLink } from '@/components/Tracked'
 import { EV } from '@/lib/events'
+import BookNowButton from '@/components/BookNowButton'
 import { BUILDERS, CONTACT, PRICE } from '@/lib/kit'
 import type { Social } from '@/lib/proof'
 
@@ -15,10 +16,12 @@ const HOME_PRODUCT: [string, string][] = [
   ['Watch it', '#films'], ['Specifications', '#specs'], ['Buy', '#buy'], ['For developers', '/kit'],
 ]
 
-export default function Footer({ socials, product = HOME_PRODUCT }: {
+export default function Footer({ socials, product = HOME_PRODUCT, magic = false }: {
   socials: Social[]
   /** The Product column. Each page passes links to its own sections. */
   product?: [string, string][]
+  /** Whether Book opens the one-tap window or carries them to the form. */
+  magic?: boolean
 }) {
   const columns: [string, [string, string][]][] = [
     ['Product', product],
@@ -32,10 +35,10 @@ export default function Footer({ socials, product = HOME_PRODUCT }: {
         <SplitHeadline as="p" className="t-display t-h1 m-0 max-w-[14ch]"
                        text={'Your AI deserves\na face.'} accent={['face']} />
         <div className="flex flex-wrap items-center gap-3 mt-10">
-          <TrackedLink href="#reserve" className="btn btn-accent btn-lg"
-                       event={EV.reserveCtaClicked} props={{ location: 'footer' }}>
+          <BookNowButton magic={magic} location="footer" plan="deposit"
+                         className="btn btn-accent btn-lg">
             Book PebbleRobo for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
-          </TrackedLink>
+          </BookNowButton>
           <a href={`mailto:${CONTACT.email}`} className="btn btn-ghost btn-lg">Ask us anything</a>
         </div>
 
