@@ -128,6 +128,12 @@ export default function HeroRobot({ area }: { area: React.RefObject<HTMLElement 
               alt={i === shell ? `PebbleRobo in ${s.name}` : ''}
               aria-hidden={i !== shell}
               width={1400} height={1400} preload={s.id === LEAD_SHELL} loading={s.id === LEAD_SHELL ? 'eager' : 'lazy'}
+              // The preload link was going out without a priority, so the
+              // browser discovered the largest thing on the page and then
+              // queued it behind everything else. Next 16 deprecates the
+              // `priority` prop in favour of `preload`, and its docs say to
+              // say this part out loud.
+              fetchPriority={s.id === LEAD_SHELL ? 'high' : 'auto'}
               sizes="(max-width: 1024px) 92vw, 640px"
               className="absolute inset-0 w-full h-full object-contain"
               style={{
