@@ -109,7 +109,7 @@ export default function Hero({ magic = false }: {
                   per hour. A first screen is where somebody finds out what
                   ₹499 means, not where they are asked for a card. */}
               <BookNowButton magic={false} location="hero" plan="deposit"
-                             scrollTo="buy"
+                             scrollTo="buybox"
                              className="btn btn-brand hero-cta">
                 Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
               </BookNowButton>

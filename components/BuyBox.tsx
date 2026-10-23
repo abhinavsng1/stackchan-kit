@@ -84,7 +84,7 @@ export default function BuyBox({ magic = false, oneButton = false }: {
   const e = EDITION[edition]
 
   return (
-    <div id="buybox">
+    <div id="buybox" className="scroll-mt-24 lg:scroll-mt-28">
       <p className="t-label m-0">Batch 01</p>
       <h2 className="t-display mt-4 mb-0" style={{ fontSize: 'clamp(44px, 5vw, 72px)' }}>PebbleRobo</h2>
       <p className="text-[17px] text-[var(--muted)] mt-3 mb-0 max-w-[36ch]">{e.pitch}</p>

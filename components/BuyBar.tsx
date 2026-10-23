@@ -114,7 +114,12 @@ export default function BuyBar({ location = 'buybar', magic = false, oneButton =
              the one most people take. Paying in full is a tap away in the
              order section, and crowding two prices into a pill on a phone
              made neither of them easy to read. */
-          <BookNowButton magic location={location} plan="deposit"
+          /* To the buy box, like the hero. This bar follows somebody up the
+             page, so a tap on it is as likely to be "take me to the thing"
+             as "charge me now" — and the buy box is where the colour, the
+             quantity and the price already are. */
+          <BookNowButton magic={false} location={location} plan="deposit"
+                         scrollTo="buybox"
                          ariaLabel={`Book for ${PRICE.deposit}, then ${PRICE.balance} on delivery`}
                          className="btn btn-brand ml-auto shrink-0"
                          tabIndex={show ? undefined : -1}>
