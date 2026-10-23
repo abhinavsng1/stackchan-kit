@@ -25,7 +25,14 @@ const PROMISES = ['No tech skills needed', 'No subscription', 'Talks over your W
  * than the page, so the hero hands over rather than being cut off.
  */
 export default function Hero({ magic = false }: {
-  /** Whether Book opens the one-tap window or carries them to the form. */
+  /**
+   * Whether Book opens the one-tap window or carries them to the panel.
+   *
+   * Defaults off and the home page leaves it off, measured rather than
+   * assumed: see the note at its call site in app/page.tsx. The prop stays
+   * so the decision is a value somebody can change and watch, not something
+   * welded shut.
+   */
   magic?: boolean
 }) {
   const ref = useRef<HTMLElement>(null)
@@ -95,7 +102,14 @@ export default function Hero({ magic = false }: {
               what it costs right under it instead of in a line of its own. */}
           <div className="grid grid-cols-2 gap-x-2.5 sm:flex sm:flex-wrap sm:items-start sm:gap-3 mt-4 sm:mt-7 lg:mt-9 hero-in [--d:.9s]">
             <div className="flex flex-col">
-              <BookNowButton magic={magic} location="hero" plan="deposit"
+              {/* To the buy box, not to a payment window.
+                  In the 24 hours this opened Razorpay directly, 24 people
+                  tapped it and not one reached the address step; in the 42
+                  hours before, 22 of 50 did and 6 paid — at the same taps
+                  per hour. A first screen is where somebody finds out what
+                  ₹499 means, not where they are asked for a card. */}
+              <BookNowButton magic={false} location="hero" plan="deposit"
+                             scrollTo="buy"
                              className="btn btn-brand hero-cta">
                 Book for {PRICE.deposit} <span className="arrow hidden sm:inline" aria-hidden="true">→</span>
               </BookNowButton>

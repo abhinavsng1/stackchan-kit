@@ -51,7 +51,7 @@ export default function Buy({ magic = false, oneButton = false }: { magic?: bool
 
           <div className="grid gap-10 lg:gap-16 lg:grid-cols-12 items-start mt-14 md:mt-20">
             <div className="min-w-0 lg:col-span-7"><Gallery /></div>
-            <div className="min-w-0 lg:col-span-5 lg:sticky lg:top-28"><BuyBox /></div>
+            <div className="min-w-0 lg:col-span-5 lg:sticky lg:top-28"><BuyBox magic={magic} oneButton={oneButton} /></div>
           </div>
 
           {/* What's included */}
@@ -109,22 +109,24 @@ export default function Buy({ magic = false, oneButton = false }: { magic?: bool
       </section>
 
 
-      {/* The order. */}
+      {/* The order, which with one tap on is only ever a fallback.
+          OneTapOrder renders nothing at all until a window refuses to open,
+          so the page ends at the buy box — the one place that already asks
+          the colour and the quantity, beside the price and the photograph.
+          Asking the same two questions again further down was a second
+          decision for no new information. */}
+      {magic ? (
+        <OneTapOrder><ReserveForm /></OneTapOrder>
+      ) : (
       <section id="reserve" className="section scroll-mt-20" style={{ paddingTop: 'clamp(64px, 8vw, 120px)' }}>
         <div className="wrap grid gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-7">
             <p className="t-label m-0 mb-6">Order</p>
             <h2 className="t-display t-h2 m-0 mb-5">Book yours.</h2>
             <p className="t-lead mt-0 mb-12 max-w-[42ch]">
-              {magic
-                ? 'Your colour, then one tap. Razorpay takes the address and the payment in a single window.'
-                : 'Your details and your colour. It takes about a minute.'}
+              Your details and your colour. It takes about a minute.
             </p>
-            {/* One tap is the way in. OneTapOrder keeps the form and shows it
-                only if a window will not open, or if somebody asks for it. */}
-            {magic
-              ? <OneTapOrder oneButton={oneButton}><ReserveForm /></OneTapOrder>
-              : <ReserveForm />}
+            <ReserveForm />
           </div>
 
           <aside className="lg:col-span-5 card p-7 md:p-8 h-fit lg:sticky lg:top-28">
@@ -138,6 +140,7 @@ export default function Buy({ magic = false, oneButton = false }: { magic?: bool
           </aside>
         </div>
       </section>
+      )}
     </>
   )
 }

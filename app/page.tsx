@@ -36,7 +36,7 @@ export default function Page() {
           half stopped inside the two-screen story that used to come next. So
           the demo comes first, then the films as proof, then the story. */}
       <main id="top">
-        <Hero magic={magicEnabled()} />
+        <Hero />
         <Demo />
         <Showcase />
         <Meet />

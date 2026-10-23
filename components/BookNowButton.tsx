@@ -33,6 +33,7 @@ export default function BookNowButton({
   ariaLabel,
   tabIndex,
   onPress,
+  scrollTo = 'reserve',
   children,
 }: {
   magic: boolean
@@ -46,6 +47,8 @@ export default function BookNowButton({
   tabIndex?: number
   /** Run before the window opens — the mobile menu closes itself this way. */
   onPress?: () => void
+  /** Where this goes when it is a link rather than a payment window. */
+  scrollTo?: string
   children: React.ReactNode
 }) {
   const previewed = useShell()
@@ -55,7 +58,7 @@ export default function BookNowButton({
   if (!magic) {
     return (
       <a
-        href="#reserve"
+        href={`#${scrollTo}`}
         className={className}
         tabIndex={tabIndex}
         aria-label={ariaLabel}

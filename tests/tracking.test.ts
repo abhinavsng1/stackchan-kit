@@ -139,7 +139,11 @@ describe('the one-tap flow reports every step it takes', () => {
   // The window is opened by lib/magic-checkout.ts, which the buy panel, the
   // header and the sticky bar all call; the reporting lives with it.
   const button = read('lib/magic-checkout.ts')
-  const order = read('components/OneTapOrder.tsx')
+  // The buy box asks the two things the window cannot, and the panel below
+  // exists only to report that a window let somebody down.
+  const order = read('components/BuyBox.tsx')
+    + read('components/site/ShellPicker.tsx')
+    + read('components/OneTapOrder.tsx')
 
   it('reports the window opening, succeeding, being closed and failing', () => {
     // Four outcomes, and the funnel is unreadable if any one of them is

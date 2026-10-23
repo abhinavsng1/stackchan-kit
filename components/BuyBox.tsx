@@ -10,6 +10,9 @@ import { useEdition } from '@/lib/edition-store'
 import { track } from '@/lib/analytics'
 import { EV } from '@/lib/events'
 import ShellPicker from '@/components/site/ShellPicker'
+import { openMagicCheckout } from '@/lib/magic-checkout'
+import { useShell } from '@/lib/shell-store'
+import { isOrderableShell, DEFAULT_SHELL } from '@/lib/shells'
 
 const MAX = 5
 
@@ -25,17 +28,57 @@ const MAX = 5
  * alternative underneath rather than as an equal choice: most buyers want a
  * robot, not a project.
  */
-export default function BuyBox() {
+export default function BuyBox({ magic = false, oneButton = false }: {
+  /** Whether Book opens the payment window or carries them to the form. */
+  magic?: boolean
+  /**
+   * The gateway carries the choice: with cash on delivery available there is
+   * one order at the full price and the buyer decides between paying now and
+   * paying on delivery inside the window, where partial COD takes the ₹499
+   * advance. Until then this books the deposit.
+   */
+  oneButton?: boolean
+}) {
   const [qty, setQty] = useState(1)
+  const [working, setWorking] = useState(false)
   const edition = useEdition()
+  const previewed = useShell()
 
 
-  const step = (by: number) => setQty((q) => Math.min(MAX, Math.max(1, q + by)))
+  const step = (by: number) => setQty((q) => {
+    const next = Math.min(MAX, Math.max(1, q + by))
+    // Razorpay's window cannot ask how many, so this is the only record of
+    // somebody wanting more than one.
+    if (next !== q) track(EV.quantityChosen, { qty: next, location: 'buybox' })
+    return next
+  })
 
-  const reserve = () => {
+  /*
+   * This box is where somebody buys.
+   *
+   * It already asks the two things Razorpay's window cannot — the colour and
+   * how many — beside the price and the photograph. Sending them further
+   * down to ask again was a second decision for no new information.
+   */
+  const reserve = async () => {
+    if (working) return
     track(EV.reserveCtaClicked, { location: 'buybox', qty, edition })
     window.dispatchEvent(new CustomEvent('sc:qty', { detail: qty }))
-    smoothScrollTo('reserve')
+
+    if (!magic) return smoothScrollTo('reserve')
+
+    setWorking(true)
+    await openMagicCheckout({
+      plan: oneButton ? 'full' : 'deposit',
+      qty,
+      shell: isOrderableShell(previewed) ? previewed : DEFAULT_SHELL,
+      from: 'buybox',
+      onDone: () => setWorking(false),
+      onDismissed: () => setWorking(false),
+      // The panel below has already been told and will appear with the form;
+      // this only carries them to it.
+      onFailed: () => { setWorking(false); smoothScrollTo('reserve') },
+    })
   }
 
   const e = EDITION[edition]
@@ -90,7 +133,8 @@ export default function BuyBox() {
                 aria-label={`Quantity ${qty}`}>{qty}</span>
           <StepButton label="More" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
         </div>
-        <button type="button" onClick={reserve} className="btn btn-brand btn-lg flex-1 min-w-0">
+        <button type="button" onClick={reserve} disabled={working}
+                className="btn btn-brand btn-lg flex-1 min-w-0">
           Book for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
         </button>
       </div>
