@@ -33,8 +33,14 @@ export default function BuyBar({ location = 'buybar', magic = false, oneButton =
       const hero = document.getElementById('hero')
       const buy = document.getElementById('buy') ?? document.getElementById('editions')
       const demo = document.getElementById('does')
+      /*
+       * #reserve is no longer always on the page: the order panel renders
+       * only when a payment window has let somebody down. Requiring it here
+       * meant this function returned early every time and the bar never
+       * appeared at all — a sticky buy button that was never sticky.
+       */
       const reserve = document.getElementById('reserve')
-      if (!hero || !reserve) return
+      if (!hero) return
 
       const heroGone = hero.getBoundingClientRect().bottom < 0
       const over = (el: HTMLElement) => {
@@ -50,7 +56,7 @@ export default function BuyBar({ location = 'buybar', magic = false, oneButton =
         const r = el.getBoundingClientRect()
         return r.top < window.innerHeight / 2 && r.bottom > window.innerHeight / 2
       }
-      setShow(heroGone && !(buy && over(buy)) && !over(reserve) && !(demo && centred(demo)))
+      setShow(heroGone && !(buy && over(buy)) && !(reserve && over(reserve)) && !(demo && centred(demo)))
     }
 
     const onScroll = () => {
