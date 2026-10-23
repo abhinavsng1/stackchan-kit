@@ -9,6 +9,7 @@ import { EDITION, PRICE } from '@/lib/kit'
 import { useEdition } from '@/lib/edition-store'
 import { track } from '@/lib/analytics'
 import { EV } from '@/lib/events'
+import type { Plan } from '@/lib/plans'
 import ShellPicker from '@/components/site/ShellPicker'
 import { openMagicCheckout } from '@/lib/magic-checkout'
 import { useShell } from '@/lib/shell-store'
@@ -60,16 +61,16 @@ export default function BuyBox({ magic = false, oneButton = false }: {
    * how many — beside the price and the photograph. Sending them further
    * down to ask again was a second decision for no new information.
    */
-  const reserve = async () => {
+  const reserve = async (plan: Plan) => {
     if (working) return
-    track(EV.reserveCtaClicked, { location: 'buybox', qty, edition })
+    track(EV.reserveCtaClicked, { location: 'buybox', qty, edition, plan })
     window.dispatchEvent(new CustomEvent('sc:qty', { detail: qty }))
 
     if (!magic) return smoothScrollTo('reserve')
 
     setWorking(true)
     await openMagicCheckout({
-      plan: oneButton ? 'full' : 'deposit',
+      plan,
       qty,
       shell: isOrderableShell(previewed) ? previewed : DEFAULT_SHELL,
       from: 'buybox',
@@ -133,11 +134,39 @@ export default function BuyBox({ magic = false, oneButton = false }: {
                 aria-label={`Quantity ${qty}`}>{qty}</span>
           <StepButton label="More" onClick={() => step(1)} disabled={qty === MAX}>+</StepButton>
         </div>
-        <button type="button" onClick={reserve} disabled={working}
+        <button type="button" onClick={() => reserve(oneButton ? 'full' : 'deposit')}
+                disabled={working}
                 className="btn btn-brand btn-lg flex-1 min-w-0">
-          Book for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span>
+          {oneButton
+            ? <>Order for {PRICE.now} <span className="arrow" aria-hidden="true">→</span></>
+            : <>Book for {PRICE.deposit} <span className="arrow" aria-hidden="true">→</span></>}
         </button>
       </div>
+
+      {/* Both doors, where the price and the colour already are.
+          Booking leads because it is the smaller ask and the one most people
+          take; paying in full sits under it at the same width rather than
+          beside it, so neither is squeezed on a phone and neither reads as
+          the thing you were not meant to pick.
+
+          With cash on delivery on, this disappears: there is one order at
+          the full price and the buyer chooses between paying now and paying
+          on delivery inside Razorpay's window, which is the only place that
+          choice can be a payment method. */}
+      {!oneButton && (
+        <>
+          <p className="text-[13px] mt-2 mb-0" style={{ color: 'var(--muted)' }}>
+            ({PRICE.balance} in cash on delivery)
+          </p>
+          <button type="button" onClick={() => reserve('full')} disabled={working}
+                  className="btn btn-choice btn-lg w-full mt-3">
+            Pay {PRICE.now} in full
+          </button>
+          <p className="text-[13px] mt-2 mb-0" style={{ color: 'var(--muted)' }}>
+            Then nothing to pay at the door
+          </p>
+        </>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
         <p className="t-mono text-[12px] text-[var(--muted)] m-0">Card · UPI · netbanking · EMI, via Razorpay</p>
         <a href="#included" className="link text-[14px]">See what’s included</a>
