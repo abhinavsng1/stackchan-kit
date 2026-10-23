@@ -500,3 +500,42 @@ describe('what the gateway cart says about the balance', () => {
     expect(lineItemsFor('full', 1).lineItems[0]!.name).not.toContain('on delivery')
   })
 })
+
+describe('the abandoned-checkout webhook', () => {
+  beforeEach(() => { process.env.MAGIC_CHECKOUT = '1' })
+
+  const send = async (body: unknown) => {
+    const { POST } = await import('@/app/api/magic/abandoned/route')
+    return POST(new Request('https://pebblerobo.com/api/magic/abandoned', {
+      method: 'POST', body: JSON.stringify(body),
+    }))
+  }
+
+  it('answers 200 even to a shape it does not recognise', async () => {
+    // A webhook answered with an error is one Razorpay retries and then stops
+    // sending. Nothing here is worth losing the feed over.
+    expect((await send({ something: 'else' })).status).toBe(200)
+    expect((await send({})).status).toBe(200)
+  })
+
+  it('does not exist with the flag off', async () => {
+    delete process.env.MAGIC_CHECKOUT
+    expect((await send({ razorpay_order_id: 'order_x' })).status).toBe(404)
+  })
+
+  it('survives a body that is not JSON at all', async () => {
+    const { POST } = await import('@/app/api/magic/abandoned/route')
+    const res = await POST(new Request('https://pebblerobo.com/api/magic/abandoned', {
+      method: 'POST', body: 'not json',
+    }))
+    expect(res.status).toBe(200)
+  })
+
+  it('refuses a body big enough to be an attack', async () => {
+    const { POST } = await import('@/app/api/magic/abandoned/route')
+    const res = await POST(new Request('https://pebblerobo.com/api/magic/abandoned', {
+      method: 'POST', body: 'x'.repeat(20_000),
+    }))
+    expect(res.status).toBe(413)
+  })
+})
