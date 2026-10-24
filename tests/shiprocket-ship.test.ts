@@ -174,3 +174,50 @@ describe('whether the courier is wired up at all', () => {
                      'SHIPROCKET_PICKUP_LOCATION', 'SHIPROCKET_PICKUP_PINCODE']) delete process.env[k]
   })
 })
+
+describe('the parcel we declare', () => {
+  const set = (cm: string, kg: string) => {
+    process.env.SHIPROCKET_AUTO_CREATE = '1'
+    process.env.SHIPROCKET_EMAIL = 'a@b.c'
+    process.env.SHIPROCKET_PASSWORD = 'x'
+    process.env.SHIPROCKET_PICKUP_LOCATION = 'Home'
+    process.env.SHIPROCKET_PICKUP_PINCODE = '560078'
+    process.env.SHIPROCKET_BOX_CM = cm
+    process.env.SHIPROCKET_BOX_KG = kg
+  }
+  const clear = () => {
+    for (const k of ['SHIPROCKET_AUTO_CREATE','SHIPROCKET_EMAIL','SHIPROCKET_PASSWORD',
+      'SHIPROCKET_PICKUP_LOCATION','SHIPROCKET_PICKUP_PINCODE','SHIPROCKET_BOX_CM',
+      'SHIPROCKET_BOX_KG']) delete process.env[k]
+  }
+
+  it('carries the real box, decimals and all', async () => {
+    // 17.8 x 10.2 x 8.9 cm, 0.3 kg. Integers-only parsing would silently
+    // ship a 17 x 10 x 8 carton, which is a different parcel.
+    set('17.8x10.2x8.9', '0.3')
+    const { parseBox } = await import('@/lib/shiprocket/on-paid')
+    expect(parseBox()).toEqual({ length: 17.8, breadth: 10.2, height: 8.9, weight: 0.3 })
+    clear()
+  })
+
+  it('declares the actual weight, not the billed one', async () => {
+    // Volumetric here is 0.32 kg and Shiprocket's floor is 0.5 kg, so every
+    // order bills at 0.5 whatever we say. Declaring 0.5 would state a
+    // heavier parcel than we hand over and change nothing about the bill.
+    set('17.8x10.2x8.9', '0.3')
+    const { parseBox } = await import('@/lib/shiprocket/on-paid')
+    const box = parseBox()!
+    const volumetric = (box.length * box.breadth * box.height) / 5000
+    expect(Number(volumetric.toFixed(2))).toBe(0.32)
+    expect(box.weight).toBeLessThan(volumetric)
+    clear()
+  })
+
+  it('refuses a box that is missing a side or weighs nothing', async () => {
+    const { parseBox } = await import('@/lib/shiprocket/on-paid')
+    set('17.8x10.2', '0.3');      expect(parseBox()).toBe(null)
+    set('17.8x10.2x8.9', '0');    expect(parseBox()).toBe(null)
+    set('17.8xWIDExDEEP', '0.3'); expect(parseBox()).toBe(null)
+    clear()
+  })
+})

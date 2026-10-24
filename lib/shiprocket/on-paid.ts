@@ -26,7 +26,16 @@ export function autoCreateEnabled(): boolean {
     && Boolean(process.env.SHIPROCKET_PICKUP_LOCATION && process.env.SHIPROCKET_PICKUP_PINCODE)
 }
 
-function box() {
+/**
+ * The packed carton, from the environment.
+ *
+ * The ACTUAL weight, never the billed one. Couriers bill the higher of
+ * actual and volumetric (L x B x H / 5000) and Shiprocket applies a 0.5 kg
+ * floor per shipment, so declaring the floor here would state a heavier
+ * parcel than we hand over and change nothing about the bill. A weight
+ * dispute only ever comes from declaring less than the courier weighs.
+ */
+export function parseBox() {
   const cm = (process.env.SHIPROCKET_BOX_CM ?? '').split('x').map(Number)
   const kg = Number(process.env.SHIPROCKET_BOX_KG)
   if (cm.length !== 3 || cm.some((n) => !Number.isFinite(n) || n <= 0)) return null
@@ -37,7 +46,7 @@ function box() {
 export async function createCourierOrder(preorderId: number): Promise<void> {
   if (!autoCreateEnabled()) return
 
-  const dims = box()
+  const dims = parseBox()
   const pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION
   const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE
   if (!dims || !pickupLocation || !pickupPincode) {
