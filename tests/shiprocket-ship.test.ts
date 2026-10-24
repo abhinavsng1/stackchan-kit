@@ -116,7 +116,7 @@ describe('a booking registered the moment it is paid', () => {
     // stale waybill, and the courier it picks is chosen on today's rates
     // rather than the day's it actually travels.
     const ran: string[] = []
-    const step = (name: string) => async () => { ran.push(name); return { ok: true as const } }
+    const step = (name: string) => async () => { ran.push(name); return { ok: true as const, body: {} } }
     const { runChain } = await import('@/lib/shiprocket/ship')
 
     const out = await runChain(
@@ -136,7 +136,7 @@ describe('a booking registered the moment it is paid', () => {
 
   it('still runs the whole reversible half when nothing asks it to stop', async () => {
     const ran: string[] = []
-    const step = (name: string) => async () => { ran.push(name); return { ok: true as const } }
+    const step = (name: string) => async () => { ran.push(name); return { ok: true as const, body: {} } }
     const { runChain } = await import('@/lib/shiprocket/ship')
     await runChain(
       { srOrderId: null, srShipmentId: null, awbCode: null, pickupScheduledDate: null, labelUrl: null },
