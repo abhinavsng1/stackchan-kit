@@ -1,6 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 import { srCall, type Verdict } from './client'
 import { mapOrder, type MapOptions } from './map'
+import { consumeForShipment } from '@/lib/inventory'
 import type { AdminOrder } from '@/lib/admin-orders'
 
 /**
@@ -184,6 +185,16 @@ export async function shipOrder(
             courier_name = ${txt(data.courier_name)},
             fulfilment = 'shipped'
           where id = ${order.id}`
+
+        /*
+         * The waybill is the first moment a robot has demonstrably left the
+         * bench, so it is where the shelf is debited. Idempotent on the
+         * order, and it never throws: a stock figure is not worth failing a
+         * dispatch over, and the move can be typed in by hand.
+         */
+        await consumeForShipment({
+          id: order.id, qty: order.qty, edition: order.edition, shell: order.shell,
+        })
       }
       return v
     },

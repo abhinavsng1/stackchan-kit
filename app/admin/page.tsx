@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { listOrders, GROUP_LABEL, GROUPS } from '@/lib/admin-orders'
 import { listCoupons } from '@/lib/coupons'
+import { listStock } from '@/lib/inventory'
 import { adminConfigured } from '@/lib/admin-auth'
 import AdminNav from './AdminNav'
 
@@ -33,13 +34,17 @@ export default async function AdminHome() {
     )
   }
 
-  const [all, coupons] = await Promise.all([listOrders(), listCoupons()])
+  const [all, coupons, shelf] = await Promise.all([listOrders(), listCoupons(), listStock()])
   const orders = all.filter((o) => !o.archivedAt)
 
   const counts = Object.fromEntries(GROUPS.map((g) => [g, orders.filter((o) => o.group === g).length]))
   const taken = orders.reduce((n, o) => n + o.paidPaise, 0)
   const owed = orders.reduce((n, o) => n + (o.group === 'balance_due' ? o.duePaise : 0), 0)
   const review = orders.filter((o) => o.needsReview).length
+  const robots = shelf.stock.filter((s) => s.kind === 'finished')
+  // Sold and not yet built, which is the only stock figure worth a to-do.
+  const toBuild = robots.reduce((n, s) => n + Math.max(0, -s.available), 0)
+  const lowStock = shelf.stock.filter((s) => s.low && s.available >= 0).length
   const activeCodes = coupons.filter((c) => c.active).length
   const redeemed = coupons.reduce((n, c) => n + c.redeemed, 0)
 
@@ -48,6 +53,9 @@ export default async function AdminHome() {
     counts.unpaid ? { n: counts.unpaid, what: 'unpaid, waiting to be chased', to: '/admin/orders' } : null,
     counts.balance_due ? { n: counts.balance_due, what: 'owe cash at the door', to: '/admin/orders' } : null,
     review ? { n: review, what: 'need a person to look', to: '/admin/orders' } : null,
+    toBuild ? { n: toBuild, what: 'robots sold that are not built yet', to: '/admin/inventory' } : null,
+    shelf.unstocked.length
+      ? { n: shelf.unstocked.length, what: 'sold with nothing counting them', to: '/admin/inventory' } : null,
   ].filter(Boolean) as { n: number; what: string; to: string }[]
 
   return (
@@ -84,6 +92,15 @@ export default async function AdminHome() {
           lines={[
             ...GROUPS.map((g) => `${counts[g]} ${GROUP_LABEL[g].toLowerCase()}`),
             'Open a row to see the whole record, mark it paid, archive it or delete it.',
+          ]}
+        />
+        <Card
+          to="/admin/inventory"
+          title="Stock"
+          lines={[
+            `${robots.reduce((n, s) => n + s.onHand, 0)} on the bench`,
+            toBuild ? `${toBuild} sold and still to build` : 'Nothing sold that is not built',
+            lowStock ? `${lowStock} running low` : 'Nothing running low',
           ]}
         />
         <Card

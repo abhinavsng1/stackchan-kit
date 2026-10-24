@@ -376,3 +376,65 @@ create table if not exists shiprocket_token (
   expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
+
+-- ---------------------------------------------------------------------------
+-- Stock.
+--
+-- Two robots get built on a bench in Bengaluru, so the useful question is
+-- never "what does the warehouse system say" but "how many finished robots
+-- in this colour can I promise today". That number is on_hand minus what
+-- paid, unshipped orders have already spoken for, and the second half is
+-- never stored: it is counted from preorders, so a cancelled or archived
+-- order releases its robot without anybody remembering to.
+--
+-- on_hand is a running total maintained beside the ledger rather than summed
+-- from it on every read. The two are written in one statement, so they cannot
+-- disagree, and the ledger stays the explanation of the number rather than
+-- the number itself.
+create table if not exists inventory_items (
+  sku        text        primary key,
+  name       text        not null,
+  -- 'finished' is something we sell: it carries an edition and a colour and
+  -- so has demand counted against it. 'part' is anything consumed building
+  -- one, tracked by hand because no order mentions it by name.
+  kind       text        not null default 'finished' check (kind in ('finished', 'part')),
+  edition    text,
+  shell      text,
+  on_hand    integer     not null default 0,
+  -- Warn below this. NULL means never warn.
+  reorder_at integer,
+  active     boolean     not null default true,
+  note       text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- One item per thing we sell. Two rows claiming the same edition and colour
+-- would split a count in half and each half would look fine.
+create unique index if not exists inventory_items_sellable
+  on inventory_items (edition, coalesce(shell, '')) where kind = 'finished';
+
+-- Every change, with a reason, forever.
+--
+-- A stock figure nobody can explain gets overridden by whoever trusts their
+-- own memory most, and then it is wrong in a new way. order_id is set when a
+-- move came from an order rather than from a person.
+create table if not exists inventory_moves (
+  id         bigserial   primary key,
+  sku        text        not null references inventory_items (sku) on delete cascade,
+  delta      integer     not null check (delta <> 0),
+  reason     text        not null check (reason in
+               ('built', 'received', 'returned', 'shipped', 'damaged', 'sample', 'count')),
+  order_id   integer,
+  note       text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists inventory_moves_recent on inventory_moves (created_at desc);
+create index if not exists inventory_moves_sku on inventory_moves (sku, created_at desc);
+
+-- Dispatch writes a 'shipped' move as the waybill is assigned, and a retried
+-- dispatch runs that write again. One move per order per reason is what makes
+-- the retry free.
+create unique index if not exists inventory_moves_once
+  on inventory_moves (sku, reason, order_id) where order_id is not null;

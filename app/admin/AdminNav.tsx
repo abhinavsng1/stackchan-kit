@@ -7,7 +7,7 @@ import Link from 'next/link'
  * the codes, and a tool you have to navigate by address bar is one you stop
  * opening.
  */
-type Page = 'home' | 'orders' | 'one-tap' | 'coupons'
+type Page = 'home' | 'orders' | 'one-tap' | 'inventory' | 'coupons'
 
 export default function AdminNav({ here }: { here: Page }) {
   const link = (to: string, key: Page, label: string) => (
@@ -30,6 +30,7 @@ export default function AdminNav({ here }: { here: Page }) {
       {link('/admin', 'home', 'Back office')}
       {link('/admin/orders', 'orders', 'Orders')}
       {link('/admin/one-tap', 'one-tap', 'One-tap')}
+      {link('/admin/inventory', 'inventory', 'Stock')}
       {link('/admin/coupons', 'coupons', 'Coupons')}
     </div>
   )
