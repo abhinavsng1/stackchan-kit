@@ -6,6 +6,7 @@ import { sendXConversion } from '@/lib/x-conversions'
 import { sendPaymentConfirmed, sendBuyerProfile } from '@/lib/mixpanel-server'
 import { resolveMagicCustomer, readMagicPayment, type MagicOrder } from '@/lib/magic'
 import { findMagicOrder, markMagicOrderPaid } from '@/lib/magic-orders'
+import { createCourierOrder } from '@/lib/shiprocket/on-paid'
 
 /**
  * The authoritative record of a payment.
@@ -274,6 +275,12 @@ export async function POST(request: Request) {
        * false, so the money is in the numbers and the gap is visible rather
        * than silent.
        */
+      // Registered with the courier as soon as it is paid for — the order
+      // only, never a waybill. Fire and forget: a courier having a bad
+      // afternoon must not turn a captured payment into a 500 that Razorpay
+      // retries into a duplicate booking.
+      if (written.status === 'paid' && written.id) afterResponse(createCourierOrder(written.id))
+
       afterResponse(sendPaymentConfirmed({
         orderId: payment.order_id, paymentId: payment.id,
         email: customer.emailKnown ? customer.email : null,
@@ -342,6 +349,8 @@ export async function POST(request: Request) {
   // 'paid' is returned by exactly one call per reservation, so a redelivered
   // webhook cannot send a second receipt.
   if (result.status === 'paid') {
+    if (result.id) afterResponse(createCourierOrder(result.id))
+
     sendAndReport('receipt', payment.order_id, sendPaymentReceiptEmail({
       name: result.name,
       email: result.email,

@@ -319,3 +319,60 @@ create table if not exists magic_orders (
 
 create index if not exists magic_orders_unpaid
   on magic_orders (created_at desc) where status <> 'paid';
+
+-- ---------------------------------------------------------------------------
+-- Fulfilment through Shiprocket. Ported from feat/shiprocket, which was
+-- written against an older main and never merged. Additive and safe to re-run.
+
+-- cod_amount_paise records what the courier was actually asked to
+-- collect rather than something recomputed later, so changing the COD
+-- encoding cannot rewrite what already happened.
+-- ---------------------------------------------------------------- --
+alter table preorders add column if not exists sr_order_id           bigint;
+alter table preorders add column if not exists sr_shipment_id        bigint;
+alter table preorders add column if not exists awb_code              text;
+alter table preorders add column if not exists courier_name          text;
+alter table preorders add column if not exists sr_status             text;
+alter table preorders add column if not exists sr_status_at          timestamptz;
+alter table preorders add column if not exists pickup_scheduled_date date;
+alter table preorders add column if not exists label_url             text;
+alter table preorders add column if not exists remittance_utr        text;
+alter table preorders add column if not exists remittance_status     text;
+alter table preorders add column if not exists remittance_date       date;
+alter table preorders add column if not exists cod_amount_paise      integer;
+
+create index if not exists preorders_awb on preorders (awb_code) where awb_code is not null;
+
+-- Tracking scans.
+--
+-- Shiprocket resends the entire scans[] history on every webhook rather
+-- than a delta, and authenticates with nothing but a shared secret. The
+-- natural key is what makes an at-least-once, forgeable feed harmless:
+-- the same scan delivered twice writes once.
+--
+-- raw keeps the payload because Shiprocket publishes no complete status
+-- code table, and the two id spaces it does send disagree with each
+-- other. Nothing branches on those numbers; they are kept to study.
+create table if not exists shipment_events (
+  awb        text        not null,
+  scanned_at timestamptz not null,
+  status     text        not null,
+  activity   text,
+  location   text,
+  raw        jsonb       not null,
+  created_at timestamptz not null default now(),
+  primary key (awb, scanned_at, status)
+);
+
+-- The API token.
+--
+-- Valid ten days, with no refresh endpoint, and re-login is rate limited
+-- to the point of a half-hour lockout. Serverless instances share no
+-- memory, so caching it in module scope would mean logging in on every
+-- cold start until Shiprocket locks the account out.
+create table if not exists shiprocket_token (
+  id         boolean     primary key default true check (id),
+  token      text        not null,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);

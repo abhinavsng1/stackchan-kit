@@ -18,6 +18,9 @@ const order = (over: Partial<AdminOrder> = {}): AdminOrder => ({
   token: 'd'.repeat(32), address: '42, Sector 18', variant: null, discountPaise: 0,
   razorpayOrderId: null, razorpayPaymentId: null, balancePaymentId: null,
   balanceCollectedAt: null, needsReview: false, archivedAt: null, adminNote: null,
+  srOrderId: null, srShipmentId: null, awbCode: null, courierName: null,
+  srStatus: null, srStatusAt: null, pickupScheduledDate: null, labelUrl: null,
+  remittanceUtr: null, remittanceStatus: null, remittanceDate: null,
   ...over,
 })
 

@@ -266,6 +266,8 @@ export type MarkPaidResult =
    */
   | {
       status: 'paid'
+      /** The booking's own row id, for anything that has to act on it. */
+      id: number
       name: string; email: string; qty: number; amountPaise: number
       /** Robot or kit, so the receipt names what is actually coming. */
       edition: Edition
@@ -368,6 +370,7 @@ export async function markPaid(input: {
   const text = (v: unknown) => (v === null || v === undefined ? null : String(v))
   return {
     status: 'paid',
+    id: Number(row.id),
     name: String(row.name),
     email: String(row.email),
     qty: Number(row.qty),

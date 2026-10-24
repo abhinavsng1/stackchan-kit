@@ -67,6 +67,18 @@ export type AdminOrder = {
   needsReview: boolean
   archivedAt: Date | null
   adminNote: string | null
+  /* --- fulfilment, written by the courier integration (lib/shiprocket) --- */
+  srOrderId: string | null
+  srShipmentId: string | null
+  awbCode: string | null
+  courierName: string | null
+  srStatus: string | null
+  srStatusAt: Date | null
+  pickupScheduledDate: string | null
+  labelUrl: string | null
+  remittanceUtr: string | null
+  remittanceStatus: string | null
+  remittanceDate: Date | null
 }
 
 /** Which of the three buckets a row belongs in. */
@@ -123,6 +135,17 @@ function toOrder(r: Record<string, unknown>): AdminOrder {
     balancePaymentId: text(r.balance_payment_id),
     balanceCollectedAt: date(r.balance_collected_at),
     needsReview: r.needs_review === true,
+    srOrderId: text(r.sr_order_id),
+    srShipmentId: text(r.sr_shipment_id),
+    awbCode: text(r.awb_code),
+    courierName: text(r.courier_name),
+    srStatus: text(r.sr_status),
+    srStatusAt: date(r.sr_status_at),
+    pickupScheduledDate: text(r.pickup_scheduled_date),
+    labelUrl: text(r.label_url),
+    remittanceUtr: text(r.remittance_utr),
+    remittanceStatus: text(r.remittance_status),
+    remittanceDate: date(r.remittance_date),
     archivedAt: date(r.archived_at),
     adminNote: text(r.admin_note),
   }
@@ -137,7 +160,10 @@ export async function listOrders(limit = 500): Promise<AdminOrder[]> {
            coupon_code, discount_paise, variant, amount_paid_paise, balance_due_paise,
            created_at, paid_at, balance_paid_at, balance_collected_at, balance_asked_at,
            recovery_sent_at, payment_token, razorpay_order_id, razorpay_payment_id,
-           balance_payment_id, needs_review, archived_at, admin_note
+           balance_payment_id, needs_review, archived_at, admin_note,
+           sr_order_id, sr_shipment_id, awb_code, courier_name, sr_status,
+           sr_status_at, pickup_scheduled_date, label_url,
+           remittance_utr, remittance_status, remittance_date
       from preorders
      order by created_at desc
      limit ${Math.max(1, Math.min(2000, limit))}`
