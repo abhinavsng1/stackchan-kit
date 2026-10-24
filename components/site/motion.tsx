@@ -116,7 +116,13 @@ export function SplitHeadline({
               const at = { '--d': `${delay + 0.055 * k++}s` } as React.CSSProperties
               return (
                 <span key={`${li}-${wi}`} className="inline-block overflow-hidden align-bottom"
-                      style={{ paddingBottom: '0.08em', marginBottom: '-0.08em' }}>
+                      /* The mask has to clear the descenders of a display
+                         face set at 0.9 leading — the line box is shorter
+                         than the type, so "g", "y" and the full stop were
+                         being shaved off on a phone. Padding widens what the
+                         mask shows; the negative margin keeps the layout
+                         exactly where it was. */
+                      style={{ paddingBottom: '0.2em', marginBottom: '-0.2em' }}>
                   <span className={`inline-block word-rise ${isAccent ? 'accent' : ''}`} style={at}>{word}</span>
                   {/* A non-breaking space: an ordinary one at the end of the word's
                       box is dropped, and the words would run together. */}
@@ -140,11 +146,11 @@ export function SplitHeadline({
             const isAccent = accent.includes(word.replace(/[.,!?]/g, ''))
             return (
               <span key={`${li}-${wi}`} className="inline-block overflow-hidden align-bottom"
-                    style={{ paddingBottom: '0.08em', marginBottom: '-0.08em' }}>
+                    style={{ paddingBottom: '0.2em', marginBottom: '-0.2em' }}>
                 <motion.span
                   className={`inline-block ${isAccent ? 'accent' : ''}`}
                   variants={{
-                    hidden: reduce ? { opacity: 0 } : { y: '105%' },
+                    hidden: reduce ? { opacity: 0 } : { y: '130%' },
                     shown: reduce
                       ? { opacity: 1, transition: { duration: 0.5 } }
                       : { y: '0%', transition: { duration: 0.9, ease: EASE } },
